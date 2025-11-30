@@ -1,73 +1,68 @@
-# React + TypeScript + Vite
+# 🏨 Gestor de Tareas y Dashboard Administrativo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 🎯 Descripción del Proyecto
 
-Currently, two official plugins are available:
+Este es un proyecto de aplicación web diseñado para la **gestión eficiente de tareas** y la **administración de personal y recursos**, ideal para entornos como hoteles, servicios de mantenimiento o cualquier negocio con flujo de trabajo distribuido.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Construido sobre una pila tecnológica moderna, ofrece un **Dashboard Administrativo** completo para la creación, asignación, seguimiento y análisis de tareas, así como la gestión de empleados y la generación de elementos funcionales como códigos QR.
 
-## React Compiler
+## ✨ Características Principales
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Gestión de Tareas:** CRUD completo (Crear, Leer, Actualizar, Eliminar) de tareas con asignación a empleados.
+- **Gestión de Empleados:** Administración de la base de datos de empleados y sus roles.
+- **Estadísticas y Dashboard:** Uso de **Recharts** para visualizar métricas clave del rendimiento y el estado de las tareas.
+- **Autenticación Segura:** Manejo de autenticación a través de **Supabase**.
+- **Interfaces Modernas:** Componentes de interfaz de usuario limpios y accesibles gracias a **Shadcn/ui** (basado en Radix).
+- **Códigos QR:** Generación de códigos QR (`qrcode.react`) para vincular tareas o ubicaciones específicas.
 
-## Expanding the ESLint configuration
+## ⚙️ Tecnologías Utilizadas
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Este proyecto utiliza una pila de desarrollo robusta y actual:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+| Categoría | Tecnología | Propósito |
+| :--- | :--- | :--- |
+| **Frontend** | **React 19** | Biblioteca principal para construir la interfaz de usuario. |
+| **Build Tool** | **Vite** | Empaquetador y servidor de desarrollo rápido de última generación. |
+| **Estilos** | **Tailwind CSS v4** | Framework CSS utility-first para un diseño rápido y responsivo. |
+| **UI Components** | **Shadcn/ui (Radix)** | Componentes de interfaz sin estilo (headless) y accesibles. |
+| **Base de Datos** | **Supabase** | Backend-as-a-Service para BD, autenticación y almacenamiento. |
+| **Visualización** | **Recharts** | Librería declarativa de gráficos para dashboards. |
+| **Routing** | **React Router DOM** | Manejo de navegación en la aplicación. |
+| **Notificaciones** | **Sonner** | Componente moderno para notificaciones tipo *toast*. |
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 🚀 Instalación y Ejecución Local
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Sigue estos pasos para configurar y ejecutar el proyecto en tu entorno local.
+
+### 🔧 Prerrequisitos
+
+- [Node.js](https://nodejs.org/) (versión LTS o superior)
+- [Git](https://git-scm.com/)
+- Una cuenta de **Supabase** y una base de datos configurada.
+
+---
+
+## 1. Clonar el Repositorio
+
+```bash
+git clone <URL_DEL_REPOSITORIO>
+cd react
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 2. Instalación de Dependencias
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+npm install
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 3. Configuración de Variables de Entorno
+Crea un archivo llamado .env en el directorio raíz del proyecto (/react) y añade tus credenciales de Supabase:
+```bash
+VITE_SUPABASE_URL="https://your-project-ref.supabase.co"
+VITE_SUPABASE_ANON_KEY="your-anon-public-key"
+
+```
+## 4. Ejecución del Proyecto
+```bash
+npm run dev
 ```
