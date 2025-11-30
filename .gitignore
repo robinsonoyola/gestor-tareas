@@ -1,0 +1,91 @@
+# ----------------------------------------
+# DEPENDENCIAS Y DIRECTORIOS DE CONSTRUCCIÓN
+# ----------------------------------------
+/node_modules
+/dist
+/dist-ssr
+/coverage
+# Para proyectos de pnpm
+/pnpm-lock.yaml
+
+# ----------------------------------------
+# VARIABLES DE ENTORNO Y ARCHIVOS SECRETOS
+# ----------------------------------------
+# No rastrear archivos de entorno ni locales
+.env
+.env.*
+!.env.example # Permitir el archivo de ejemplo si existe
+*.local
+
+# ----------------------------------------
+# REGISTROS DE COMPILACIÓN Y ERRORES
+# ----------------------------------------
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ----------------------------------------
+# ARCHIVOS DEL SISTEMA OPERATIVO Y DEL EDITOR
+# ----------------------------------------
+.DS_Store # macOS
+Thumbs.db # Windows
+
+# Editor directories and files (Visual Studio Code, JetBrains IDEs)
+.vscode/*
+!.vscode/extensions.json # Excepto el archivo de extensiones recomendado
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?# ----------------------------------------
+# DEPENDENCIAS Y DIRECTORIOS DE CONSTRUCCIÓN
+# ----------------------------------------
+/node_modules
+/dist
+/dist-ssr
+/coverage
+# Para proyectos de pnpm
+/pnpm-lock.yaml
+
+# ----------------------------------------
+# VARIABLES DE ENTORNO Y ARCHIVOS SECRETOS
+# ----------------------------------------
+# No rastrear archivos de entorno ni locales
+.env
+.env.*
+!.env.example # Permitir el archivo de ejemplo si existe
+*.local
+
+# ----------------------------------------
+# REGISTROS DE COMPILACIÓN Y ERRORES
+# ----------------------------------------
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ----------------------------------------
+# ARCHIVOS DEL SISTEMA OPERATIVO Y DEL EDITOR
+# ----------------------------------------
+.DS_Store # macOS
+Thumbs.db # Windows
+
+# Editor directories and files (Visual Studio Code, JetBrains IDEs)
+.vscode/*
+!.vscode/extensions.json # Excepto el archivo de extensiones recomendado
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
