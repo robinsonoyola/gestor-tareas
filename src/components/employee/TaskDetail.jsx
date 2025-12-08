@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
 import {
   Dialog,
   DialogContent,
@@ -7,23 +6,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { formatDate, formatDateTime, getStatusBadge } from '@/lib/utils'
-import { Calendar, Users, Clock, MapPin, AlertCircle } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Calendar, Users, Clock, MapPin, AlertCircle, Info } from 'lucide-react'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
+import { supabase } from '@/lib/supabase'
 
 export default function TaskDetail({ task, open, onClose }) {
   const [checkins, setCheckins] = useState([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (open && task) {
+    if (task?.id && open) {
       fetchCheckins()
     }
-  }, [open, task])
+  }, [task?.id, open])
 
   const fetchCheckins = async () => {
+    if (!task?.id) return
+
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -39,9 +50,11 @@ export default function TaskDetail({ task, open, onClose }) {
         .order('checkin_time', { ascending: false })
 
       if (error) throw error
+
       setCheckins(data || [])
     } catch (error) {
       console.error('Error fetching checkins:', error)
+      setCheckins([])
     } finally {
       setLoading(false)
     }
@@ -49,151 +62,168 @@ export default function TaskDetail({ task, open, onClose }) {
 
   if (!task) return null
 
-  const statusInfo = getStatusBadge(task.status)
-  
-  const getStatusVariant = (status) => {
+  const getStatusBadge = (status) => {
     const variants = {
-      pending: 'warning',
-      in_progress: 'default',
-      completed: 'success'
+      pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: '⏳', label: 'Pendiente' },
+      in_progress: { bg: 'bg-blue-100', text: 'text-blue-800', icon: '🔄', label: 'En Progreso' },
+      completed: { bg: 'bg-green-100', text: 'text-green-800', icon: '✅', label: 'Completada' }
     }
-    return variants[status] || 'default'
+    const variant = variants[status] || variants.pending
+    
+    return (
+      <Badge className={`${variant.bg} ${variant.text} border-0`}>
+        {variant.icon} {variant.label}
+      </Badge>
+    )
   }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl">📋 Detalle de Tarea</DialogTitle>
-          <DialogDescription>
-            Información completa de la tarea #{task.id.slice(0, 8)}
-          </DialogDescription>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <DialogTitle className="text-2xl text-gray-900">{task.title}</DialogTitle>
+              <DialogDescription className="mt-2">
+                {task.description || 'Sin descripción'}
+              </DialogDescription>
+            </div>
+            {getStatusBadge(task.status)}
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Información Principal */}
+          {/* Información General */}
           <Card>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <CardTitle>{task.title}</CardTitle>
-                <Badge variant={getStatusVariant(task.status)}>
-                  {statusInfo.label}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Descripción */}
-              {task.description && (
-                <div>
-                  <h4 className="font-semibold mb-2">Descripción:</h4>
-                  <p className="text-sm text-muted-foreground">{task.description}</p>
-                </div>
-              )}
+            <CardContent className="pt-6 space-y-4">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <Info className="h-5 w-5" />
+                Información de la Tarea
+              </h3>
 
-              <Separator />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {task.schedule_date && (
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Fecha Programada</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {format(new Date(task.schedule_date), 'PPP', { locale: es })}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-              {/* Detalles */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="flex items-start gap-2">
-                  <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-gray-500" />
                   <div>
-                    <p className="font-medium">Fecha Programada</p>
-                    <p className="text-muted-foreground">{formatDate(task.schedule_date)}</p>
+                    <p className="text-xs text-gray-500">Asignada a</p>
+                    <p className="text-sm font-medium text-gray-900">{task.assigned_names}</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2">
-                  <Users className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Asignada a</p>
-                    <p className="text-muted-foreground">{task.assigned_names || 'Sin asignar'}</p>
+                {task.last_checkin && (
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-gray-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Último Fichaje</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {format(new Date(task.last_checkin), 'PPp', { locale: es })}
+                      </p>
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex items-start gap-2">
-                  <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Último Fichaje</p>
-                    <p className="text-muted-foreground">
-                      {task.last_checkin ? formatDateTime(task.last_checkin) : 'Sin fichaje registrado'}
-                    </p>
-                  </div>
-                </div>
+                )}
 
                 {task.checkin_location && (
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-5 w-5 text-gray-500" />
                     <div>
-                      <p className="font-medium">Ubicación</p>
-                      <p className="text-muted-foreground">{task.checkin_location}</p>
+                      <p className="text-xs text-gray-500">Ubicación de Fichaje</p>
+                      <p className="text-sm font-medium text-gray-900">{task.checkin_location}</p>
                     </div>
                   </div>
                 )}
               </div>
-
-              {/* Incidencia */}
-              {task.incident_description && (
-                <>
-                  <Separator />
-                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                      <div>
-                        <h4 className="font-semibold text-yellow-800">Incidencia Reportada</h4>
-                        <p className="text-sm text-yellow-700 mt-1">
-                          {task.incident_description}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
             </CardContent>
           </Card>
 
+          {/* Incidencia */}
+          {task.incident_description && (
+            <Alert className="bg-red-50 border-red-200">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                <strong>Incidencia Reportada:</strong>
+                <p className="mt-1">{task.incident_description}</p>
+                {task.incident_image && (
+                  <img
+                    src={task.incident_image}
+                    alt="Incidencia"
+                    className="mt-2 rounded border max-w-xs"
+                  />
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Historial de Fichajes */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">📊 Historial de Fichajes</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
+              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Historial de Fichajes
+              </h3>
+
               {loading ? (
-                <p className="text-center text-muted-foreground py-4">Cargando historial...</p>
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                  <p className="mt-2 text-sm text-gray-600">Cargando fichajes...</p>
+                </div>
               ) : checkins.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="text-4xl mb-2">📭</div>
-                  <p className="text-muted-foreground">No hay fichajes registrados para esta tarea</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Los fichajes aparecerán aquí cuando los empleados registren su trabajo
-                  </p>
+                  <p className="text-gray-500">📭 No hay fichajes registrados para esta tarea</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {checkins.map((checkin) => (
-                    <div 
-                      key={checkin.id}
-                      className="bg-gray-50 p-4 rounded-lg border-l-4 border-green-500"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <p className="font-semibold">
-                          📅 {formatDateTime(checkin.checkin_time)}
-                        </p>
-                      </div>
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p>
-                          👤 <strong>Usuario:</strong> {checkin.users?.full_name || 'Desconocido'}
-                        </p>
-                        <p>
-                          📍 <strong>Ubicación:</strong> {checkin.location || 'No especificada'}
-                        </p>
-                        {checkin.qr_code && (
-                          <p>
-                            🔲 <strong>QR:</strong> {checkin.qr_code}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Fecha y Hora</TableHead>
+                        <TableHead>Empleado</TableHead>
+                        <TableHead>Ubicación</TableHead>
+                        <TableHead>Código QR</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {checkins.map((checkin) => (
+                        <TableRow key={checkin.id}>
+                          <TableCell className="font-medium">
+                            {format(new Date(checkin.checkin_time), 'PPp', { locale: es })}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {checkin.users?.full_name || 'Desconocido'}
+                              </p>
+                              <p className="text-xs text-gray-500">{checkin.users?.email}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {checkin.location || 'Sin ubicación'}
+                            {checkin.latitude && checkin.longitude && (
+                              <p className="text-xs text-gray-500 font-mono">
+                                {checkin.latitude.toFixed(6)}, {checkin.longitude.toFixed(6)}
+                              </p>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                              {checkin.qr_code || 'Manual'}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>

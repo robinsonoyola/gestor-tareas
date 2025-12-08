@@ -39,6 +39,8 @@ export default function TaskForm({
     status: 'pending',
     schedule_date: null,
     schedule_type: 'custom_date',
+    schedule_interval: 1,
+    schedule_days: '',
     assigned_users: []
   })
 
@@ -50,6 +52,8 @@ export default function TaskForm({
         status: task.status || 'pending',
         schedule_date: task.schedule_date ? new Date(task.schedule_date) : null,
         schedule_type: task.schedule_type || 'custom_date',
+        schedule_interval: task.schedule_interval || 1,
+        schedule_days: task.schedule_days || '',
         assigned_users: task.assigned_users?.map(u => u.id) || []
       })
     } else {
@@ -59,6 +63,8 @@ export default function TaskForm({
         status: 'pending',
         schedule_date: null,
         schedule_type: 'custom_date',
+        schedule_interval: 1,
+        schedule_days: '',
         assigned_users: []
       })
     }
@@ -66,7 +72,7 @@ export default function TaskForm({
 
   const handleSubmit = (e) => {
     e.preventDefault()
-      console.log('📤 Enviando datos del formulario:', formData)
+    console.log('📤 Enviando datos del formulario:', formData)
     onSubmit(formData)
   }
 
@@ -83,8 +89,8 @@ export default function TaskForm({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {task ? 'Editar Tarea' : 'Crear Nueva Tarea'}
+          <DialogTitle className="text-xl">
+            {task ? '✏️ Editar Tarea' : '➕ Crear Nueva Tarea'}
           </DialogTitle>
           <DialogDescription>
             Completa los datos de la tarea
@@ -94,36 +100,38 @@ export default function TaskForm({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Título */}
           <div className="space-y-2">
-            <Label htmlFor="title">Título *</Label>
+            <Label htmlFor="title" className="text-gray-900 font-semibold">Título *</Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="Ej: Limpieza habitación 101"
               required
+              className="border-gray-300"
             />
           </div>
 
           {/* Descripción */}
           <div className="space-y-2">
-            <Label htmlFor="description">Descripción</Label>
+            <Label htmlFor="description" className="text-gray-900 font-semibold">Descripción</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Descripción detallada de la tarea..."
               rows={3}
+              className="border-gray-300"
             />
           </div>
 
           {/* Estado */}
           <div className="space-y-2">
-            <Label htmlFor="status">Estado</Label>
+            <Label htmlFor="status" className="text-gray-900 font-semibold">Estado</Label>
             <Select
               value={formData.status}
               onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
             >
-              <SelectTrigger>
+              <SelectTrigger className="border-gray-300">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -134,71 +142,115 @@ export default function TaskForm({
             </Select>
           </div>
 
-          {/* Fecha */}
+          {/* Tipo de Programación */}
           <div className="space-y-2">
-            <Label>Fecha Programada</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !formData.schedule_date && 'text-muted-foreground'
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.schedule_date ? (
-                    format(formData.schedule_date, 'PPP', { locale: es })
-                  ) : (
-                    <span>Seleccionar fecha</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={formData.schedule_date}
-                  onSelect={(date) => setFormData(prev => ({ ...prev, schedule_date: date }))}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <Label htmlFor="schedule_type" className="text-gray-900 font-semibold">Tipo de Programación</Label>
+            <Select
+              value={formData.schedule_type}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, schedule_type: value }))}
+            >
+              <SelectTrigger className="border-gray-300">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="custom_date">📅 Fecha Específica</SelectItem>
+                <SelectItem value="daily">🔄 Tarea Diaria</SelectItem>
+                <SelectItem value="weekly">📅 Tarea Semanal</SelectItem>
+                <SelectItem value="monthly">📆 Tarea Mensual</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Fecha */}
+          {formData.schedule_type === 'custom_date' && (
+            <div className="space-y-2">
+              <Label className="text-gray-900 font-semibold">Fecha Programada</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'w-full justify-start text-left font-normal border-gray-300',
+                      !formData.schedule_date && 'text-muted-foreground'
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.schedule_date ? (
+                      format(formData.schedule_date, 'PPP', { locale: es })
+                    ) : (
+                      <span>Seleccionar fecha</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={formData.schedule_date}
+                    onSelect={(date) => setFormData(prev => ({ ...prev, schedule_date: date }))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {/* Intervalo para tareas recurrentes */}
+          {['daily', 'weekly', 'monthly'].includes(formData.schedule_type) && (
+            <div className="space-y-2">
+              <Label htmlFor="interval" className="text-gray-900 font-semibold">
+                Repetir cada {formData.schedule_type === 'daily' ? 'días' : formData.schedule_type === 'weekly' ? 'semanas' : 'meses'}
+              </Label>
+              <Input
+                id="interval"
+                type="number"
+                min="1"
+                value={formData.schedule_interval}
+                onChange={(e) => setFormData(prev => ({ ...prev, schedule_interval: parseInt(e.target.value) || 1 }))}
+                className="border-gray-300"
+              />
+            </div>
+          )}
 
           {/* Empleados Asignados */}
           <div className="space-y-2">
-            <Label>Asignar a empleados</Label>
-            <div className="border rounded-md p-4 max-h-48 overflow-y-auto space-y-2">
-              {employees.map((employee) => (
-                <div key={employee.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={employee.id}
-                    checked={formData.assigned_users.includes(employee.id)}
-                    onCheckedChange={() => toggleEmployee(employee.id)}
-                  />
-                  <label
-                    htmlFor={employee.id}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    {employee.full_name}
-                    {employee.is_admin && (
-                      <span className="ml-2 text-xs text-blue-600">👑 Admin</span>
-                    )}
-                  </label>
-                </div>
-              ))}
+            <Label className="text-gray-900 font-semibold">Asignar a empleados (selecciona uno o varios)</Label>
+            <div className="border rounded-md p-4 max-h-48 overflow-y-auto space-y-2 border-gray-300 bg-gray-50">
+              {employees.length === 0 ? (
+                <p className="text-center text-gray-500 py-4">No hay empleados disponibles</p>
+              ) : (
+                employees.map((employee) => (
+                  <div key={employee.id} className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded">
+                    <Checkbox
+                      id={employee.id}
+                      checked={formData.assigned_users.includes(employee.id)}
+                      onCheckedChange={() => toggleEmployee(employee.id)}
+                    />
+                    <label
+                      htmlFor={employee.id}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-gray-900 flex-1"
+                    >
+                      {employee.full_name}
+                      {employee.is_admin && (
+                        <span className="ml-2 text-xs text-blue-600 font-semibold">👑 Admin</span>
+                      )}
+                    </label>
+                  </div>
+                ))
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {formData.assigned_users.length} empleado(s) seleccionado(s)
-            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded px-3 py-2">
+              <p className="text-xs text-blue-800">
+                <strong>{formData.assigned_users.length}</strong> empleado(s) seleccionado(s)
+              </p>
+            </div>
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} className="bg-gray-100 text-gray-900 hover:bg-gray-200">
               Cancelar
             </Button>
-            <Button type="submit">
-              {task ? 'Guardar Cambios' : 'Crear Tarea'}
+            <Button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white">
+              💾 {task ? 'Guardar Cambios' : 'Crear Tarea'}
             </Button>
           </DialogFooter>
         </form>
