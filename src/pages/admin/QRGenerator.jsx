@@ -101,48 +101,72 @@ export default function QRGenerator() {
   const generateQRCode = (task = selectedTask) => {
     if (!task) return
 
-    const qrData = JSON.stringify({
-      task_id: task.id,
-      task_title: task.title,
-      type: 'task_checkin'
-    })
+    // Generar la URL del empleado directamente
+    const employeeUrl = `${window.location.origin}/employee/task/${task.id}/work`
 
     const qr = new QRCodeStyling({
       width: qrSize,
       height: qrSize,
-      data: qrData,
+      data: employeeUrl, // ← Cambio importante: usar la URL directamente
       margin: 10,
-      qrOptions: { typeNumber: 0, mode: 'Byte', errorCorrectionLevel: 'Q' },
-      imageOptions: { hideBackgroundDots: true, imageSize: 0.4, margin: 0 },
+      qrOptions: { 
+        typeNumber: 0, 
+        mode: 'Byte', 
+        errorCorrectionLevel: 'H' // ← Cambiado a 'H' para mayor tolerancia
+      },
+      imageOptions: { 
+        hideBackgroundDots: true, 
+        imageSize: 0.4, 
+        margin: 0 
+      },
       dotsOptions: {
-        color: '#000000',
+        color: '#1e40af', // Azul más oscuro para mejor contraste
         type: 'rounded'
       },
-      backgroundOptions: { color: '#ffffff' },
-      cornersSquareOptions: { color: '#000000', type: 'extra-rounded' },
-      cornersDotOptions: { color: '#000000', type: 'dot' }
+      backgroundOptions: { 
+        color: '#ffffff' 
+      },
+      cornersSquareOptions: { 
+        color: '#1e40af', 
+        type: 'extra-rounded' 
+      },
+      cornersDotOptions: { 
+        color: '#1e40af', 
+        type: 'dot' 
+      }
     })
 
     setQrCode(qr)
 
-    setTimeout(() => {
+    // Usar requestAnimationFrame para asegurar que el DOM está listo
+    requestAnimationFrame(() => {
       const container = document.getElementById('qr-code-container')
       if (container) {
         container.innerHTML = ''
         qr.append(container)
       }
-    }, 100)
+    })
   }
 
   const downloadQRCode = () => {
-    if (!qrCode) return
-    qrCode.download({ name: `qr-${selectedTask?.title || 'tarea'}`, extension: 'png' })
+    if (!qrCode || !selectedTask) return
+    
+    // Nombre de archivo más limpio
+    const fileName = `qr-${selectedTask.title.toLowerCase().replace(/\s+/g, '-')}`
+    qrCode.download({ 
+      name: fileName, 
+      extension: 'png' 
+    })
     toast.success('📥 Código QR descargado')
   }
 
   const copyToClipboard = (text, type) => {
-    navigator.clipboard.writeText(text)
-    toast.success(`📋 ${type} copiado al portapapeles`)
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success(`📋 ${type} copiado al portapapeles`)
+    }).catch((err) => {
+      console.error('Error copying:', err)
+      toast.error('Error al copiar')
+    })
   }
 
   const getEmployeeUrl = () => {
@@ -161,9 +185,9 @@ export default function QRGenerator() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">📱 Generar Código QR</h1>
-            <p className="text-gray-900 mt-1">Genera códigos QR para las tareas del hotel</p>
+            <p className="text-gray-600 mt-1">Genera códigos QR para las tareas del hotel</p>
           </div>
-          <Button variant="outline" onClick={() => navigate('/admin')} className="text-gray-900">
+          <Button variant="outline" onClick={() => navigate('/admin')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver
           </Button>
@@ -193,7 +217,7 @@ export default function QRGenerator() {
                   </div>
                 ) : (
                   <Select value={selectedTask?.id || ''} onValueChange={handleTaskSelect}>
-                    <SelectTrigger className="text-gray-900">
+                    <SelectTrigger>
                       <SelectValue placeholder="Selecciona una tarea..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -210,10 +234,10 @@ export default function QRGenerator() {
               {selectedTask && (
                 <div className="space-y-3 border-t pt-4">
                   <h3 className="font-semibold text-gray-900">{selectedTask.title}</h3>
-                  <p className="text-sm text-gray-900">{selectedTask.description || 'Sin descripción'}</p>
+                  <p className="text-sm text-gray-600">{selectedTask.description || 'Sin descripción'}</p>
                   
                   {selectedTask.schedule_date && (
-                    <div className="flex items-center gap-2 text-sm text-gray-900">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Calendar className="h-4 w-4" />
                       <span>{new Date(selectedTask.schedule_date).toLocaleDateString('es-ES')}</span>
                     </div>
@@ -224,7 +248,7 @@ export default function QRGenerator() {
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">Empleados asignados:</p>
                       {selectedTask.assigned_users.length > 0 ? (
-                        <ul className="text-sm text-gray-900 mt-1 space-y-1">
+                        <ul className="text-sm text-gray-600 mt-1 space-y-1">
                           {selectedTask.assigned_users.map((user) => (
                             <li key={user.id} className="flex items-center gap-2">
                               <CheckCircle className="h-3 w-3 text-green-600" />
@@ -238,39 +262,42 @@ export default function QRGenerator() {
                     </div>
                   </div>
 
-                  <div className="pt-2">
+                  <div className="pt-2 space-y-3">
                     <label className="text-sm font-medium text-gray-900">URLs generadas:</label>
-                    <div className="space-y-2 mt-2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <p className="text-xs text-gray-900 font-medium">Empleados:</p>
-                          <code className="text-xs bg-blue-50 px-2 py-1 rounded block text-blue-700 break-all">
-                            {getEmployeeUrl()}
-                          </code>
+                    
+                    <div className="space-y-2">
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-semibold text-blue-900">🔗 URL de Empleados</p>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyToClipboard(getEmployeeUrl(), 'URL de Empleados')}
+                            className="h-7 px-2"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard(getEmployeeUrl(), 'URL de Empleados')}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
+                        <code className="text-xs bg-white px-2 py-1.5 rounded block text-blue-700 break-all border border-blue-200">
+                          {getEmployeeUrl()}
+                        </code>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <p className="text-xs text-gray-900 font-medium">Admin:</p>
-                          <code className="text-xs bg-purple-50 px-2 py-1 rounded block text-purple-700 break-all">
-                            {getAdminUrl()}
-                          </code>
+                      <div className="bg-purple-50 p-3 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-semibold text-purple-900">👑 URL de Admin</p>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => copyToClipboard(getAdminUrl(), 'URL de Admin')}
+                            className="h-7 px-2"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard(getAdminUrl(), 'URL de Admin')}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
+                        <code className="text-xs bg-white px-2 py-1.5 rounded block text-purple-700 break-all border border-purple-200">
+                          {getAdminUrl()}
+                        </code>
                       </div>
                     </div>
                   </div>
@@ -278,13 +305,14 @@ export default function QRGenerator() {
                   <div className="space-y-2 pt-2">
                     <label className="text-sm font-medium text-gray-900">Tamaño del código QR:</label>
                     <Select value={qrSize.toString()} onValueChange={(value) => setQrSize(parseInt(value))}>
-                      <SelectTrigger className="text-gray-900">
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="128">Pequeño (128px)</SelectItem>
                         <SelectItem value="256">Mediano (256px)</SelectItem>
                         <SelectItem value="512">Grande (512px)</SelectItem>
+                        <SelectItem value="1024">Extra Grande (1024px)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -303,13 +331,13 @@ export default function QRGenerator() {
             <CardContent className="pt-6">
               {selectedTask ? (
                 <div className="space-y-4">
-                  <div className="flex justify-center bg-white p-8 rounded-lg border-2 border-gray-200">
+                  <div className="flex justify-center bg-white p-8 rounded-lg border-2 border-dashed border-gray-300">
                     <div id="qr-code-container"></div>
                   </div>
 
                   <div className="text-center">
                     <h3 className="font-semibold text-gray-900">{selectedTask.title}</h3>
-                    <p className="text-sm text-gray-900 mt-1">Escanea para fichar</p>
+                    <p className="text-sm text-gray-600 mt-1">Escanea para fichar</p>
                   </div>
 
                   <Button
@@ -336,7 +364,7 @@ export default function QRGenerator() {
               ) : (
                 <div className="text-center py-12">
                   <QrCode className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-900">Selecciona una tarea para generar el código QR</p>
+                  <p className="text-gray-500">Selecciona una tarea para generar el código QR</p>
                 </div>
               )}
             </CardContent>
