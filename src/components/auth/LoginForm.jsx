@@ -44,7 +44,7 @@ export default function LoginForm() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl text-center">🏨 Hotel Tareas</CardTitle>
+        <CardTitle className="text-2xl text-center">Hotel Tareas</CardTitle>
         <CardDescription className="text-center">
           Ingresa tus credenciales para acceder
         </CardDescription>

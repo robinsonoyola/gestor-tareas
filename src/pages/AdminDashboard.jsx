@@ -284,7 +284,7 @@ export default function AdminDashboard() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">🏨 Panel de Administración</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Panel de Administración</h1>
             <p className="text-gray-900 mt-1">Gestiona tareas, empleados y configuraciones</p>
           </div>
         </div>

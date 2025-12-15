@@ -55,7 +55,7 @@ export default function Login() {
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg">
-            <span className="text-4xl">🏨</span>
+            <span className="text-4xl"></span>
           </div>
           <CardTitle className="text-3xl font-bold text-gray-900">Hotel Tareas</CardTitle>
           <CardDescription className="text-gray-600 text-base">

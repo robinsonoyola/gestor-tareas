@@ -17,13 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { 
   Clock, 
   MapPin, 
@@ -34,7 +27,13 @@ import {
   Upload,
   Image as ImageIcon,
   Video,
-  X
+  X,
+  NfcIcon,
+  ArrowLeft,
+  Activity,
+  Timer,
+  Play,
+  Square
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -54,6 +53,14 @@ export default function TaskDetailWithActions() {
   const [activeCheckin, setActiveCheckin] = useState(null)
   const [fichajeTime, setFichajeTime] = useState(null)
   
+  const [nfcSupported, setNfcSupported] = useState(false)
+  const [isReadingNFC, setIsReadingNFC] = useState(false)
+  const [checkinConfig, setCheckinConfig] = useState({
+    nfc_enabled: false,
+    qr_enabled: true,
+    manual_enabled: true
+  })
+  
   const [commentForm, setCommentForm] = useState({
     comment: '',
     imageFile: null,
@@ -70,6 +77,15 @@ export default function TaskDetailWithActions() {
       fetchCheckins()
       fetchComments()
       checkActiveCheckin()
+    }
+  }, [id])
+
+  useEffect(() => {
+    if ('NDEFReader' in window) {
+      setNfcSupported(true)
+    }
+    if (id) {
+      fetchCheckinConfig()
     }
   }, [id])
 
@@ -129,6 +145,29 @@ export default function TaskDetailWithActions() {
       toast.error('Error al cargar la tarea')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchCheckinConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('task_checkin_config')
+        .select('*')
+        .eq('task_id', id)
+        .single()
+
+      if (error) {
+        console.error('Error config:', error)
+        return
+      }
+
+      setCheckinConfig(data || {
+        nfc_enabled: false,
+        qr_enabled: true,
+        manual_enabled: true
+      })
+    } catch (error) {
+      console.error('Error:', error)
     }
   }
 
@@ -207,13 +246,73 @@ export default function TaskDetailWithActions() {
     return R * c
   }
 
+  const handleNFCCheckin = async () => {
+    if (!nfcSupported) {
+      toast.error('Tu dispositivo no soporta NFC')
+      return
+    }
+
+    try {
+      setIsReadingNFC(true)
+      toast.info('🏷️ Acerca la tarjeta NFC al móvil...')
+
+      const ndef = new NDEFReader()
+      await ndef.scan()
+
+      ndef.addEventListener('reading', async ({ serialNumber }) => {
+        try {
+          const { data, error } = await supabase.rpc('validate_nfc_checkin', {
+            p_card_uid: serialNumber,
+            p_task_id: id,
+            p_user_id: userData.id
+          })
+
+          if (error) throw error
+
+          if (data.success) {
+            toast.success(data.message)
+            
+            if (data.type === 'checkin') {
+              checkActiveCheckin()
+            } else {
+              setActiveCheckin(null)
+              setFichajeTime(null)
+            }
+            
+            fetchCheckins()
+            fetchTaskDetails()
+          } else {
+            toast.error(data.message)
+          }
+
+        } catch (error) {
+          console.error('Error procesando NFC:', error)
+          toast.error('Error al procesar fichaje NFC')
+        } finally {
+          setIsReadingNFC(false)
+        }
+      }, { once: true })
+
+    } catch (error) {
+      console.error('Error NFC:', error)
+      setIsReadingNFC(false)
+      
+      if (error.name === 'NotAllowedError') {
+        toast.error('Permiso NFC denegado. Activa NFC en la configuración del móvil.')
+      } else if (error.name === 'NotSupportedError') {
+        toast.error('NFC no soportado en este navegador. Usa Chrome en Android.')
+      } else {
+        toast.error('Error al leer NFC: ' + error.message)
+      }
+    }
+  }
+
   const handleStartCheckin = async () => {
     try {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords
 
-          let withinRange = true
           if (task.expected_latitude && task.expected_longitude) {
             const distance = calculateDistance(
               latitude,
@@ -227,7 +326,6 @@ export default function TaskDetailWithActions() {
                 `Estás a ${Math.round(distance)}m del punto esperado. ¿Deseas continuar con el fichaje?`
               )
               if (!confirmOutside) return
-              withinRange = false
             }
           }
 
@@ -239,7 +337,8 @@ export default function TaskDetailWithActions() {
               location: `${latitude},${longitude}`,
               latitude: latitude,
               longitude: longitude,
-              qr_code: 'Manual'
+              qr_code: 'Manual',
+              checkin_method: 'manual'
             }])
             .select()
             .single()
@@ -404,13 +503,53 @@ export default function TaskDetailWithActions() {
     }
   }
 
+  const getStatusBadge = (status) => {
+    const variants = {
+      pending: { 
+        bg: 'bg-amber-100', 
+        text: 'text-amber-800',
+        border: 'border-amber-200',
+        label: 'Pendiente'
+      },
+      in_progress: { 
+        bg: 'bg-blue-100', 
+        text: 'text-blue-800',
+        border: 'border-blue-200',
+        label: 'En Progreso'
+      },
+      completed: { 
+        bg: 'bg-green-100', 
+        text: 'text-green-800',
+        border: 'border-green-200',
+        label: 'Completada'
+      }
+    }
+    return variants[status] || variants.pending
+  }
+
+  const getScheduleTypeBadge = (type) => {
+    const types = {
+      daily: { icon: '🔄', label: 'Diaria', bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-200' },
+      weekly: { icon: '📅', label: 'Semanal', bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200' },
+      monthly: { icon: '📆', label: 'Mensual', bg: 'bg-indigo-100', text: 'text-indigo-800', border: 'border-indigo-200' },
+      custom_date: { icon: '📅', label: 'Fecha Específica', bg: 'bg-pink-100', text: 'text-pink-800', border: 'border-pink-200' }
+    }
+    const config = types[type] || types.custom_date
+    
+    return (
+      <Badge variant="outline" className={`${config.bg} ${config.text} ${config.border} border text-xs font-medium`}>
+        {config.icon} {config.label}
+      </Badge>
+    )
+  }
+
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-gray-900">Cargando tarea...</p>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent mx-auto"></div>
+            <p className="text-gray-600 font-medium">Cargando tarea...</p>
           </div>
         </div>
       </Layout>
@@ -421,201 +560,309 @@ export default function TaskDetailWithActions() {
     return (
       <Layout>
         <div className="text-center py-12">
-          <p className="text-gray-900">Tarea no encontrada</p>
+          <Alert className="bg-red-50 border-red-200 max-w-2xl mx-auto">
+            <AlertDescription className="text-red-800">
+              <strong>Error:</strong> No se encontró la tarea.
+            </AlertDescription>
+          </Alert>
           <Button onClick={() => navigate('/employee')} className="mt-4">
-            Volver
+            Volver a Mis Tareas
           </Button>
         </div>
       </Layout>
     )
   }
 
+  const statusBadge = getStatusBadge(task.status)
+
   return (
     <Layout>
-      <div className="space-y-6 max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header con navegación */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">📋 {task.title}</h1>
-            <p className="text-gray-900 mt-1">{task.description}</p>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate('/employee')}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">{task.title}</h1>
+              <p className="text-gray-600 mt-1">{task.description || 'Sin descripción'}</p>
+            </div>
           </div>
-          <Button variant="outline" onClick={() => navigate('/employee')} className="text-gray-900">
-            ← Volver
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge 
+              variant="outline" 
+              className={`${statusBadge.bg} ${statusBadge.text} ${statusBadge.border} border font-medium`}
+            >
+              {statusBadge.label}
+            </Badge>
+            {task.schedule_type && getScheduleTypeBadge(task.schedule_type)}
+          </div>
         </div>
 
-        {/* Información de la Tarea */}
-        <Card>
-          <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-600 text-white">
-            <CardTitle>📝 Información de la Tarea</CardTitle>
+        {/* Información General */}
+        <Card className="border-2 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-blue-600" />
+              Información de la Tarea
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {task.schedule_date && (
-                <div className="flex items-center gap-2 text-gray-900">
-                  <Calendar className="h-5 w-5 text-purple-600" />
-                  <div>
-                    <p className="text-sm font-medium">Fecha Programada</p>
-                    <p className="text-sm">{format(new Date(task.schedule_date), 'PPP', { locale: es })}</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 text-gray-900">
-                <Users className="h-5 w-5 text-blue-600" />
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {task.due_date && (
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <Calendar className="h-5 w-5 text-gray-500" />
                 <div>
-                  <p className="text-sm font-medium">Asignados</p>
-                  <p className="text-sm">{task.assigned_users.map(u => u.full_name).join(', ')}</p>
+                  <p className="text-xs text-gray-500 font-medium">Fecha límite</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {format(new Date(task.due_date), 'PPP', { locale: es })}
+                  </p>
                 </div>
               </div>
+            )}
 
-              {task.expected_latitude && task.expected_longitude && (
-                <div className="flex items-center gap-2 text-gray-900">
-                  <MapPin className="h-5 w-5 text-red-600" />
-                  <div>
-                    <p className="text-sm font-medium">Validación GPS</p>
-                    <p className="text-sm">Radio: {task.location_radius}m</p>
-                  </div>
-                </div>
-              )}
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <Users className="h-5 w-5 text-gray-500" />
+              <div>
+                <p className="text-xs text-gray-500 font-medium">Asignada a</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {task.assigned_users?.map(u => u.full_name).join(', ') || 'Sin asignar'}
+                </p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Control de Fichaje */}
-        <Card>
-          <CardHeader className="bg-gradient-to-r from-green-500 to-teal-600 text-white">
-            <CardTitle>⏱️ Control de Fichaje</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6 space-y-4">
-            {activeCheckin ? (
-              <>
-                <Alert className="bg-green-50 border-green-200">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-800">
-                    <strong>✅ Fichaje activo desde:</strong> {format(new Date(activeCheckin.checkin_time), 'PPp', { locale: es })}
-                  </AlertDescription>
-                </Alert>
-
-                <div className="text-center py-8">
-                  <Clock className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-                  <p className="text-6xl font-bold text-blue-600">{fichajeTime || '00:00:00'}</p>
-                  <p className="text-sm text-gray-900 mt-2">Tiempo transcurrido</p>
+            {task.location && (
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <MapPin className="h-5 w-5 text-gray-500" />
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Ubicación</p>
+                  <p className="text-sm font-semibold text-gray-900">{task.location}</p>
                 </div>
-
-                <Button
-                  onClick={handleEndCheckin}
-                  className="w-full bg-red-500 hover:bg-red-600 text-white"
-                  size="lg"
-                >
-                  ⏹ Finalizar Fichaje
-                </Button>
-              </>
-            ) : (
-              <>
-                <Alert className="bg-blue-50 border-blue-200">
-                  <Info className="h-4 w-4 text-blue-600" />
-                  <AlertDescription className="text-blue-800 text-sm">
-                    <strong>📍 Instrucciones:</strong> Al iniciar el fichaje, se registrará tu ubicación GPS.
-                    {task.expected_latitude && ` Debes estar dentro de un radio de ${task.location_radius}m.`}
-                  </AlertDescription>
-                </Alert>
-
-                <Button
-                  onClick={handleStartCheckin}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white"
-                  size="lg"
-                >
-                  ▶️ Iniciar Fichaje
-                </Button>
-              </>
+              </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Comentarios y Archivos */}
-        <Card>
-          <CardHeader className="bg-gradient-to-r from-orange-500 to-red-600 text-white">
-            <CardTitle>💬 Comentarios y Archivos</CardTitle>
+        {/* Control de Fichaje */}
+        <Card className="border-2 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-purple-600" />
+              Control de Fichaje
+            </CardTitle>
           </CardHeader>
-          <CardContent className="pt-6 space-y-4">
+          <CardContent className="space-y-4">
+            {activeCheckin ? (
+              <div className="space-y-4">
+                <Alert className="bg-blue-50 border-blue-200 border-2">
+                  <Activity className="h-5 w-5 text-blue-600" />
+                  <AlertDescription>
+                    <div className="font-semibold text-blue-900">Fichaje activo</div>
+                    <div className="text-3xl font-mono font-bold text-blue-600 mt-2">{fichajeTime}</div>
+                    <div className="text-sm text-blue-700 mt-1">
+                      Iniciado: {format(new Date(activeCheckin.checkin_time), "HH:mm", { locale: es })}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+
+                {checkinConfig.nfc_enabled && nfcSupported ? (
+                  <Button
+                    onClick={handleNFCCheckin}
+                    disabled={isReadingNFC}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    size="lg"
+                  >
+                    <NfcIcon className="mr-2 h-5 w-5" />
+                    {isReadingNFC ? 'Leyendo NFC...' : 'Finalizar con NFC'}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleEndCheckin}
+                    className="w-full bg-red-600 hover:bg-red-700"
+                    size="lg"
+                  >
+                    <Square className="mr-2 h-5 w-5" />
+                    Finalizar Fichaje Manual
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {checkinConfig.nfc_enabled && nfcSupported && (
+                  <Button
+                    onClick={handleNFCCheckin}
+                    disabled={isReadingNFC}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    size="lg"
+                  >
+                    <NfcIcon className="mr-2 h-5 w-5" />
+                    {isReadingNFC ? 'Leyendo NFC...' : 'Fichar con NFC'}
+                  </Button>
+                )}
+
+                {checkinConfig.manual_enabled && (
+                  <Button
+                    onClick={handleStartCheckin}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    size="lg"
+                  >
+                    <Play className="mr-2 h-5 w-5" />
+                    Iniciar Fichaje Manual
+                  </Button>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Historial de Fichajes */}
+        <Card className="border-2 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Timer className="h-5 w-5 text-orange-600" />
+                Historial de Fichajes
+              </span>
+              {checkins.length > 0 && (
+                <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-200 border">
+                  {checkins.length} registros
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {checkins.length > 0 ? (
+              <div className="rounded-lg border-2 overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-bold">Empleado</TableHead>
+                      <TableHead className="font-bold">Inicio</TableHead>
+                      <TableHead className="font-bold">Fin</TableHead>
+                      <TableHead className="font-bold">Método</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {checkins.map((checkin) => (
+                      <TableRow key={checkin.id} className="hover:bg-gray-50">
+                        <TableCell className="font-medium">{checkin.users?.full_name}</TableCell>
+                        <TableCell>
+                          {format(new Date(checkin.checkin_time), "dd/MM/yyyy HH:mm", { locale: es })}
+                        </TableCell>
+                        <TableCell>
+                          {checkin.checkout_time ? 
+                            format(new Date(checkin.checkout_time), "dd/MM/yyyy HH:mm", { locale: es }) :
+                            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200 border">
+                              En curso
+                            </Badge>
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200 border">
+                            {checkin.checkin_method === 'nfc' && '🏷️ NFC'}
+                            {checkin.checkin_method === 'qr' && '📱 QR'}
+                            {checkin.checkin_method === 'manual' && '✋ Manual'}
+                            {!checkin.checkin_method && '✋ Manual'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-8 bg-gray-50 rounded-lg">
+                <p className="text-gray-500">No hay fichajes registrados</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Comentarios */}
+        <Card className="border-2 shadow-sm">
+          <CardHeader>
+            <CardTitle>Comentarios y Archivos</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
             <form onSubmit={handleAddComment} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="comment" className="text-gray-900 font-semibold">
-                  Escribir comentario
-                </Label>
+              <div>
+                <Label htmlFor="comment">Agregar comentario</Label>
                 <Textarea
                   id="comment"
+                  placeholder="Escribe un comentario..."
                   value={commentForm.comment}
                   onChange={(e) => setCommentForm(prev => ({ ...prev, comment: e.target.value }))}
-                  placeholder="Escribe aquí tus observaciones, notas o comentarios sobre la tarea..."
-                  rows={4}
-                  className="text-gray-900"
+                  rows={3}
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="image" className="text-gray-900 font-semibold">
-                    📸 Subir Imagen (opcional)
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="image"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="text-gray-900"
-                      disabled={submitting}
-                    />
-                  </div>
-                  {imagePreview && (
-                    <div className="relative">
-                      <img src={imagePreview} alt="Preview" className="w-full h-32 object-cover rounded border" />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="destructive"
-                        className="absolute top-2 right-2"
-                        onClick={removeImage}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="image">
+                    <div className="flex items-center gap-2 cursor-pointer">
+                      <ImageIcon className="h-4 w-4" />
+                      Imagen (máx 5MB)
                     </div>
-                  )}
-                  <p className="text-xs text-gray-600">Máximo 5MB</p>
+                  </Label>
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="mt-1"
+                  />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="video" className="text-gray-900 font-semibold">
-                    🎥 Subir Video (opcional)
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="video"
-                      type="file"
-                      accept="video/*"
-                      onChange={handleVideoChange}
-                      className="text-gray-900"
-                      disabled={submitting}
-                    />
-                  </div>
-                  {videoPreview && (
-                    <div className="relative">
-                      <video src={videoPreview} className="w-full h-32 object-cover rounded border" controls />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="destructive"
-                        className="absolute top-2 right-2"
-                        onClick={removeVideo}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                <div className="flex-1">
+                  <Label htmlFor="video">
+                    <div className="flex items-center gap-2 cursor-pointer">
+                      <Video className="h-4 w-4" />
+                      Video (máx 50MB)
                     </div>
-                  )}
-                  <p className="text-xs text-gray-600">Máximo 50MB</p>
+                  </Label>
+                  <Input
+                    id="video"
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoChange}
+                    className="mt-1"
+                  />
                 </div>
               </div>
+
+              {imagePreview && (
+                <div className="relative inline-block">
+                  <img src={imagePreview} alt="Preview" className="h-32 rounded-lg" />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute -top-2 -right-2"
+                    onClick={removeImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+
+              {videoPreview && (
+                <div className="relative inline-block">
+                  <video src={videoPreview} className="h-32 rounded-lg" controls />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute -top-2 -right-2"
+                    onClick={removeVideo}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
 
               {uploadProgress > 0 && uploadProgress < 100 && (
                 <div className="w-full bg-gray-200 rounded-full h-2">
@@ -626,105 +873,39 @@ export default function TaskDetailWithActions() {
                 </div>
               )}
 
-              <Button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-              >
-                {submitting ? '⏳ Subiendo...' : '💬 Agregar Comentario'}
+              <Button type="submit" disabled={submitting} className="w-full">
+                <Upload className="mr-2 h-4 w-4" />
+                {submitting ? 'Subiendo...' : 'Agregar Comentario'}
               </Button>
             </form>
 
-            <div className="border-t pt-4">
-              <h3 className="font-semibold text-gray-900 mb-3">Comentarios anteriores</h3>
-              {comments.length === 0 ? (
-                <p className="text-center text-gray-600 py-8">📭 No hay comentarios aún. ¡Sé el primero en comentar!</p>
-              ) : (
-                <div className="space-y-3">
-                  {comments.map((comment) => (
-                    <div key={comment.id} className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <p className="font-semibold text-gray-900">{comment.users?.full_name}</p>
-                        <p className="text-xs text-gray-600">{format(new Date(comment.created_at), 'PPp', { locale: es })}</p>
-                      </div>
-                      {comment.comment && (
-                        <p className="text-sm text-gray-900 mb-2">{comment.comment}</p>
-                      )}
-                      {comment.image_url && (
-                        <img
-                          src={comment.image_url}
-                          alt="Comentario"
-                          className="w-full max-w-md h-auto rounded border mt-2"
-                          onError={(e) => e.target.style.display = 'none'}
-                        />
-                      )}
-                      {comment.video_url && (
-                        <video
-                          src={comment.video_url}
-                          controls
-                          className="w-full max-w-md h-auto rounded border mt-2"
-                        />
-                      )}
-                    </div>
-                  ))}
+            <div className="space-y-4">
+              {comments.map((comment) => (
+                <div key={comment.id} className="border-2 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">{comment.users?.full_name}</span>
+                    <span className="text-sm text-gray-500">
+                      {format(new Date(comment.created_at), "dd/MM/yyyy HH:mm", { locale: es })}
+                    </span>
+                  </div>
+                  {comment.comment && (
+                    <p className="text-gray-700">{comment.comment}</p>
+                  )}
+                  {comment.image_url && (
+                    <img src={comment.image_url} alt="Attachment" className="max-w-md rounded-lg" />
+                  )}
+                  {comment.video_url && (
+                    <video src={comment.video_url} controls className="max-w-md rounded-lg" />
+                  )}
                 </div>
+              ))}
+
+              {comments.length === 0 && (
+                <p className="text-center text-gray-500 py-4">
+                  No hay comentarios
+                </p>
               )}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Historial de Fichajes */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-gray-900">📊 Historial de Fichajes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {checkins.length === 0 ? (
-              <p className="text-center text-gray-600 py-8">📭 No hay fichajes registrados</p>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-gray-900">Entrada</TableHead>
-                      <TableHead className="text-gray-900">Salida</TableHead>
-                      <TableHead className="text-gray-900">Empleado</TableHead>
-                      <TableHead className="text-gray-900">Duración</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {checkins.map((checkin) => {
-                      const duration = checkin.checkout_time
-                        ? Math.floor((new Date(checkin.checkout_time) - new Date(checkin.checkin_time)) / 1000 / 60)
-                        : null
-
-                      return (
-                        <TableRow key={checkin.id}>
-                          <TableCell className="text-gray-900">
-                            {format(new Date(checkin.checkin_time), 'PPp', { locale: es })}
-                          </TableCell>
-                          <TableCell className="text-gray-900">
-                            {checkin.checkout_time ? (
-                              format(new Date(checkin.checkout_time), 'PPp', { locale: es })
-                            ) : (
-                              <Badge className="bg-green-100 text-green-800 border-0">En curso</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-gray-900">{checkin.users?.full_name}</TableCell>
-                          <TableCell className="text-gray-900">
-                            {duration !== null ? (
-                              `${Math.floor(duration / 60)}h ${duration % 60}m`
-                            ) : (
-                              '-'
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>

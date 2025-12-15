@@ -1,3 +1,4 @@
+import TaskCheckinMethodsConfig from './pages/admin/TaskCheckinMethodsConfig'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
@@ -12,6 +13,7 @@ import EmployeeSettings from './pages/EmployeeSettings'
 import TaskAccessLogin from './pages/employee/TaskAccessLogin'
 import TaskDetailWithActions from './pages/employee/TaskDetailWithActions'
 import NotFound from './pages/NotFound'
+import NFCCardManager from './pages/admin/NFCCardManager'
 
 function App() {
   return (
@@ -38,7 +40,7 @@ function App() {
             </ProtectedRoute>
           } 
         />
-
+        
         <Route 
           path="/admin/employees" 
           element={
@@ -74,7 +76,25 @@ function App() {
             </ProtectedRoute>
           } 
         />
+
+        {/* 👇 NUEVA RUTA AGREGADA */}
+        <Route 
+          path="/admin/checkin-methods" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <TaskCheckinMethodsConfig />
+            </ProtectedRoute>
+          } 
+        />
         
+        <Route 
+  path="/admin/nfc-cards" 
+  element={
+    <ProtectedRoute requireAdmin={true}>
+      <NFCCardManager />
+    </ProtectedRoute>
+  } 
+/>
         {/* ============================= */}
         {/*     RUTAS DE EMPLEADO        */}
         {/* ============================= */}
