@@ -1,0 +1,16 @@
+{
+  "scope": "Actual React components with synthetic services in headless Chromium, not live Supabase",
+  "results": [
+    "password visibility toggles without submitting",
+    "search phrase creates active-task filter and renders results",
+    "automatic word search discards late results from previous query",
+    "PIN leading zero preserved; import preview precedes confirmation",
+    "real deflated XLSX parsed with first-sheet text cells and leading zero PIN",
+    "XLSX formula rejected before import",
+    "active task first; pending filter hides active task",
+    "review day scrolls and focuses loaded planning detail",
+    "incident explicitly distinguishes stop from completion",
+    "admin closure requires reason and explicit confirmation",
+    "no document horizontal overflow in 24 viewport/screen combinations"
+  ]
+}

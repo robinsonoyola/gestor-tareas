@@ -89,3 +89,17 @@ Thumbs.db # Windows
 *.njsproj
 *.sln
 *.sw?
+# Private local test infrastructure and database backups
+**/node_modules/
+**/local-https/
+**/staging-backups/
+**/staging-build/
+*.dump
+*.backup
+*.key
+*.pfx
+*.p12
+restore-staging*.sql
+storage-copy-result.json
+
+!.env.example

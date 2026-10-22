@@ -304,7 +304,7 @@ export default function TaskDetailPage() {
     <Layout>
       <div className="space-y-6 max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold text-gray-900">📋 Detalle de Tarea</h1>
@@ -324,7 +324,7 @@ export default function TaskDetailPage() {
 
         {/* Información de la Tarea */}
         <Card>
-          <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <CardHeader className="  bg-white border-b border-gray-200 text-gray-900">
             <CardTitle className="flex items-center gap-2">
               <Info className="h-5 w-5" />
               Información de la Tarea
@@ -386,7 +386,7 @@ export default function TaskDetailPage() {
 
         {/* Formulario de Fichaje */}
         <Card>
-          <CardHeader className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+          <CardHeader className="  bg-white border-b border-gray-200 text-gray-900">
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5" />
               Fichaje e Incidencias
@@ -436,7 +436,7 @@ export default function TaskDetailPage() {
 
         {/* Historial de Fichajes */}
         <Card>
-          <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+          <CardHeader className="  bg-white border-b border-gray-200 text-gray-900">
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
               Historial de Fichajes

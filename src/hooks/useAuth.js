@@ -1,72 +1,13 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-
-export function useAuth() {
-  const [user, setUser] = useState(null)
-  const [userData, setUserData] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    // Obtener sesión actual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchUserData(session.user.id)
-      } else {
-        setLoading(false)
-      }
-    })
-
-    // Escuchar cambios en la autenticación
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchUserData(session.user.id)
-      } else {
-        setUserData(null)
-        setLoading(false)
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const fetchUserData = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (error) throw error
-      setUserData(data)
-    } catch (error) {
-      console.error('Error fetching user data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const signIn = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { data, error }
-  }
-
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    return { error }
-  }
-
-  return {
-    user,
-    userData,
-    loading,
-    isAdmin: userData?.is_admin || false,
-    signIn,
-    signOut
-  }
+import {useOrganization} from '@/components/auth/OrganizationProvider'
+import {useLegacyAuth} from './useLegacyAuth'
+import {supabase} from '@/lib/supabase'
+export function useAuth(){
+ const context=useOrganization()
+ const legacy=useLegacyAuth(context?.mode==='legacy')
+ if(context?.mode==='legacy')return legacy
+ return {user:context?.user || null,userData:context?.userData || null,loading:context?.loading ?? true,
+ permissionsLoading:context?.loading ?? true,permissions:context?.permissions || [],roleName:context?.roleName || null,
+ isAdmin:context?.userData?.is_admin===true,
+ can:key=>context?.userData?.is_admin===true || context?.permissions?.includes(key)===true,
+ signIn:(email,password)=>supabase.auth.signInWithPassword({email,password}),signOut:()=>supabase.auth.signOut()}
 }

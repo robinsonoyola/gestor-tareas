@@ -1,0 +1,17 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+const source=fs.readFileSync(new URL('../../src/lib/organizationScope.js',import.meta.url),'utf8');
+const store=new Map();globalThis.sessionStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
+const scope=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const results=[];const check=(name,value)=>{assert(value,name);results.push({test:name,actual:'PASS'})};
+let sent;globalThis.fetch=async(input,init)=>{sent=init;return new Response('{}')};
+scope.setOrganizationScope('A','OrgA');await scope.organizationFetch('https://example.test/rest/v1/tasks',{headers:{'x-ase-organization-id':'FORGED'}});
+check('request uses selected context',sent.headers.get('x-ase-organization-id')==='OrgA');
+check('per-identity preference persisted',scope.savedOrganization('A')==='OrgA'&&scope.savedOrganization('B')===null);
+scope.setOrganizationScope('B',null);await scope.organizationFetch('https://example.test/rest/v1/tasks',{headers:{'x-ase-organization-id':'OrgA'}});
+check('new identity does not inherit organization',!sent.headers.has('x-ase-organization-id'));
+let resolve;globalThis.fetch=(input,init)=>{sent=init;return new Promise(r=>resolve=r)};
+scope.setOrganizationScope('A','OrgA');const stale=scope.organizationFetch('https://example.test/rest/v1/tasks');scope.setOrganizationScope('A','OrgB');
+check('change aborts old request',sent.signal.aborted);resolve(new Response('{"secret":"old"}'));await assert.rejects(stale,{name:'AbortError'});check('stale response is discarded even if transport ignores abort',true);
+let called=false;globalThis.fetch=async()=>{called=true;return new Response('{}')};await scope.organizationFetch('https://example.test/auth/v1/token');check('auth transport remains independent',called);
+check('mode does not auto-authorize',scope.tenantMode()===false);scope.setTenantMode('tenant');check('mode explicitly set after server detection',scope.tenantMode());
+fs.writeFileSync(new URL('./frontend-results.json',import.meta.url),JSON.stringify({scope:'Request-context unit tests; mocked transport; no browser or Supabase session',results},null,2));console.log(JSON.stringify({passed:results.length}));

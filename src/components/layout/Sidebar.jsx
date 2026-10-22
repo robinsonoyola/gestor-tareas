@@ -1,25 +1,28 @@
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { 
-  LayoutDashboard, 
-  Users, 
-  ListTodo, 
-  QrCode, 
-  MapPin, 
-  Key, 
+import {
+  LayoutDashboard,
+  Clock,
+  CalendarDays,
+  Users,
+  ListTodo,
+  BarChart3,
+  QrCode,
+  MapPin,
+  Key,
   Settings,
   CreditCard,
   SlidersHorizontal,
   X,
-  Building2,
-  Shield
+  Shield,
+  BriefcaseBusiness
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 export default function Sidebar({ onClose }) {
-  const { userData } = useAuth()
+  const { userData, can, roleName } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -29,53 +32,19 @@ export default function Sidebar({ onClose }) {
   }
 
   const isActive = (path) => {
-    return location.pathname === path
+    return location.pathname === path || (path !== '/admin' && location.pathname.startsWith(path+'/'))
   }
 
   const adminMenuItems = [
-    {
-      icon: LayoutDashboard,
-      label: 'Dashboard',
-      path: '/admin',
-      badge: null
-    },
-    {
-      icon: Users,
-      label: 'Empleados',
-      path: '/admin/employees',
-      badge: null
-    },
-    {
-      icon: QrCode,
-      label: 'Códigos QR',
-      path: '/admin/qr-generator',
-      badge: null
-    },
-    {
-      icon: MapPin,
-      label: 'Ubicaciones GPS',
-      path: '/admin/gps-locations',
-      badge: null
-    },
-    {
-      icon: Key,
-      label: 'Accesos',
-      path: '/admin/task-access-manager',
-      badge: null
-    },
-    {
-      icon: CreditCard,
-      label: 'Tarjetas NFC',
-      path: '/admin/nfc-cards',
-      badge: 'Nuevo',
-      badgeColor: 'bg-green-100 text-green-800'
-    },
-    {
-      icon: SlidersHorizontal,
-      label: 'Métodos Fichaje',
-      path: '/admin/checkin-methods',
-      badge: null
-    }
+    {icon:LayoutDashboard,label:'Inicio',path:'/admin',any:['tasks.view','planning.view','reports.view','checkins.view']},
+    {icon:ListTodo,label:'Tareas',path:'/admin/tasks',permission:'tasks.view'},
+    {icon:CalendarDays,label:'Planificación',path:'/admin/planning',permission:'planning.view'},
+    {icon:Clock,label:'Fichajes',path:'/admin/checkins',permission:'checkins.view'},
+    {icon:BarChart3,label:'Productividad',path:'/admin/productivity',permission:'reports.view'},
+    {icon:Clock,label:'Incidencias',path:'/incidents',permission:'incidents.view'},
+    {icon:Users,label:'Equipo',path:'/admin/team'},
+    {icon:Key,label:'Accesos y credenciales',path:'/admin/access'},
+    {icon:Settings,label:'Configuración',path:'/admin/settings'}
   ]
 
   const employeeMenuItems = [
@@ -85,29 +54,31 @@ export default function Sidebar({ onClose }) {
       path: '/employee',
       badge: null
     },
+    {icon:Clock,label:'Incidencias',path:'/incidents',badge:null},
+    {icon:Clock,label:'Mi historial',path:'/employee/history',badge:null},
     {
       icon: Settings,
-      label: 'Configuración',
+      label: 'Mi cuenta',
       path: '/employee/settings',
       badge: null
     }
   ]
 
-  const menuItems = userData?.is_admin ? adminMenuItems : employeeMenuItems
+  const menuItems = userData?.is_admin ? adminMenuItems : [...adminMenuItems.filter(item=>(item.permission && can(item.permission)) || item.any?.some(can)),...employeeMenuItems]
 
   return (
-    <aside className="w-64 bg-white border-r shadow-sm flex flex-col h-full">
+    <aside className="ase-sidebar w-64 bg-[#0F172A] text-[#F8FAFC] border-r border-white/10 flex flex-col h-full">
       {/* Header con Logo */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm">
-              <Building2 className="h-6 w-6 text-white" />
+            <div className="flex items-center justify-center w-10 h-10 shrink-0 bg-white rounded-lg shadow-sm">
+              <img src="/ase-icon.svg" alt="" aria-hidden="true" className="w-10 h-10 rounded-lg" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Hotel Tareas</h2>
-              <p className="text-xs text-gray-500">
-                {userData?.is_admin ? 'Admin' : 'Empleado'}
+              <h2 className="text-lg font-bold text-slate-50">ASE Work</h2>
+              <p className="text-xs text-slate-400">
+                {userData?.is_admin ? 'Admin' : roleName || 'Empleado'}
               </p>
             </div>
           </div>
@@ -126,7 +97,7 @@ export default function Sidebar({ onClose }) {
 
         {/* Badge de rol */}
         {userData?.is_admin && (
-          <Badge className="bg-purple-100 text-purple-800 border-0 text-xs mt-3 w-full justify-center">
+          <Badge className="bg-white/10 text-slate-300 border-0 text-xs mt-3 w-full justify-center">
             <Shield className="h-3 w-3 mr-1" />
             Administrador
           </Badge>
@@ -146,19 +117,19 @@ export default function Sidebar({ onClose }) {
                 variant={active ? 'default' : 'ghost'}
                 className={cn(
                   'w-full justify-start h-11 text-sm font-medium transition-colors',
-                  active 
-                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                  active
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
                 )}
                 onClick={() => handleNavigation(item.path)}
               >
                 <Icon className={cn(
                   'mr-3 h-5 w-5',
-                  active ? 'text-white' : 'text-gray-500'
+                  active ? 'text-white' : 'text-slate-400'
                 )} />
                 <span className="flex-1 text-left">{item.label}</span>
                 {item.badge && (
-                  <Badge 
+                  <Badge
                     className={cn(
                       'ml-2 text-xs border-0',
                       item.badgeColor || 'bg-blue-100 text-blue-800'
@@ -174,16 +145,16 @@ export default function Sidebar({ onClose }) {
       </nav>
 
       {/* Footer - User Info */}
-      <div className="p-4 border-t bg-gray-50">
+      <div className="p-4 border-t border-white/10 bg-[#132238]">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full text-white text-sm font-semibold">
+          <div className="flex items-center justify-center w-9 h-9 bg-blue-600 rounded-full text-white text-sm font-semibold">
             {userData?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-sm font-medium text-slate-50 truncate">
               {userData?.full_name}
             </p>
-            <p className="text-xs text-gray-500 truncate">
+            <p className="text-xs text-slate-400 truncate">
               {userData?.email}
             </p>
           </div>

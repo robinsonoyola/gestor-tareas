@@ -1,3 +1,4 @@
+import IncidentReporter from '@/components/IncidentReporter'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -39,6 +40,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
+import { signedTaskAttachment, taskAttachmentExtension, taskAttachmentId } from '@/lib/taskAttachments'
 
 export default function TaskDetailWithActions() {
   const { id } = useParams()
@@ -46,11 +48,15 @@ export default function TaskDetailWithActions() {
   const { userData } = useAuth()
   
   const [task, setTask] = useState(null)
+  const [accessDenied, setAccessDenied] = useState(false)
+  const [tabletMode, setTabletMode] = useState(false)
   const [checkins, setCheckins] = useState([])
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [activeCheckin, setActiveCheckin] = useState(null)
+  const [endingCheckin, setEndingCheckin] = useState(false)
+  const [activeCheckinStatus, setActiveCheckinStatus] = useState('loading')
   const [fichajeTime, setFichajeTime] = useState(null)
   
   const [nfcSupported, setNfcSupported] = useState(false)
@@ -72,22 +78,44 @@ export default function TaskDetailWithActions() {
   const [uploadProgress, setUploadProgress] = useState(0)
 
   useEffect(() => {
-    if (id) {
-      fetchTaskDetails()
-      fetchCheckins()
-      fetchComments()
-      checkActiveCheckin()
+    let cancelled = false
+    setLoading(true)
+    setTask(null)
+    setAccessDenied(false)
+    setCheckins([])
+    setComments([])
+    setActiveCheckin(null)
+    setFichajeTime(null)
+    setActiveCheckinStatus('loading')
+    if (id && userData?.id) {
+      fetchTaskDetails(() => !cancelled).then(allowed => {
+        if (allowed && !cancelled) {
+          fetchCheckins()
+          fetchComments()
+          checkActiveCheckin()
+          fetchCheckinConfig()
+        }
+      })
     }
-  }, [id])
+    return () => { cancelled = true }
+  }, [id, userData?.id, userData?.is_admin])
 
   useEffect(() => {
-    if ('NDEFReader' in window) {
-      setNfcSupported(true)
+    setNfcSupported('NDEFReader' in window)
+  }, [])
+
+  useEffect(() => {
+    if (!tabletMode || !id || !userData?.id) return
+    let current = true
+    const refresh = async () => {
+      const allowed = await fetchTaskDetails(() => current)
+      if (allowed && current) { checkActiveCheckin(); fetchCheckins() }
     }
-    if (id) {
-      fetchCheckinConfig()
-    }
-  }, [id])
+    const timer = setInterval(refresh, 10000)
+    window.addEventListener('focus', refresh)
+    return () => { current = false; clearInterval(timer); window.removeEventListener('focus', refresh) }
+  }, [tabletMode, id, userData?.id])
+
 
   useEffect(() => {
     let interval
@@ -107,8 +135,35 @@ export default function TaskDetailWithActions() {
     return () => clearInterval(interval)
   }, [activeCheckin])
 
-  const fetchTaskDetails = async () => {
+  const fetchTaskDetails = async (isCurrent = () => true) => {
     try {
+      if (!userData?.id) return false
+      const { data: access, error: accessError } = await supabase.rpc('work_detail_access', { p_task_id: id })
+      const migrationMissing = accessError?.code === 'PGRST202' || accessError?.code === '42883'
+      if (accessError && !migrationMissing) throw accessError
+      if (!isCurrent()) return false
+      const enabled = !migrationMissing && access?.enabled === true
+      setTabletMode(enabled)
+      if (enabled && !access?.allowed) {
+        setAccessDenied(true); setTask(null); setComments([]); setCheckins([]); setActiveCheckin(null)
+        setImagePreview(null); setVideoPreview(null)
+        return false
+      }
+      if (!userData.is_admin) {
+        const { data: assignment, error: assignmentError } = await supabase
+          .from('task_assignments')
+          .select('id')
+          .eq('task_id', id)
+          .eq('user_id', userData.id)
+          .maybeSingle()
+        if (!isCurrent()) return false
+        if (assignmentError) throw assignmentError
+        if (!assignment) {
+          setAccessDenied(true)
+          setTask(null)
+          return false
+        }
+      }
       const { data, error } = await supabase
         .from('tasks')
         .select(`
@@ -123,9 +178,15 @@ export default function TaskDetailWithActions() {
           )
         `)
         .eq('id', id)
-        .single()
+        .maybeSingle()
 
+      if (!isCurrent()) return false
       if (error) throw error
+      if (!data) {
+        setAccessDenied(true)
+        setTask(null)
+        return false
+      }
 
       const assignedUsers = []
       if (data.task_assignments) {
@@ -136,15 +197,22 @@ export default function TaskDetailWithActions() {
         })
       }
 
+      setAccessDenied(false)
       setTask({
         ...data,
+        status: enabled && !userData.is_admin ? 'in_progress' : data.status,
         assigned_users: assignedUsers
       })
+      return true
     } catch (error) {
-      console.error('Error fetching task:', error)
-      toast.error('Error al cargar la tarea')
+      if (isCurrent()) {
+        setTask(null)
+        console.error('Error fetching task:', error?.code || 'unknown')
+        toast.error('No se pudo comprobar el acceso a la tarea')
+      }
+      return false
     } finally {
-      setLoading(false)
+      if (isCurrent()) setLoading(false)
     }
   }
 
@@ -171,6 +239,15 @@ export default function TaskDetailWithActions() {
     }
   }
 
+  const fetchTaskActorNames = async () => {
+    const { data, error } = await supabase.rpc('sec06_task_actor_names', { p_task_id: id })
+    // Keep the current UI usable during the staged SQL installation.
+    // Fallback uses only the existing RLS-filtered join; never another profile query.
+    if (error?.code === 'PGRST202') return new Map()
+    if (error) throw error
+    return new Map((data || []).map(actor => [actor.id, { id: actor.id, full_name: actor.full_name }]))
+  }
+
   const fetchCheckins = async () => {
     try {
       const { data, error } = await supabase
@@ -186,7 +263,11 @@ export default function TaskDetailWithActions() {
         .order('checkin_time', { ascending: false })
 
       if (error) throw error
-      setCheckins(data || [])
+      const actorNames = await fetchTaskActorNames()
+      setCheckins((data || []).map(checkin => ({
+        ...checkin,
+        users: actorNames.get(checkin.user_id) || checkin.users
+      })))
     } catch (error) {
       console.error('Error fetching checkins:', error)
     }
@@ -207,13 +288,36 @@ export default function TaskDetailWithActions() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setComments(data || [])
+      const actorNames = await fetchTaskActorNames()
+      const visibleComments = await Promise.all((data || []).map(async comment => {
+        const [image, video] = await Promise.allSettled([
+          comment.image_url ? signedTaskAttachment(comment.image_url) : Promise.resolve(null),
+          comment.video_url ? signedTaskAttachment(comment.video_url) : Promise.resolve(null)
+        ])
+        return {
+          ...comment,
+          users: actorNames.get(comment.user_id) || comment.users,
+          image_display_url: image.status === 'fulfilled' ? image.value : null,
+          video_display_url: video.status === 'fulfilled' ? video.value : null,
+          attachmentError: image.status === 'rejected' || video.status === 'rejected'
+        }
+      }))
+      setComments(visibleComments)
     } catch (error) {
       console.error('Error fetching comments:', error)
     }
   }
 
+  // Refresh short-lived links while this task remains open.
+  useEffect(() => {
+    if (!id || !userData?.id || task?.id !== id) return
+    const interval = setInterval(() => fetchComments(), 10 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [id, userData?.id, task?.id])
+
   const checkActiveCheckin = async () => {
+    if (!userData?.id) return
+    setActiveCheckinStatus('loading')
     try {
       const { data, error } = await supabase
         .from('checkins')
@@ -221,13 +325,14 @@ export default function TaskDetailWithActions() {
         .eq('task_id', id)
         .eq('user_id', userData.id)
         .is('checkout_time', null)
-        .single()
-
-      if (data) {
-        setActiveCheckin(data)
-      }
+        .maybeSingle()
+      if (error) throw error
+      setActiveCheckin(data || null)
+      setActiveCheckinStatus('ready')
     } catch (error) {
-      // No hay fichaje activo
+      setActiveCheckinStatus('error')
+      console.error('Error al recuperar fichaje:', error?.code || 'unknown')
+      toast.error('No se pudo comprobar el fichaje activo. Recarga antes de iniciar otro.')
     }
   }
 
@@ -247,6 +352,7 @@ export default function TaskDetailWithActions() {
   }
 
   const handleNFCCheckin = async () => {
+    if (tabletMode) { toast.info('Confirma esta acción en la tablet'); return }
     if (!nfcSupported) {
       toast.error('Tu dispositivo no soporta NFC')
       return
@@ -308,61 +414,64 @@ export default function TaskDetailWithActions() {
   }
 
   const handleStartCheckin = async () => {
+    if (tabletMode) { toast.info('Confirma esta acción en la tablet'); return }
+    if (!task || !userData?.id || activeCheckin) return
+    const hasCoordinate = (value) => value !== null && value !== undefined && String(value).trim() !== ''
+    const requiresGps = hasCoordinate(task.expected_latitude) && hasCoordinate(task.expected_longitude)
     try {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords
-
-          if (task.expected_latitude && task.expected_longitude) {
-            const distance = calculateDistance(
-              latitude,
-              longitude,
-              task.expected_latitude,
-              task.expected_longitude
-            )
-
-            if (distance > task.location_radius) {
-              const confirmOutside = window.confirm(
-                `Estás a ${Math.round(distance)}m del punto esperado. ¿Deseas continuar con el fichaje?`
-              )
-              if (!confirmOutside) return
-            }
+      let latitude = null
+      let longitude = null
+      if (requiresGps) {
+        if (!window.isSecureContext) {
+          toast.error('Esta tarea requiere GPS y necesita una conexión HTTPS. Abre ASE Work desde su dirección segura para fichar.')
+          return
+        }
+        if (!navigator.geolocation) {
+          toast.error('Este navegador no permite obtener la ubicación. Usa un navegador compatible con el GPS.')
+          return
+        }
+        let position
+        try {
+          position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
+          })
+        } catch (error) {
+          const messages = {
+            1: 'Permiso de ubicación denegado. Permite la ubicación para ASE Work en los ajustes del navegador.',
+            2: 'La ubicación no está disponible. Comprueba que la localización del teléfono esté activada y vuelve a intentarlo.',
+            3: 'Se agotó el tiempo para obtener la ubicación. Busca un lugar con mejor señal y vuelve a intentarlo.'
           }
+          toast.error(messages[error.code] || 'No se pudo obtener la ubicación GPS. Vuelve a intentarlo.')
+          return
+        }
+        ;({ latitude, longitude } = position.coords)
+        const distance = calculateDistance(latitude, longitude, task.expected_latitude, task.expected_longitude)
+        if (distance > task.location_radius) {
+          const confirmOutside = window.confirm(`Estás a ${Math.round(distance)}m del punto esperado. ¿Deseas continuar con el fichaje?`)
+          if (!confirmOutside) return
+        }
+      }
 
-          const { data: newCheckin, error } = await supabase
-            .from('checkins')
-            .insert([{
-              task_id: id,
-              user_id: userData.id,
-              location: `${latitude},${longitude}`,
-              latitude: latitude,
-              longitude: longitude,
-              qr_code: 'Manual',
-              checkin_method: 'manual'
-            }])
-            .select()
-            .single()
+      const { data: newCheckin, error } = await supabase
+        .from('checkins')
+        .insert([{
+          task_id: id,
+          user_id: userData.id,
+          location: requiresGps ? `${latitude},${longitude}` : null,
+          latitude,
+          longitude,
+          qr_code: 'Manual',
+          checkin_method: 'manual'
+        }])
+        .select()
+        .single()
+      if (error) throw error
 
-          if (error) throw error
-
-          await supabase
-            .from('tasks')
-            .update({
-              status: 'in_progress',
-              last_checkin: new Date().toISOString()
-            })
-            .eq('id', id)
-
-          setActiveCheckin(newCheckin)
-          toast.success('✅ Fichaje iniciado')
-          fetchCheckins()
-          fetchTaskDetails()
-        },
-        (error) => {
-          toast.error('❌ No se pudo obtener la ubicación GPS')
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      )
+      await supabase.from('tasks').update({ status: 'in_progress', last_checkin: new Date().toISOString() }).eq('id', id)
+      setActiveCheckin(newCheckin)
+      toast.success('✅ Fichaje iniciado')
+      fetchCheckins()
+      fetchTaskDetails()
     } catch (error) {
       console.error('Error starting checkin:', error)
       toast.error('Error al iniciar fichaje')
@@ -370,21 +479,26 @@ export default function TaskDetailWithActions() {
   }
 
   const handleEndCheckin = async () => {
+    if (tabletMode) { toast.info('Confirma esta acción en la tablet'); return }
+    if (!activeCheckin?.id || endingCheckin) return
+    setEndingCheckin(true)
     try {
-      const { error } = await supabase
-        .from('checkins')
-        .update({ checkout_time: new Date().toISOString() })
-        .eq('id', activeCheckin.id)
-
+      const { data, error } = await supabase.rpc('finish_manual_checkin', {
+        p_checkin_id: activeCheckin.id
+      })
       if (error) throw error
-
+      if (!data?.success || data.checkin_id !== activeCheckin.id || !data.checkout_time) {
+        throw new Error('El servidor no confirmó el cierre')
+      }
       setActiveCheckin(null)
       setFichajeTime(null)
-      toast.success('✅ Fichaje finalizado')
-      fetchCheckins()
+      toast.success('Fichaje finalizado y guardado')
+      await fetchCheckins()
     } catch (error) {
-      console.error('Error ending checkin:', error)
-      toast.error('Error al finalizar fichaje')
+      console.error('Error al finalizar fichaje:', error?.code || 'unknown')
+      toast.error('No se confirmó el cierre. El fichaje sigue pendiente; puedes reintentar sin duplicarlo.')
+    } finally {
+      setEndingCheckin(false)
     }
   }
 
@@ -423,32 +537,29 @@ export default function TaskDetailWithActions() {
   }
 
   const uploadFile = async (file, type) => {
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${userData.id}-${Date.now()}.${fileExt}`
-    const filePath = `${type}s/${fileName}`
-
-    const { data, error } = await supabase.storage
-      .from('task-files')
-      .upload(filePath, file)
-
+    if (!id || !userData?.id) throw new Error('No hay sesión o tarea disponible')
+    const extension = taskAttachmentExtension(file, type)
+    const filePath = `tasks/${id}/${userData.id}/${taskAttachmentId()}.${extension}`
+    const { error } = await supabase.storage.from('task-files').upload(filePath, file, {
+      contentType: file.type,
+      upsert: false
+    })
     if (error) throw error
-
-    const { data: urlData } = supabase.storage
-      .from('task-files')
-      .getPublicUrl(filePath)
-
-    return urlData.publicUrl
+    return filePath
   }
 
   const handleAddComment = async (e) => {
     e.preventDefault()
 
-    if (!commentForm.comment && !commentForm.imageFile && !commentForm.videoFile) {
-      toast.error('Debes agregar un comentario o un archivo')
+    if (!commentForm.comment.trim()) {
+      toast.error('Escribe un comentario para acompañar los archivos.')
       return
     }
 
     try {
+      // Validate both files before uploading either one.
+      if (commentForm.imageFile) taskAttachmentExtension(commentForm.imageFile, 'image')
+      if (commentForm.videoFile) taskAttachmentExtension(commentForm.videoFile, 'video')
       setSubmitting(true)
       setUploadProgress(10)
 
@@ -472,19 +583,12 @@ export default function TaskDetailWithActions() {
         .insert([{
           task_id: id,
           user_id: userData.id,
-          comment: commentForm.comment || null,
+          comment: commentForm.comment.trim(),
           image_url: imageUrl,
           video_url: videoUrl
         }])
 
-      if (error) {
-        if (error.code === '42P01') {
-          toast.error('La tabla de comentarios no existe en la base de datos')
-        } else {
-          throw error
-        }
-        return
-      }
+      if (error) throw error
 
       setUploadProgress(100)
       toast.success('✅ Comentario agregado')
@@ -496,8 +600,8 @@ export default function TaskDetailWithActions() {
       
       fetchComments()
     } catch (error) {
-      console.error('Error adding comment:', error)
-      toast.error('Error al agregar comentario')
+      console.error('Error adding comment:', error?.code || 'unknown')
+      toast.error(error instanceof Error ? error.message : 'Error al agregar comentario')
     } finally {
       setSubmitting(false)
     }
@@ -562,7 +666,8 @@ export default function TaskDetailWithActions() {
         <div className="text-center py-12">
           <Alert className="bg-red-50 border-red-200 max-w-2xl mx-auto">
             <AlertDescription className="text-red-800">
-              <strong>Error:</strong> No se encontró la tarea.
+              <strong>{accessDenied ? 'Acceso no permitido:' : 'Tarea no disponible:'}</strong>{' '}
+              {accessDenied ? (tabletMode ? 'Solo puedes abrir la tarea que tienes en curso. Comienza tu siguiente tarea en la tablet.' : 'No tienes asignada esta tarea o ya no está disponible.') : 'No se pudo cargar la tarea. Inténtalo de nuevo.'}
             </AlertDescription>
           </Alert>
           <Button onClick={() => navigate('/employee')} className="mt-4">
@@ -579,8 +684,8 @@ export default function TaskDetailWithActions() {
     <Layout>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header con navegación */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap min-w-0 items-center gap-4">
             <Button
               variant="outline"
               size="icon"
@@ -593,7 +698,7 @@ export default function TaskDetailWithActions() {
               <p className="text-gray-600 mt-1">{task.description || 'Sin descripción'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge 
               variant="outline" 
               className={`${statusBadge.bg} ${statusBadge.text} ${statusBadge.border} border font-medium`}
@@ -607,7 +712,7 @@ export default function TaskDetailWithActions() {
         {/* Información General */}
         <Card className="border-2 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex flex-wrap items-center gap-2">
               <Info className="h-5 w-5 text-blue-600" />
               Información de la Tarea
             </CardTitle>
@@ -650,12 +755,16 @@ export default function TaskDetailWithActions() {
         {/* Control de Fichaje */}
         <Card className="border-2 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex flex-wrap items-center gap-2">
               <Clock className="h-5 w-5 text-purple-600" />
               Control de Fichaje
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {tabletMode ? <div className="space-y-4">
+              <p className="text-gray-600">El inicio y la finalización se confirman únicamente en la tablet. Desde aquí puedes consultar la tarea y añadir fotos y comentarios.</p>
+              {activeCheckin && <div className="rounded-lg border border-blue-200 bg-blue-50 p-4"><p className="text-blue-800 font-medium">Tu fichaje sigue activo</p><p className="font-mono text-3xl text-blue-700 mt-2">{fichajeTime || '00:00:00'}</p></div>}
+            </div> : <>
             {activeCheckin ? (
               <div className="space-y-4">
                 <Alert className="bg-blue-50 border-blue-200 border-2">
@@ -669,7 +778,7 @@ export default function TaskDetailWithActions() {
                   </AlertDescription>
                 </Alert>
 
-                {checkinConfig.nfc_enabled && nfcSupported ? (
+                {activeCheckin.checkin_method === 'nfc' && checkinConfig.nfc_enabled && nfcSupported ? (
                   <Button
                     onClick={handleNFCCheckin}
                     disabled={isReadingNFC}
@@ -682,11 +791,12 @@ export default function TaskDetailWithActions() {
                 ) : (
                   <Button
                     onClick={handleEndCheckin}
+                    disabled={endingCheckin || activeCheckin.checkin_method !== 'manual'}
                     className="w-full bg-red-600 hover:bg-red-700"
                     size="lg"
                   >
                     <Square className="mr-2 h-5 w-5" />
-                    Finalizar Fichaje Manual
+                    {endingCheckin ? 'Guardando salida…' : 'Finalizar Fichaje Manual'}
                   </Button>
                 )}
               </div>
@@ -704,9 +814,17 @@ export default function TaskDetailWithActions() {
                   </Button>
                 )}
 
+                {activeCheckinStatus !== 'ready' && (
+                  <p role="status" className="text-sm text-gray-600">
+                    {activeCheckinStatus === 'loading'
+                      ? 'Comprobando si hay un fichaje abierto…'
+                      : 'No se pudo comprobar el fichaje. Recarga antes de iniciar otro.'}
+                  </p>
+                )}
                 {checkinConfig.manual_enabled && (
                   <Button
                     onClick={handleStartCheckin}
+                    disabled={activeCheckinStatus !== 'ready'}
                     className="w-full bg-green-600 hover:bg-green-700"
                     size="lg"
                   >
@@ -716,14 +834,15 @@ export default function TaskDetailWithActions() {
                 )}
               </div>
             )}
+            </>}
           </CardContent>
         </Card>
 
         {/* Historial de Fichajes */}
         <Card className="border-2 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
+            <CardTitle className="flex flex-wrap items-center justify-between gap-3">
+              <span className="flex flex-wrap items-center gap-2">
                 <Timer className="h-5 w-5 text-orange-600" />
                 Historial de Fichajes
               </span>
@@ -749,7 +868,7 @@ export default function TaskDetailWithActions() {
                   <TableBody>
                     {checkins.map((checkin) => (
                       <TableRow key={checkin.id} className="hover:bg-gray-50">
-                        <TableCell className="font-medium">{checkin.users?.full_name}</TableCell>
+                        <TableCell className="font-medium">{checkin.users?.full_name || 'Usuario no disponible'}</TableCell>
                         <TableCell>
                           {format(new Date(checkin.checkin_time), "dd/MM/yyyy HH:mm", { locale: es })}
                         </TableCell>
@@ -782,6 +901,7 @@ export default function TaskDetailWithActions() {
           </CardContent>
         </Card>
 
+        <IncidentReporter taskId={id}/>
         {/* Comentarios */}
         <Card className="border-2 shadow-sm">
           <CardHeader>
@@ -811,7 +931,7 @@ export default function TaskDetailWithActions() {
                   <Input
                     id="image"
                     type="file"
-                    accept="image/*"
+                    accept="image/png,image/jpeg,image/gif,image/webp"
                     onChange={handleImageChange}
                     className="mt-1"
                   />
@@ -827,7 +947,7 @@ export default function TaskDetailWithActions() {
                   <Input
                     id="video"
                     type="file"
-                    accept="video/*"
+                    accept="video/mp4,video/webm,video/quicktime"
                     onChange={handleVideoChange}
                     className="mt-1"
                   />
@@ -882,8 +1002,8 @@ export default function TaskDetailWithActions() {
             <div className="space-y-4">
               {comments.map((comment) => (
                 <div key={comment.id} className="border-2 rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">{comment.users?.full_name}</span>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <span className="font-semibold">{comment.users?.full_name || 'Usuario no disponible'}</span>
                     <span className="text-sm text-gray-500">
                       {format(new Date(comment.created_at), "dd/MM/yyyy HH:mm", { locale: es })}
                     </span>
@@ -891,11 +1011,17 @@ export default function TaskDetailWithActions() {
                   {comment.comment && (
                     <p className="text-gray-700">{comment.comment}</p>
                   )}
-                  {comment.image_url && (
-                    <img src={comment.image_url} alt="Attachment" className="max-w-md rounded-lg" />
+                  {comment.image_display_url && (
+                    <img src={comment.image_display_url} alt="Attachment" className="w-full max-w-md rounded-lg" />
                   )}
-                  {comment.video_url && (
-                    <video src={comment.video_url} controls className="max-w-md rounded-lg" />
+                  {comment.video_display_url && (
+                    <video src={comment.video_display_url} controls className="w-full max-w-md rounded-lg" />
+                  )}
+                  {comment.attachmentError && (
+                    <div role="status" className="text-sm text-amber-800">
+                      No se pudo obtener acceso al adjunto.{' '}
+                      <button type="button" className="underline" onClick={fetchComments}>Reintentar</button>
+                    </div>
                   )}
                 </div>
               ))}

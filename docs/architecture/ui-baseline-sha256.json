@@ -1,0 +1,26 @@
+[
+  {
+    "file": "src/App.css",
+    "sha256": "a0715e0a09edbd0fbde65816a75e0fa0fc8b314c5260c0768c19bf3aac22621a"
+  },
+  {
+    "file": "src/index.css",
+    "sha256": "d37e71746770e255c229ad0b121058a43f57b6be6a10ce46ec12988e878b8438"
+  },
+  {
+    "file": "src/style.css",
+    "sha256": "944e6e12c0067a6767836a78ad6c4095b829f966b44f33bc95cfef1401ab3c10"
+  },
+  {
+    "file": "public/ase-icon.svg",
+    "sha256": "d7224533f86688a16c36ef37d878c81b0b320bede5ae0b182bef3025550986b9"
+  },
+  {
+    "file": "public/vite.svg",
+    "sha256": "4a748afd443918bb16591c834c401dae33e87861ab5dbad0811c3a3b4a9214fb"
+  },
+  {
+    "file": "public/_redirects",
+    "sha256": "a8acbec4c7f88e93e3cccc9ced7fefc98377f459546cb60e2c125e2d27ba79d1"
+  }
+]

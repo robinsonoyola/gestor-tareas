@@ -1,3 +1,4 @@
+import IncidentNotifications from '@/components/IncidentNotifications'
 import { useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
@@ -23,6 +24,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import Sidebar from './Sidebar'
+import OrganizationSelector from './OrganizationSelector'
+import SectionNavigation from './SectionNavigation'
 
 export default function Layout({ children }) {
   const { userData, signOut } = useAuth()
@@ -45,10 +48,10 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex h-screen overflow-hidden">
+    <div className="ase-layout min-h-dvh bg-gray-50">
+      <div className="flex h-dvh overflow-hidden">
         {/* Sidebar - Desktop */}
-        <div className="hidden lg:block">
+        <div className="hidden lg:block shrink-0">
           <Sidebar />
         </div>
 
@@ -68,12 +71,12 @@ export default function Layout({ children }) {
         )}
         
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">
+        <main className="min-w-0 flex-1 overflow-auto">
           {/* Header */}
           <header className="sticky top-0 z-30 bg-white border-b shadow-sm">
-            <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4">
+            <div className="flex min-w-0 items-center justify-between gap-2 px-3 py-3 sm:px-4 md:px-6 md:py-4">
               {/* Left Section */}
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                 {/* Mobile Menu Button */}
                 <Button
                   variant="ghost"
@@ -85,13 +88,13 @@ export default function Layout({ children }) {
                 </Button>
 
                 {/* Logo */}
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm">
-                    <Building2 className="h-5 w-5 md:h-6 md:w-6 text-white" />
+                <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                  <div className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-white rounded-lg shadow-sm">
+                    <img src="/ase-icon.svg" alt="" aria-hidden="true" className="w-9 h-9 md:w-10 md:h-10 rounded-lg" />
                   </div>
                   <div className="hidden sm:block">
                     <h1 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-                      Hotel Tareas
+                      ASE Work
                       {userData?.is_admin && (
                         <Badge className="bg-purple-100 text-purple-800 border-0 text-xs hidden md:inline-flex">
                           <Shield className="h-3 w-3 mr-1" />
@@ -108,10 +111,12 @@ export default function Layout({ children }) {
 
               {/* Right Section */}
               <div className="flex items-center gap-2 md:gap-4">
+                <OrganizationSelector />
+                <IncidentNotifications/>
                 {/* User Info - Desktop */}
-                <div className="hidden md:block text-right">
-                  <p className="text-sm font-medium text-gray-900">{userData?.full_name}</p>
-                  <p className="text-xs text-gray-500">{userData?.email}</p>
+                <div className="hidden md:block min-w-0 max-w-56 text-right">
+                  <p className="truncate text-sm font-medium text-gray-900">{userData?.full_name}</p>
+                  <p className="truncate text-xs text-gray-500">{userData?.email}</p>
                 </div>
 
                 {/* User Menu Dropdown */}
@@ -121,7 +126,7 @@ export default function Layout({ children }) {
                       className="relative h-10 rounded-full hover:bg-gray-100 transition-colors flex items-center gap-2 px-2 border-0 bg-transparent cursor-pointer"
                     >
                       <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-semibold">
+                        <AvatarFallback className="bg-blue-600 text-white text-sm font-semibold">
                           {getInitials(userData?.full_name)}
                         </AvatarFallback>
                       </Avatar>
@@ -149,17 +154,17 @@ export default function Layout({ children }) {
                       className="cursor-pointer"
                     >
                       <Building2 className="mr-2 h-4 w-4" />
-                      <span>Dashboard</span>
+                      <span>Inicio</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => navigate('/profile')}
+                      onClick={() => navigate('/employee/settings')}
                       className="cursor-pointer"
                     >
                       <User className="mr-2 h-4 w-4" />
                       <span>Mi Perfil</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => navigate('/settings')}
+                      onClick={() => navigate(userData?.is_admin ? '/admin/settings' : '/employee/settings')}
                       className="cursor-pointer"
                     >
                       <Settings className="mr-2 h-4 w-4" />
@@ -180,7 +185,9 @@ export default function Layout({ children }) {
           </header>
 
           {/* Page Content */}
-          <div className="p-4 md:p-6 lg:p-8">
+          <div className="ase-content min-w-0 p-3 sm:p-4 md:p-6 lg:p-8">
+            <Button variant="outline" size="sm" className="mb-4" onClick={() => window.history.state?.idx > 0 ? navigate(-1) : navigate(userData?.is_admin ? '/admin' : '/employee')}>← Atrás</Button>
+            <SectionNavigation />
             {children}
           </div>
         </main>

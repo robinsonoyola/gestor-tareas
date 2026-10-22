@@ -1,3 +1,4 @@
+import {useOrganization} from '@/components/auth/OrganizationProvider'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -6,184 +7,100 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Lock, AlertCircle, CheckCircle, Info } from 'lucide-react'
+import { Lock, AlertCircle, Info } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 export default function TaskAccessLogin() {
   const { accessCode } = useParams()
   const navigate = useNavigate()
-  
-  const [credentials, setCredentials] = useState({
-    email: '',
-    password: ''
-  })
+  const organization=useOrganization()
+  const [credentials, setCredentials] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
-  const [validatingCode, setValidatingCode] = useState(true)
-  const [codeValid, setCodeValid] = useState(false)
-  const [taskInfo, setTaskInfo] = useState(null)
+  const [accessError, setAccessError] = useState('')
 
   useEffect(() => {
-    validateAccessCode()
+    setAccessError('')
+    setCredentials(prev => ({ ...prev, password: '' }))
   }, [accessCode])
-
-  const validateAccessCode = async () => {
-    try {
-      setValidatingCode(true)
-
-      const { data: codeData, error: codeError } = await supabase
-        .from('task_access_codes')
-        .select(`
-          *,
-          tasks (
-            id,
-            title,
-            description
-          )
-        `)
-        .eq('access_code', accessCode)
-        .eq('is_active', true)
-        .single()
-
-      if (codeError || !codeData) {
-        setCodeValid(false)
-        toast.error('Código de acceso inválido o expirado')
-        return
-      }
-
-      // Verificar si tiene fecha de expiración
-      if (codeData.expires_at && new Date(codeData.expires_at) < new Date()) {
-        setCodeValid(false)
-        toast.error('Este código de acceso ha expirado')
-        return
-      }
-
-      setCodeValid(true)
-      setTaskInfo(codeData.tasks)
-      toast.success('✅ Código válido')
-
-    } catch (error) {
-      console.error('Error validating code:', error)
-      setCodeValid(false)
-    } finally {
-      setValidatingCode(false)
-    }
-  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
+    if (loading) return
     setLoading(true)
+    setAccessError('')
 
     try {
-      // Autenticar usuario
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password
       })
-
-      if (authError) {
-        toast.error('❌ Credenciales incorrectas')
-        setLoading(false)
+      if (authError || !authData?.user) {
+        setAccessError('No se pudo iniciar sesión. Comprueba tus credenciales e inténtalo de nuevo.')
         return
       }
 
-      // Verificar que el usuario esté asignado a esta tarea
+      const context=await supabase.rpc('mt_context')
+      if(context.error && !['PGRST202','42883'].includes(context.error.code))throw context.error
+      if(!context.error){
+        const {data:access,error}=await supabase.rpc('mt_resolve_task_access',{p_code:accessCode})
+        if(error||!access?.task_id)throw new Error('Enlace no disponible')
+        await organization.selectOrganization(access.organization_id)
+        toast.success('Acceso concedido')
+        navigate(`/employee/task/${access.task_id}/work`)
+        return
+      }
+
+      // Consultar solo después de autenticar: RLS conserva el control del acceso.
+      // No exponer título, descripción ni códigos a visitantes sin sesión.
+      const { data: codeData, error: codeError } = await supabase
+        .from('task_access_codes')
+        .select('task_id, expires_at')
+        .eq('access_code', accessCode)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (codeError) throw codeError
+      const expiresAt = codeData?.expires_at ? Date.parse(codeData.expires_at) : null
+      if (!codeData?.task_id || (expiresAt !== null && (!Number.isFinite(expiresAt) || expiresAt <= Date.now()))) {
+        setAccessError('El enlace no está disponible para tu cuenta. Puede haber expirado, estar desactivado o no corresponder a una tarea asignada.')
+        return
+      }
+
       const { data: assignmentData, error: assignmentError } = await supabase
         .from('task_assignments')
-        .select('*')
-        .eq('task_id', taskInfo.id)
+        .select('id')
+        .eq('task_id', codeData.task_id)
         .eq('user_id', authData.user.id)
-        .single()
+        .maybeSingle()
 
-      if (assignmentError || !assignmentData) {
-        // Cerrar sesión si no está asignado
-        await supabase.auth.signOut()
-        toast.error('❌ No tienes permiso para acceder a esta tarea')
-        setLoading(false)
+      if (assignmentError) throw assignmentError
+      if (!assignmentData) {
+        setAccessError('El enlace no está disponible para tu cuenta. Comprueba con tu administrador la asignación de la tarea.')
         return
       }
 
-      toast.success('✅ Acceso concedido')
-      
-      // Redirigir a la tarea
-      navigate(`/employee/task/${taskInfo.id}/work`)
-
+      toast.success('Acceso concedido')
+      navigate(`/employee/task/${codeData.task_id}/work`)
     } catch (error) {
-      console.error('Error during login:', error)
-      toast.error('Error al iniciar sesión')
+      console.error('Error al comprobar acceso a tarea:', error?.code || 'unknown')
+      setAccessError('No se pudo comprobar el acceso. Inténtalo de nuevo; si continúa, contacta con tu administrador.')
     } finally {
+      setCredentials(prev => ({ ...prev, password: '' }))
       setLoading(false)
     }
   }
 
-  if (validatingCode) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-12 pb-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Validando código de acceso...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (!codeValid) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-              <AlertCircle className="h-8 w-8 text-red-600" />
-            </div>
-            <CardTitle className="text-2xl">❌ Código Inválido</CardTitle>
-            <CardDescription>
-              El código de acceso no es válido o ha expirado
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert className="bg-red-50 border-red-200 mb-4">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">
-                <strong>Posibles razones:</strong>
-                <ul className="mt-2 space-y-1 text-sm list-disc list-inside">
-                  <li>El código no existe</li>
-                  <li>El código ha sido desactivado</li>
-                  <li>El código ha expirado</li>
-                  <li>El enlace fue copiado incorrectamente</li>
-                </ul>
-              </AlertDescription>
-            </Alert>
-            <Button
-              onClick={() => navigate('/login')}
-              className="w-full bg-gray-600 hover:bg-gray-700"
-            >
-              ← Ir al Login Principal
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-blue-600 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-white text-gray-900">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle className="h-8 w-8 text-green-600" />
+            <Lock className="h-8 w-8 text-green-600" />
           </div>
           <CardTitle className="text-2xl">🔐 Acceso a Tarea</CardTitle>
-          <CardDescription className="text-base">
-            <strong className="text-gray-900">{taskInfo?.title}</strong>
+          <CardDescription className="text-base text-gray-600">
+            Inicia sesión para comprobar el enlace y tu asignación a la tarea.
           </CardDescription>
-          {taskInfo?.description && (
-            <p className="text-sm text-gray-600 mt-2">
-              {taskInfo.description}
-            </p>
-          )}
         </CardHeader>
         <CardContent>
           <Alert className="bg-blue-50 border-blue-200 mb-6">
@@ -192,6 +109,13 @@ export default function TaskAccessLogin() {
               <strong>Autenticación requerida:</strong> Introduce tus credenciales para acceder a la tarea.
             </AlertDescription>
           </Alert>
+
+          {accessError && (
+            <Alert role="alert" className="bg-red-50 border-red-200 mb-4">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">{accessError}</AlertDescription>
+            </Alert>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">

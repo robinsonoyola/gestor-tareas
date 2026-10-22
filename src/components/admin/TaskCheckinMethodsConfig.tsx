@@ -54,12 +54,9 @@ export default function TaskCheckinMethodsConfig() {
       const { data: configsData, error: configsError } = await supabase
         .from('task_checkin_config')
         .select('*')
- 
+
       console.log('⚙️ Configs obtenidas:', configsData)
       console.log('❌ Error configs:', configsError)
-      console.log('📋 Tareas obtenidas:', tasksData)
-console.log('❌ Error tareas:', tasksError)
-console.log('🚀🚀🚀 ARCHIVO CORRECTO CARGADO - SIN LOCATION 🚀🚀🚀')
 
       if (configsError) throw configsError
 

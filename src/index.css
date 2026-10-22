@@ -1,27 +1,132 @@
 
 @import "tailwindcss";
 
+/* ASE Work corporate palette: neutral surfaces, blue actions, semantic states. */
+@theme {
+  --color-blue-50: #EFF4FF;
+  --color-blue-100: #DBEAFE;
+  --color-blue-200: #BFDBFE;
+  --color-blue-300: #93B4FF;
+  --color-blue-400: #6090FF;
+  --color-blue-500: #2F6BFF;
+  --color-blue-600: #2F6BFF;
+  --color-blue-700: #1F5AE0;
+  --color-blue-800: #2148A4;
+  --color-blue-900: #18356F;
+  --color-blue-950: #0F172A;
+  --color-gray-50: #F5F7FB;
+  --color-gray-100: #F0F3F8;
+  --color-gray-200: #E5EAF2;
+  --color-gray-300: #D0D5DD;
+  --color-gray-400: #98A2B3;
+  --color-gray-500: #667085;
+  --color-gray-600: #475467;
+  --color-gray-700: #1F2937;
+  --color-gray-800: #182230;
+  --color-gray-900: #0B1324;
+  --color-gray-950: #060D19;
+  --color-green-50: #F0FDF4;
+  --color-green-100: #DCFCE7;
+  --color-green-200: #BBF7D0;
+  --color-green-500: #22C55E;
+  --color-green-600: #15803D;
+  --color-green-700: #166534;
+  --color-green-800: #14532D;
+  --color-amber-50: #FFFBEB;
+  --color-amber-100: #FEF3C7;
+  --color-amber-500: #F59E0B;
+  --color-amber-600: #B45309;
+  --color-amber-700: #92400E;
+  --color-red-50: #FEF2F2;
+  --color-red-100: #FEE2E2;
+  --color-red-500: #EF4444;
+  --color-red-600: #DC2626;
+  --color-red-700: #B91C1C;
+  --color-purple-50: #F5F7FB;
+  --color-purple-100: #EDF1F6;
+  --color-purple-200: #E5EAF2;
+  --color-purple-300: #CBD5E1;
+  --color-purple-400: #94A3B8;
+  --color-purple-500: #667085;
+  --color-purple-600: #475467;
+  --color-purple-700: #344054;
+  --color-purple-800: #1F2937;
+  --color-purple-900: #0F172A;
+  --color-indigo-50: #F5F7FB;
+  --color-indigo-100: #EDF1F6;
+  --color-indigo-200: #E5EAF2;
+  --color-indigo-300: #CBD5E1;
+  --color-indigo-400: #94A3B8;
+  --color-indigo-500: #667085;
+  --color-indigo-600: #475467;
+  --color-indigo-700: #344054;
+  --color-indigo-800: #1F2937;
+  --color-indigo-900: #0F172A;
+  --color-pink-50: #F5F7FB;
+  --color-pink-100: #EDF1F6;
+  --color-pink-200: #E5EAF2;
+  --color-pink-300: #CBD5E1;
+  --color-pink-400: #94A3B8;
+  --color-pink-500: #667085;
+  --color-pink-600: #475467;
+  --color-pink-700: #344054;
+  --color-pink-800: #1F2937;
+  --color-pink-900: #0F172A;
+  --color-violet-50: #F5F7FB;
+  --color-violet-100: #EDF1F6;
+  --color-violet-200: #E5EAF2;
+  --color-violet-300: #CBD5E1;
+  --color-violet-400: #94A3B8;
+  --color-violet-500: #667085;
+  --color-violet-600: #475467;
+  --color-violet-700: #344054;
+  --color-violet-800: #1F2937;
+  --color-violet-900: #0F172A;
+}
+/* Map existing semantic colors to Tailwind 4 utilities used by popups. */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+}
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
+    --background: 220.000 42.857% 97.255%;
+    --foreground: 215.000 27.907% 16.863%;
+    --card: 0.000 0.000% 100.000%;
+    --card-foreground: 215.000 27.907% 16.863%;
+    --popover: 0.000 0.000% 100.000%;
+    --popover-foreground: 215.000 27.907% 16.863%;
+    --primary: 222.692 100.000% 59.216%;
+    --primary-foreground: 0.000 0.000% 100.000%;
+    --secondary: 217.500 36.364% 95.686%;
+    --secondary-foreground: 215.000 27.907% 16.863%;
+    --muted: 220.000 42.857% 97.255%;
+    --muted-foreground: 220.645 13.191% 46.078%;
+    --accent: 221.250 100.000% 96.863%;
+    --accent-foreground: 221.658 75.686% 50.000%;
+    --destructive: 0.000 84.236% 60.196%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 216.923 33.333% 92.353%;
+    --input: 216.923 33.333% 92.353%;
+    --ring: 222.692 100.000% 59.216%;
     --radius: 0.5rem;
   }
 
@@ -58,74 +163,7 @@
   }
 }
 
-/* Responsive utilities */
-* {
-  -webkit-overflow-scrolling: touch;
-}
-
-@media (max-width: 768px) {
-  h1 {
-    font-size: 1.5rem !important;
-    line-height: 2rem !important;
-  }
-  
-  h2 {
-    font-size: 1.25rem !important;
-    line-height: 1.75rem !important;
-  }
-
-  h3 {
-    font-size: 1.125rem !important;
-    line-height: 1.5rem !important;
-  }
-  
-  .card-content {
-    padding: 1rem !important;
-  }
-  
-  table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  p, li, span {
-    font-size: 0.875rem;
-    line-height: 1.5rem;
-  }
-
-  button {
-    min-height: 2.5rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-
-  input, textarea, select {
-    min-height: 2.75rem;
-    font-size: 1rem;
-  }
-
-  .card {
-    padding: 0.75rem;
-  }
-
-  [role="dialog"] {
-    max-width: 95vw !important;
-    margin: 0.5rem;
-  }
-}
-
-@media (min-width: 769px) and (max-width: 1024px) {
-  h1 {
-    font-size: 2rem !important;
-  }
-  
-  h2 {
-    font-size: 1.5rem !important;
-  }
-}
-
+/* Wide tables use their own scroll container; type and spacing follow components. */
 .table-container {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -174,11 +212,6 @@ video {
   height: auto;
 }
 
-@media (max-width: 768px) {
-  .grid {
-    gap: 0.75rem;
-  }
-}
 
 @media (prefers-contrast: high) {
   * {
@@ -193,3 +226,37 @@ video {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Keep large surfaces calm; color is reserved for small indicators and actions. */
+[data-slot="card"] { background-color: #fff; border-color: #E5EAF2; }
+[data-slot="card-header"] { border-radius: 0.75rem 0.75rem 0 0; }
+h1, h2, h3, [data-slot="card-title"] { color: #0B1324; }
+.ase-sidebar h2 { color: #F8FAFC; }
+input::placeholder, textarea::placeholder { color: #98A2B3; }
+
+/* Responsive containment: scroll wide data inside its panel, not the whole page. */
+html, body, #root { min-width: 0; width: 100%; }
+.ase-content { overflow-wrap: anywhere; }
+.ase-content :where(.grid, .flex) > * { min-width: 0; }
+.ase-content :where(h1, h2, h3, p, label) { overflow-wrap: anywhere; }
+.ase-content :where(input, textarea, select) { min-width: 0; max-width: 100%; }
+.ase-content input[type="file"] { width: 100%; overflow: hidden; }
+.ase-content :where(.overflow-x-auto, [data-slot="table-container"]) { min-width: 0; max-width: 100%; -webkit-overflow-scrolling: touch; }
+[data-slot="dialog-content"] :where(input, textarea, select) { min-width: 0; max-width: 100%; }
+[data-slot="dialog-content"] > * { min-width: 0; }
+[data-slot="table"] { min-width: 36rem; }
+[data-slot="table-cell"].space-x-2 { min-width: 10rem; white-space: normal; }
+[data-slot="table-cell"].space-x-2 > [data-slot="button"] { margin: .125rem; }
+.ase-content :where(pre, code) { overflow-wrap: anywhere; white-space: pre-wrap; }
+@media (max-width: 639px) {
+  .ase-content h1 { font-size: 1.5rem; line-height: 1.3; }
+  .ase-content h2 { line-height: 1.4; }
+  [data-slot="dialog-content"] { scroll-padding-bottom: 1rem; }
+  [data-slot="dialog-footer"] > [data-slot="button"] { width: 100%; }
+}
+
+/* Tables retain readable column widths; mobile records use full-width cards. */
+[data-slot="table-cell"] { overflow-wrap: normal; word-break: normal; }
+[data-slot="table-cell"]:first-child { min-width: 12rem; max-width: 24rem; white-space: normal; overflow-wrap: break-word; }
+[data-slot="table-cell"]:has(code) { min-width: 18rem; }
+.mobile-records :where(h3,p,dd) { word-break: normal; }

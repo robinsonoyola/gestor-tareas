@@ -179,7 +179,7 @@ export default function GPSLocations() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">📍 Configurar Ubicaciones de Tareas</h1>
             <p className="text-gray-600 mt-1">
@@ -236,7 +236,7 @@ export default function GPSLocations() {
         </Alert>
 
         <Card>
-          <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+          <CardHeader className="  bg-white border-b border-gray-200 text-gray-900">
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
               Ubicaciones GPS de las Tareas
@@ -336,7 +336,7 @@ export default function GPSLocations() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="latitude" className="text-gray-900 font-semibold">
                   Latitud *

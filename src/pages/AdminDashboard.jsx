@@ -1,6 +1,10 @@
+import {MobileTasks} from './admin/MobileRecords'
 import { useState, useEffect } from 'react'
+import TaskFollowup from './admin/TaskFollowup'
+import { useSearchParams } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { workDate, workRpc } from '@/lib/workflow'
 import Layout from '@/components/layout/Layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,10 +47,15 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
+  const [query,setQuery]=useSearchParams()
+  const [search,setSearch]=useState('')
+  const [employeeFilter,setEmployeeFilter]=useState('')
+  const [statusFilter,setStatusFilter]=useState('all')
+  const { can, isAdmin } = useAuth()
   const [tasks, setTasks] = useState([])
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
@@ -71,39 +80,8 @@ export default function AdminDashboard() {
   const fetchTasks = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('tasks')
-        .select(`
-          *,
-          task_assignments (
-            user_id,
-            users (
-              id,
-              full_name,
-              email
-            )
-          )
-        `)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      const tasksWithUsers = data.map(task => {
-        const assignedUsers = []
-        if (task.task_assignments) {
-          task.task_assignments.forEach(assignment => {
-            if (assignment.users) {
-              assignedUsers.push(assignment.users)
-            }
-          })
-        }
-        return {
-          ...task,
-          assigned_users: assignedUsers,
-          assigned_names: assignedUsers.map(u => u.full_name).join(', ') || 'Sin asignar'
-        }
-      })
-
+      const data = await workRpc('work_task_catalog')
+      const tasksWithUsers = data.map(task=>({...task,assigned_names:task.assigned_users.map(u=>u.full_name).join(', ') || 'Sin asignar'}))
       setTasks(tasksWithUsers)
     } catch (error) {
       console.error('Error fetching tasks:', error)
@@ -115,13 +93,7 @@ export default function AdminDashboard() {
 
   const fetchEmployees = async () => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('is_admin', false)
-        .order('full_name')
-
-      if (error) throw error
+      const data = await workRpc('work_employee_directory')
       setEmployees(data || [])
     } catch (error) {
       console.error('Error fetching employees:', error)
@@ -132,33 +104,7 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      const { data: newTask, error: taskError } = await supabase
-        .from('tasks')
-        .insert([{
-          title: taskForm.title,
-          description: taskForm.description,
-          schedule_type: taskForm.schedule_type,
-          schedule_date: taskForm.schedule_date || null,
-          status: taskForm.status
-        }])
-        .select()
-        .single()
-
-      if (taskError) throw taskError
-
-      if (taskForm.assigned_users.length > 0) {
-        const assignments = taskForm.assigned_users.map(userId => ({
-          task_id: newTask.id,
-          user_id: userId
-        }))
-
-        const { error: assignError } = await supabase
-          .from('task_assignments')
-          .insert(assignments)
-
-        if (assignError) throw assignError
-      }
-
+      await workRpc('work_manage_task',{p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_users:taskForm.assigned_users})
       toast.success('✅ Tarea creada correctamente')
       setIsCreateModalOpen(false)
       resetForm()
@@ -173,39 +119,7 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      const { error: updateError } = await supabase
-        .from('tasks')
-        .update({
-          title: taskForm.title,
-          description: taskForm.description,
-          schedule_type: taskForm.schedule_type,
-          schedule_date: taskForm.schedule_date || null,
-          status: taskForm.status
-        })
-        .eq('id', selectedTask.id)
-
-      if (updateError) throw updateError
-
-      const { error: deleteError } = await supabase
-        .from('task_assignments')
-        .delete()
-        .eq('task_id', selectedTask.id)
-
-      if (deleteError) throw deleteError
-
-      if (taskForm.assigned_users.length > 0) {
-        const assignments = taskForm.assigned_users.map(userId => ({
-          task_id: selectedTask.id,
-          user_id: userId
-        }))
-
-        const { error: assignError } = await supabase
-          .from('task_assignments')
-          .insert(assignments)
-
-        if (assignError) throw assignError
-      }
-
+      await workRpc('work_manage_task',{p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_users:taskForm.assigned_users})
       toast.success('✅ Tarea actualizada correctamente')
       setIsEditModalOpen(false)
       setSelectedTask(null)
@@ -221,13 +135,7 @@ export default function AdminDashboard() {
     if (!window.confirm('¿Estás seguro de eliminar esta tarea?')) return
 
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', taskId)
-
-      if (error) throw error
-
+      await workRpc('work_manage_task',{p_action:'delete',p_id:taskId})
       toast.success('✅ Tarea eliminada')
       fetchTasks()
     } catch (error) {
@@ -269,6 +177,8 @@ export default function AdminDashboard() {
     }))
   }
 
+  const filteredTasks = tasks.filter(t=>(t.title+' '+(t.description||'')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')) && (!employeeFilter||t.assigned_users.some(u=>u.id===employeeFilter)) && (statusFilter==='all'||t.status===statusFilter))
+
   const getStatusBadge = (status) => {
     const variants = {
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pendiente' },
@@ -282,66 +192,20 @@ export default function AdminDashboard() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Panel de Administración</h1>
-            <p className="text-gray-900 mt-1">Gestiona tareas, empleados y configuraciones</p>
+            <h1 className="text-3xl font-bold text-gray-900">Tareas</h1>
+            <p className="text-gray-900 mt-1">Actividades, asignaciones y seguimiento del trabajo</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setIsCreateModalOpen(true)}>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
-                  <Plus className="h-6 w-6 text-blue-600" />
-                </div>
-                <h3 className="font-semibold text-gray-900">Crear Tarea</h3>
-                <p className="text-sm text-gray-900 mt-1">Asigna nuevas tareas a tus empleados</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/admin/employees')}>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="mx-auto w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-3">
-                  <Users className="h-6 w-6 text-purple-600" />
-                </div>
-                <h3 className="font-semibold text-gray-900">Gestionar Empleados</h3>
-                <p className="text-sm text-gray-900 mt-1">Administra tu equipo de trabajo</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/admin/qr-generator')}>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="mx-auto w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-3">
-                  <QrCode className="h-6 w-6 text-indigo-600" />
-                </div>
-                <h3 className="font-semibold text-gray-900">Códigos QR</h3>
-                <p className="text-sm text-gray-900 mt-1">Genera QR para fichajes</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/admin/gps-locations')}>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-3">
-                  <MapPin className="h-6 w-6 text-red-600" />
-                </div>
-                <h3 className="font-semibold text-gray-900">Ubicaciones GPS</h3>
-                <p className="text-sm text-gray-900 mt-1">Configura validación de ubicación</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
+        <div className="flex flex-wrap justify-between gap-3"><div className="flex gap-2"><Button variant={query.get('tab')!=='overdue'?'default':'outline'} onClick={()=>setQuery({})}>Actividades</Button><Button variant={query.get('tab')==='overdue'?'default':'outline'} onClick={()=>setQuery({tab:'overdue'})}>Tareas atrasadas</Button></div>{can('tasks.create') && <Button onClick={()=>{resetForm();setIsCreateModalOpen(true)}}><Plus className="w-4 h-4 mr-2"/>Crear tarea</Button>}</div>
+        {query.get('tab')==='overdue' ? <TaskFollowup canPlan={can('planning.view')}/> : <>
+        <div className="grid md:grid-cols-3 gap-3"><Input aria-label="Buscar tareas" placeholder="Buscar actividad o descripción" value={search} onChange={e=>setSearch(e.target.value)}/><select aria-label="Filtrar por empleado" className="border rounded-md p-2 bg-white" value={employeeFilter} onChange={e=>setEmployeeFilter(e.target.value)}><option value="">Todos los empleados</option>{employees.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}</select><select aria-label="Filtrar por estado general" className="border rounded-md p-2 bg-white" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="all">Todos los estados generales</option><option value="pending">Pendiente</option><option value="in_progress">En progreso</option><option value="completed">Completada</option></select></div>
+        <p className="text-sm text-gray-500">Este catálogo define las actividades. Sus ejecuciones diarias y su orden se gestionan en Planificación.</p>
         <Card>
           <CardHeader>
-            <CardTitle className="text-gray-900">📋 Tareas Creadas</CardTitle>
+            <CardTitle className="text-gray-900">Catálogo de actividades</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -349,16 +213,16 @@ export default function AdminDashboard() {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
                 <p className="mt-4 text-gray-900">Cargando tareas...</p>
               </div>
-            ) : tasks.length === 0 ? (
+            ) : filteredTasks.length === 0 ? (
               <div className="text-center py-12">
                 <CheckSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-900 mb-4">No hay tareas creadas</p>
-                <Button onClick={() => setIsCreateModalOpen(true)}>
-                  Crear Primera Tarea
-                </Button>
+                <p className="text-gray-900 mb-4">{tasks.length?'No hay tareas con estos filtros':'No hay tareas creadas'}</p>
+                {can('tasks.create') && <Button onClick={() => setIsCreateModalOpen(true)}>Crear Primera Tarea</Button>}
               </div>
             ) : (
-              <div className="rounded-md border">
+              <>
+              <MobileTasks items={filteredTasks} statusBadge={getStatusBadge} can={can} isAdmin={isAdmin} onShare={task=>navigate('/admin/access?task='+task.id)} onPlan={task=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))} onEdit={openEditModal} onDelete={handleDeleteTask}/>
+              <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -366,12 +230,12 @@ export default function AdminDashboard() {
                       <TableHead className="text-gray-900">Tipo</TableHead>
                       <TableHead className="text-gray-900">Fecha</TableHead>
                       <TableHead className="text-gray-900">Asignados</TableHead>
-                      <TableHead className="text-gray-900">Estado</TableHead>
+                      <TableHead className="text-gray-900">Estado general</TableHead>
                       <TableHead className="text-right text-gray-900">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {tasks.map((task) => (
+                    {filteredTasks.map((task) => (
                       <TableRow key={task.id}>
                         <TableCell className="font-medium text-gray-900">{task.title}</TableCell>
                         <TableCell className="text-gray-900">
@@ -386,21 +250,21 @@ export default function AdminDashboard() {
                         <TableCell className="text-gray-900">{task.assigned_names}</TableCell>
                         <TableCell>{getStatusBadge(task.status)}</TableCell>
                         <TableCell className="text-right space-x-2">
-                          <Button size="sm" variant="outline" onClick={() => openEditModal(task)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleDeleteTask(task.id)} className="text-red-600 hover:text-red-700">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {isAdmin && <Button size="sm" variant="outline" onClick={()=>navigate('/admin/access?task='+task.id)}>Compartir acceso</Button>}
+                          {can('planning.view') && <Button size="sm" variant="outline" onClick={()=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))}>Planificar</Button>}
+                          {can('tasks.edit') && <Button size="sm" variant="outline" onClick={() => openEditModal(task)}><Edit className="h-4 w-4" /></Button>}
+                          {can('tasks.delete') && <Button size="sm" variant="outline" onClick={() => handleDeleteTask(task.id)} className="text-red-600 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>}
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
           </CardContent>
         </Card>
+        </>}
       </div>
 
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
@@ -420,7 +284,7 @@ export default function AdminDashboard() {
               <Textarea id="description" value={taskForm.description} onChange={(e) => setTaskForm(prev => ({ ...prev, description: e.target.value }))} rows={3} className="text-gray-900" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="schedule_type" className="text-gray-900 font-semibold">Tipo de programación *</Label>
                 <Select value={taskForm.schedule_type} onValueChange={(value) => setTaskForm(prev => ({ ...prev, schedule_type: value }))}>
@@ -450,13 +314,13 @@ export default function AdminDashboard() {
                 {employees.map((employee) => (
                   <div key={employee.id} className="flex items-center space-x-2">
                     <Checkbox id={`emp-${employee.id}`} checked={taskForm.assigned_users.includes(employee.id)} onCheckedChange={() => toggleUserAssignment(employee.id)} />
-                    <label htmlFor={`emp-${employee.id}`} className="text-sm text-gray-900 cursor-pointer">{employee.full_name} ({employee.email})</label>
+                    <label htmlFor={`emp-${employee.id}`} className="text-sm text-gray-900 cursor-pointer">{employee.full_name}</label>
                   </div>
                 ))}
               </div>
             </div>
 
-            <Button type="submit" className="w-full">Crear Tarea</Button>
+            <Button type="submit" disabled={!can('tasks.create')} className="w-full">Crear Tarea</Button>
           </form>
         </DialogContent>
       </Dialog>
@@ -498,16 +362,46 @@ export default function AdminDashboard() {
                 {employees.map((employee) => (
                   <div key={employee.id} className="flex items-center space-x-2">
                     <Checkbox id={`edit-emp-${employee.id}`} checked={taskForm.assigned_users.includes(employee.id)} onCheckedChange={() => toggleUserAssignment(employee.id)} />
-                    <label htmlFor={`edit-emp-${employee.id}`} className="text-sm text-gray-900 cursor-pointer">{employee.full_name} ({employee.email})</label>
+                    <label htmlFor={`edit-emp-${employee.id}`} className="text-sm text-gray-900 cursor-pointer">{employee.full_name}</label>
                   </div>
                 ))}
               </div>
             </div>
 
-            <Button type="submit" className="w-full">Guardar Cambios</Button>
+            <Button type="submit" disabled={!can('tasks.edit')} className="w-full">Guardar Cambios</Button>
           </form>
         </DialogContent>
       </Dialog>
     </Layout>
   )
+}
+export function AdminCharts({employees, revision}) {
+  const today=workDate()
+  const [start,setStart]=useState(()=>{const d=new Date(today+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-29);return d.toISOString().slice(0,10)})
+  const [end,setEnd]=useState(today),[employee,setEmployee]=useState(''),[data,setData]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[refresh,setRefresh]=useState(0)
+  useEffect(()=>{
+    let cancelled=false
+    setBusy(true);setData(null);setError('')
+    const span=(new Date(end+'T12:00:00Z')-new Date(start+'T12:00:00Z'))/86400000
+    if(!start || !end || !Number.isFinite(span) || span<0 || span>365){setError('Selecciona un período de hasta 366 días.');setBusy(false);return}
+    workRpc('work_admin_metrics',{p_start:start,p_end:end,p_user:employee || null}).then(result=>{if(!cancelled)setData(result)}).catch(e=>{if(!cancelled)setError(e.code==='PGRST202'?'Instala el archivo 13-GRAFICAS-ADMINISTRADOR.sql en Supabase para habilitar las gráficas.':e.message)}).finally(()=>{if(!cancelled)setBusy(false)})
+    return()=>{cancelled=true}
+  },[start,end,employee,revision,refresh])
+  const hours=s=>`${(Number(s)/3600).toLocaleString('es-ES',{maximumFractionDigits:1})} h`
+  const states=data?.states
+  const maxDay=Math.max(1,...(data?.days || []).map(d=>Number(d.total)))
+  const maxHours=Math.max(1,...(data?.employees || []).map(e=>Number(e.seconds)))
+  return <section aria-label="Gráficas de planificación" className="space-y-4">
+    <Card><CardHeader><CardTitle>Resumen de actividad</CardTitle></CardHeader><CardContent className="space-y-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"><div className="space-y-2"><Label htmlFor="chart-start">Desde</Label><Input id="chart-start" type="date" value={start} onChange={e=>setStart(e.target.value)}/></div><div className="space-y-2"><Label htmlFor="chart-end">Hasta</Label><Input id="chart-end" type="date" value={end} onChange={e=>setEnd(e.target.value)}/></div><div className="space-y-2"><Label htmlFor="chart-employee">Empleado</Label><select id="chart-employee" className="w-full border rounded-md bg-white p-2" value={employee} onChange={e=>setEmployee(e.target.value)}><option value="">Todos los empleados</option>{employees.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}</select></div><div className="flex items-end"><Button variant="outline" disabled={busy} onClick={()=>setRefresh(n=>n+1)}>Actualizar gráficas</Button></div></div>
+      <p className="text-sm text-gray-500">Tareas por fecha planificada y empleado. Las horas corresponden al tiempo registrado dentro del período (hora de Madrid), incluyendo fichajes anteriores al modo tablet.</p>
+      {busy && <p role="status">Cargando gráficas…</p>}{error && <p role="alert" className="rounded-lg bg-red-50 text-red-800 p-3">{error}</p>}
+      {states && <><div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-4">{[['Planificadas',states.total],['Completadas',states.completed],['Atrasadas',states.overdue],['Horas registradas',hours(data.employees.reduce((n,e)=>n+Number(e.seconds),0))]].map(([label,value])=><div key={label} className="border rounded-lg p-4"><p className="text-sm text-gray-500">{label}</p><p className="text-2xl font-semibold mt-1">{value}</p></div>)}</div>{Number(states.total)===0 && <p className="text-gray-500">Sin tareas planificadas en el período. Se muestran las horas registradas si existen.</p>}<p className="text-xs text-gray-500">Actualizado: {new Date(data.as_of).toLocaleString('es-ES',{timeZone:'Europe/Madrid'})}. Pulsa Actualizar gráficas para refrescar los datos.</p></>}
+    </CardContent></Card>
+    {states && <><div className="grid lg:grid-cols-2 gap-4">
+      <Card><CardHeader><CardTitle>Estado de las tareas</CardTitle></CardHeader><CardContent className="space-y-4">{[['Pendientes',states.pending,'#94A3B8'],['En curso',states.active,'#2F6BFF'],['Completadas',states.completed,'#22C55E']].map(([name,value,color])=><div key={name}><div className="flex justify-between text-sm mb-2"><span>{name}</span><span>{value}</span></div><div role="meter" aria-label={name} aria-valuenow={Number(value)} aria-valuemin={0} aria-valuemax={Math.max(1,Number(states.total))} className="h-3 rounded-full bg-gray-100 overflow-hidden"><div className="h-full rounded-full" style={{width:`${Number(states.total)?Number(value)/Number(states.total)*100:0}%`,background:color}}/></div></div>)}<p className="text-sm text-red-700">{states.overdue} atrasadas dentro de las pendientes o en curso.</p><p className="text-sm text-gray-500">{states.late} completadas fuera de plazo.</p></CardContent></Card>
+      <Card><CardHeader><CardTitle>Horas por empleado</CardTitle></CardHeader><CardContent className="space-y-4 max-h-96 overflow-y-auto">{data.employees.length===0 && <p>Sin empleados para mostrar.</p>}{data.employees.map(e=><div key={e.id}><div className="flex flex-wrap justify-between gap-2 text-sm mb-2"><span>{e.name}</span><span className="whitespace-nowrap">{hours(e.seconds)}</span></div><div className="h-3 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-blue-600 rounded-full" style={{width:`${Number(e.seconds)/maxHours*100}%`}}/></div><p className="text-xs text-gray-500 mt-1">{e.completed}/{e.total} tareas completadas · {e.overdue} atrasadas{Number(e.open)>0?` · ${e.open} fichajes abiertos incluidos hasta la actualización`:''}</p></div>)}</CardContent></Card>
+    </div>
+    <Card><CardHeader><CardTitle>Evolución diaria</CardTitle></CardHeader><CardContent className="space-y-3"><div className="flex flex-wrap gap-4 text-sm"><span><span className="inline-block w-3 h-3 bg-gray-300 mr-2"/>Planificadas</span><span><span className="inline-block w-3 h-3 bg-blue-600 mr-2"/>Completadas</span></div><div className="overflow-x-auto"><svg role="img" aria-label="Tareas planificadas y completadas por fecha. Valores disponibles en la tabla inferior." viewBox={`0 0 ${Math.max(600,data.days.length*32)} 210`} style={{width:Math.max(600,data.days.length*32),height:210}}><line x1="0" y1="170" x2={Math.max(600,data.days.length*32)} y2="170" stroke="#E5EAF2"/>{data.days.map((d,i)=>{const step=Math.max(600,data.days.length*32)/data.days.length,x=i*step+step/2;return <g key={d.date}><title>{d.date}: {d.total} planificadas, {d.completed} completadas</title><rect x={x-9} y={170-Number(d.total)/maxDay*140} width="8" height={Number(d.total)/maxDay*140} fill="#CBD5E1" rx="2"/><rect x={x+1} y={170-Number(d.completed)/maxDay*140} width="8" height={Number(d.completed)/maxDay*140} fill="#2F6BFF" rx="2"/><text x={x} y="190" textAnchor="middle" fontSize="9" fill="#667085">{d.date.slice(8)}/{d.date.slice(5,7)}</text></g>})}</svg></div><details><summary className="text-sm text-blue-700 cursor-pointer">Ver valores por día</summary><div className="max-h-64 overflow-auto mt-3"><table className="w-full text-sm text-left"><caption className="sr-only">Evolución diaria de tareas</caption><thead><tr><th className="p-2">Fecha</th><th>Planificadas</th><th>Completadas</th><th>Atrasadas</th></tr></thead><tbody>{data.days.map(d=><tr key={d.date} className="border-t"><td className="p-2">{d.date}</td><td>{d.total}</td><td>{d.completed}</td><td>{d.overdue}</td></tr>)}</tbody></table></div></details></CardContent></Card></>}
+  </section>
 }

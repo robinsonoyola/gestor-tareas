@@ -45,12 +45,12 @@ export default function Header() {
       <div className="flex h-16 items-center justify-between px-4 md:px-6 lg:px-8">
         {/* Logo y Título */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm">
-            <Building2 className="h-6 w-6 text-white" />
+          <div className="flex items-center justify-center w-10 h-10 shrink-0 bg-white rounded-lg shadow-sm">
+            <img src="/ase-icon.svg" alt="" aria-hidden="true" className="w-10 h-10 rounded-lg" />
           </div>
           <div className="hidden sm:block">
             <h1 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
-              Hotel Tareas
+              ASE Work
               {userData?.is_admin && (
                 <Badge className="bg-purple-100 text-purple-800 border-0 text-xs">
                   <Shield className="h-3 w-3 mr-1" />
@@ -64,7 +64,7 @@ export default function Header() {
           </div>
           {/* Solo icono en mobile */}
           <div className="sm:hidden">
-            <h1 className="text-lg font-bold text-gray-900">HT</h1>
+            <h1 className="text-lg font-bold text-gray-900">ASE Work</h1>
           </div>
         </div>
 
@@ -83,7 +83,7 @@ export default function Header() {
                 className="relative h-10 rounded-full hover:bg-gray-100 transition-colors flex items-center gap-2 px-2 md:px-3 border-0 bg-transparent cursor-pointer"
               >
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-semibold">
+                  <AvatarFallback className="bg-blue-600 text-white text-sm font-semibold">
                     {getInitials(userData?.full_name)}
                   </AvatarFallback>
                 </Avatar>

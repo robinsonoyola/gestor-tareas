@@ -1,4 +1,7 @@
-import { useState, useEffect } from 'react'
+import {MobileAccessCodes} from './MobileRecords'
+import QRCodeStyling from 'qr-code-styling'
+import { useSearchParams } from 'react-router-dom'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
 import Layout from '@/components/layout/Layout'
 import { Button } from '@/components/ui/button'
@@ -29,11 +32,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
-  Key, 
-  Copy, 
-  ExternalLink, 
-  Trash2, 
+import {
+  Key,
+  QrCode,
+  Download,
+  Copy,
+  ExternalLink,
+  Trash2,
   Calendar,
   CheckCircle,
   AlertCircle,
@@ -45,6 +50,12 @@ import { es } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase'
 
 export default function TaskAccessManager() {
+  const [query]=useSearchParams()
+  const seenTask=useRef(null)
+  const [qrAccess,setQrAccess]=useState(null)
+  const [qrSize,setQrSize]=useState(256)
+  const qrContainer=useRef(null)
+  const qrInstance=useRef(null)
   const [tasks, setTasks] = useState([])
   const [accessCodes, setAccessCodes] = useState([])
   const [loading, setLoading] = useState(true)
@@ -52,11 +63,28 @@ export default function TaskAccessManager() {
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
   const [generatedCode, setGeneratedCode] = useState(null)
   const [expirationDays, setExpirationDays] = useState('never')
+  const [manualCopyUrl, setManualCopyUrl] = useState('')
 
   useEffect(() => {
     fetchTasks()
     fetchAccessCodes()
   }, [])
+
+  const sharedTask=query.get('task')
+  useEffect(()=>{
+    if(sharedTask && sharedTask!==seenTask.current && tasks.some(t=>t.id===sharedTask)){
+      seenTask.current=sharedTask;setSelectedTask(sharedTask);setGeneratedCode(null);setIsGenerateModalOpen(true)
+    }
+  },[sharedTask,tasks])
+  const mountQr = useCallback(node => {
+    qrContainer.current = node
+    qrInstance.current = null
+    if (!node || !qrAccess) return
+    const qr = new QRCodeStyling({width:qrSize,height:qrSize,data:`${window.location.origin}/task-access/${qrAccess.access_code}`,margin:12,dotsOptions:{color:'#0F172A',type:'rounded'},cornersSquareOptions:{color:'#2F6BFF',type:'extra-rounded'},backgroundOptions:{color:'#FFFFFF'},qrOptions:{errorCorrectionLevel:'H'}})
+    node.replaceChildren()
+    qr.append(node)
+    qrInstance.current = qr
+  }, [qrAccess, qrSize])
 
   const fetchTasks = async () => {
     try {
@@ -134,7 +162,7 @@ export default function TaskAccessManager() {
 
       setGeneratedCode(codeData)
       toast.success('✅ Código generado correctamente')
-      
+
       // Recargar códigos
       await fetchAccessCodes()
 
@@ -144,10 +172,37 @@ export default function TaskAccessManager() {
     }
   }
 
-  const copyCodeToClipboard = (code) => {
+  const copyCodeToClipboard = async (code) => {
     const url = `${window.location.origin}/task-access/${code}`
-    navigator.clipboard.writeText(url)
-    toast.success('📋 URL copiada al portapapeles')
+    if (window.isSecureContext && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(url)
+        toast.success('📋 URL copiada al portapapeles')
+        return
+      } catch {
+        // Some browsers deny clipboard access; offer a selectable link below.
+      }
+    }
+    const previousFocus = document.activeElement
+    const field = document.createElement('textarea')
+    field.value = url
+    field.readOnly = true
+    field.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;font-size:16px;'
+    document.body.appendChild(field)
+    let copied = false
+    try {
+      field.focus()
+      field.select()
+      field.setSelectionRange(0, url.length)
+      copied = document.execCommand('copy') === true
+    } catch {
+      copied = false
+    } finally {
+      field.remove()
+      previousFocus?.focus?.()
+    }
+    if (copied) toast.success('📋 URL copiada al portapapeles')
+    else setManualCopyUrl(url)
   }
 
   const openCodeInNewTab = (code) => {
@@ -201,15 +256,15 @@ export default function TaskAccessManager() {
 
   const getStatusBadge = (code) => {
     const expired = isCodeExpired(code.expires_at)
-    
+
     if (!code.is_active) {
       return <Badge className="bg-gray-100 text-gray-800">❌ Inactivo</Badge>
     }
-    
+
     if (expired) {
       return <Badge className="bg-red-100 text-red-800">⏰ Expirado</Badge>
     }
-    
+
     return <Badge className="bg-green-100 text-green-800">✅ Activo</Badge>
   }
 
@@ -235,11 +290,24 @@ export default function TaskAccessManager() {
 
   return (
     <Layout>
+      <Dialog open={Boolean(qrAccess)} onOpenChange={open=>{if(!open)setQrAccess(null)}}><DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>QR del acceso a la tarea</DialogTitle><DialogDescription>Este QR utiliza el mismo enlace, estado y caducidad que el código seleccionado. No sustituye la identificación personal del empleado.</DialogDescription></DialogHeader><div ref={mountQr} className="flex justify-center overflow-auto"/><div className="space-y-2"><Label htmlFor="access-qr-size">Tamaño de descarga</Label><select id="access-qr-size" className="w-full border bg-white rounded-md p-2" value={qrSize} onChange={e=>setQrSize(Number(e.target.value))}><option value={256}>256 px</option><option value={384}>384 px</option><option value={512}>512 px</option></select></div>{qrAccess && (!qrAccess.is_active || (qrAccess.expires_at && new Date(qrAccess.expires_at)<=new Date())) && <p className="text-sm text-red-700">Este acceso está desactivado o ha caducado.</p>}<Button onClick={()=>qrInstance.current?.download({name:'ASE-Work-acceso-'+qrAccess.id,extension:'png'})}><Download className="h-4 w-4 mr-2"/>Descargar QR</Button></DialogContent></Dialog>
+      <Dialog open={Boolean(manualCopyUrl)} onOpenChange={(open) => { if (!open) setManualCopyUrl('') }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Copiar enlace de acceso</DialogTitle>
+            <DialogDescription>El navegador no permite copiar automáticamente. Mantén pulsado el enlace, selecciona todo y pulsa Copiar.</DialogDescription>
+          </DialogHeader>
+          <Label htmlFor="manual-copy-url">Enlace de la tarea</Label>
+          <Input id="manual-copy-url" value={manualCopyUrl} readOnly
+            onFocus={(event) => event.target.select()}
+            onClick={(event) => event.currentTarget.select()} />
+        </DialogContent>
+      </Dialog>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">🔐 Gestión de Códigos de Acceso</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Enlaces y códigos QR</h1>
             <p className="text-gray-600 mt-1">Genera URLs únicas para que los empleados accedan a sus tareas</p>
           </div>
           <Button
@@ -255,7 +323,7 @@ export default function TaskAccessManager() {
         <Alert className="bg-blue-50 border-blue-200">
           <AlertCircle className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800">
-            <strong>💡 Cómo funciona:</strong> Genera un código único para cada tarea. Comparte la URL con los empleados. 
+            <strong>💡 Cómo funciona:</strong> Genera un código único para cada tarea. Comparte la URL con los empleados.
             Ellos deberán ingresar sus credenciales para acceder.
           </AlertDescription>
         </Alert>
@@ -322,7 +390,9 @@ export default function TaskAccessManager() {
                 </Button>
               </div>
             ) : (
-              <div className="rounded-md border">
+              <>
+              <MobileAccessCodes items={accessCodes} statusBadge={getStatusBadge} onQR={setQrAccess} onCopy={copyCodeToClipboard} onOpen={openCodeInNewTab} onToggle={code=>code.is_active?deactivateCode(code.id):activateCode(code.id)}/>
+              <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -359,6 +429,7 @@ export default function TaskAccessManager() {
                           )}
                         </TableCell>
                         <TableCell className="text-right space-x-2">
+                          <Button size="sm" variant="outline" onClick={()=>setQrAccess(code)} title="Ver y descargar QR" aria-label="Ver y descargar QR"><QrCode className="h-4 w-4"/></Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -402,6 +473,7 @@ export default function TaskAccessManager() {
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -495,7 +567,7 @@ export default function TaskAccessManager() {
               <Alert className="bg-blue-50 border-blue-200">
                 <LinkIcon className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-blue-800 text-sm">
-                  <strong>💡 Importante:</strong> Comparte esta URL con los empleados asignados a la tarea. 
+                  <strong>💡 Importante:</strong> Comparte esta URL con los empleados asignados a la tarea.
                   Necesitarán ingresar sus credenciales para acceder.
                 </AlertDescription>
               </Alert>

@@ -57,20 +57,11 @@ export default function EmployeeSettings() {
 
       if (authError) throw authError
 
-      // Actualizar email en la tabla users
-      const { error: dbError } = await supabase
-        .from('users')
-        .update({ email: emailForm.newEmail })
-        .eq('id', userData.id)
-
-      if (dbError) throw dbError
-
-      toast.success('✅ Email actualizado correctamente')
-      toast.info('Por favor, verifica tu nuevo email si es requerido')
+      toast.success('Solicitud enviada. Confirma el cambio desde los correos que recibas.')
 
       // Limpiar formulario
       setEmailForm({
-        currentEmail: emailForm.newEmail,
+        currentEmail: emailForm.currentEmail,
         newEmail: '',
         currentPassword: ''
       })
@@ -129,7 +120,7 @@ export default function EmployeeSettings() {
     <Layout>
       <div className="space-y-6 max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">⚙️ Configuración</h1>
             <p className="text-gray-600 mt-1">Administra tu información personal y seguridad</p>
@@ -146,7 +137,7 @@ export default function EmployeeSettings() {
 
         {/* Mi Información */}
         <Card>
-          <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <CardHeader className="  bg-white border-b border-gray-200 text-gray-900">
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
               Mi Información
@@ -178,7 +169,7 @@ export default function EmployeeSettings() {
 
         {/* Cambiar Email */}
         <Card>
-          <CardHeader className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+          <CardHeader className="  bg-white border-b border-gray-200 text-gray-900">
             <CardTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
               Cambiar Email
@@ -249,7 +240,7 @@ export default function EmployeeSettings() {
 
         {/* Cambiar Contraseña */}
         <Card>
-          <CardHeader className="bg-gradient-to-r from-orange-500 to-red-600 text-white">
+          <CardHeader className="  bg-white border-b border-gray-200 text-gray-900">
             <CardTitle className="flex items-center gap-2">
               <Lock className="h-5 w-5" />
               Cambiar Contraseña

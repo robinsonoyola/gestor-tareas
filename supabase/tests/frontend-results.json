@@ -1,0 +1,37 @@
+{
+  "scope": "Request-context unit tests; mocked transport; no browser or Supabase session",
+  "results": [
+    {
+      "test": "request uses selected context",
+      "actual": "PASS"
+    },
+    {
+      "test": "per-identity preference persisted",
+      "actual": "PASS"
+    },
+    {
+      "test": "new identity does not inherit organization",
+      "actual": "PASS"
+    },
+    {
+      "test": "change aborts old request",
+      "actual": "PASS"
+    },
+    {
+      "test": "stale response is discarded even if transport ignores abort",
+      "actual": "PASS"
+    },
+    {
+      "test": "auth transport remains independent",
+      "actual": "PASS"
+    },
+    {
+      "test": "mode does not auto-authorize",
+      "actual": "PASS"
+    },
+    {
+      "test": "mode explicitly set after server detection",
+      "actual": "PASS"
+    }
+  ]
+}

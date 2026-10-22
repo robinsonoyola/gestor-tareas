@@ -228,7 +228,7 @@ export default function NFCCardManager() {
     <Layout>
       <div className="space-y-6 max-w-7xl mx-auto">
         {/* Header con navegación */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
@@ -243,7 +243,7 @@ export default function NFCCardManager() {
                 Tarjetas NFC
               </h1>
               <p className="text-gray-600 mt-1">
-                Gestiona las tarjetas NFC y asígnalas a tareas
+                Sistema de tarjetas asociadas a tareas. Para identificar empleados en la tablet, utiliza Tarjetas personales.
               </p>
             </div>
           </div>
@@ -378,14 +378,16 @@ export default function NFCCardManager() {
         <div className="space-y-4">
           {filteredCards.map(card => (
             <Card key={card.id} className="border-2 hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <CreditCard className="h-5 w-5 text-blue-600" />
-                      <h3 className="font-semibold text-lg">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex min-w-0 flex-col gap-4">
+                  <div className="min-w-0 w-full">
+                    <div className="flex min-w-0 items-start gap-3 mb-2">
+                      <CreditCard className="h-5 w-5 shrink-0 mt-1 text-blue-600" />
+                      <h3 className="min-w-0 flex-1 font-semibold text-lg leading-snug">
                         {card.card_name || 'Tarjeta sin nombre'}
                       </h3>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
                       <Badge variant={card.is_active ? 'default' : 'secondary'}>
                         {card.is_active ? 'Activa' : 'Inactiva'}
                       </Badge>
@@ -411,7 +413,7 @@ export default function NFCCardManager() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex w-full flex-wrap items-center gap-2 border-t pt-3 sm:justify-end">
                     <Button
                       variant="outline"
                       size="sm"
@@ -434,6 +436,7 @@ export default function NFCCardManager() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeleteCard(card.id)}
+                      aria-label="Eliminar tarjeta"
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />

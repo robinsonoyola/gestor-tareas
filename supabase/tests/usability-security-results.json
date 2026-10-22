@@ -1,0 +1,330 @@
+{
+  "scope": "Isolated PostgreSQL with synthetic identities and real RLS; not live Supabase",
+  "results": [
+    {
+      "test": "backfill preserves every legacy field in tasks",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in task_assignments",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in checkins",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in task_comments",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in task_access_codes",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in task_checkin_config",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in nfc_cards",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_day_plan",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_employee_cards",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_employee_card_keys",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_stations",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_station_keys",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_station_tickets",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_roles",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_employee_roles",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_settings",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "legacy task retained",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "legacy role retained as membership",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "global admin retired",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee cannot set a PIN",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "foreign employee PIN denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "API cannot read PIN hashes",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "leading zero PIN retained",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "bad PIN returns committed failure 0",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "bad PIN returns committed failure 1",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "bad PIN returns committed failure 2",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "bad PIN returns committed failure 3",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "bad PIN returns committed failure 4",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "failed PIN lock persists",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "correct PIN cannot bypass lock",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "PIN works without active NFC card",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "PIN starts a task with explicit confirmation",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "PIN method recorded separately",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "PIN ticket can consult day",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee cannot force finish",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "foreign area member rejected",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "foreign incident task rejected",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "incident stops work without completion",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "incident closes active counter",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "area recipient receives notification",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "area member sees assigned incident",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "area member reads attached photo without task assignment",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "reporter reads photo after blocking task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "foreign company cannot read incident attachment",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "company B cannot see incident",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "company B cannot resolve incident",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "reporter cannot resolve another area incident",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "reporter receives resolution notice",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "resolved incident does not falsely complete task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "search scoped to selected company",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "PIN import previews without applying",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "duplicate import rejected atomically",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "private close helper not callable by API",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "administrator can close with reason",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "administrator closure audited",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee cannot read closure audit",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "closure history remains scoped",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "NFC identification alone does not start task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "NFC entry method retained in record",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "disabled PIN invalidates an outstanding ticket",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "repeated NFC consultation does not finish task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "NFC completes only on confirmation",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "five digit code identifies without selecting a name",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "same company cannot assign an existing personal code",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "unknown automatic code fails without employee data",
+      "expected": "PASS",
+      "actual": "PASS"
+    }
+  ]
+}

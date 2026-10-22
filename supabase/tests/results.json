@@ -1,0 +1,575 @@
+{
+  "scope": "Isolated embedded PostgreSQL; captured business schema; synthetic identities; not real Supabase/HTTP",
+  "results": [
+    {
+      "test": "backfill preserves every legacy field in tasks",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in task_assignments",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in checkins",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in task_comments",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in task_access_codes",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in task_checkin_config",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in nfc_cards",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_day_plan",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_employee_cards",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_employee_card_keys",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_stations",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_station_keys",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_station_tickets",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_roles",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_employee_roles",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_settings",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "legacy task retained",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "legacy role retained as membership",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "global admin retired",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "member A cannot read checkin B",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin A cannot delete checkin B",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "member A cannot read comment B",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "member cannot read B tasks",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin cannot read B tasks",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "member cannot read B config",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin cannot read B assignments",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "member reads own assigned task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin cannot update B task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin cannot delete B task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "forged request organization denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "forged record organization denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "record cannot move organizations",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "cross-organization assignment denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "cross-organization parent denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "member cannot comment on B",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "member cannot forge checkin B",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "anonymous cannot read tasks",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "anonymous cannot call catalog",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "anonymous cannot read organizations",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "member cannot promote self",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "member cannot promote global profile",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin generates own access code",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin cannot generate code for B",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "RPC catalog scoped to A",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "catalog contains only A",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee directory contains only A",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "work_my_day regression",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "work_home_summary regression",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "work_my_permissions regression",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "work_roles_overview regression",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "work_task_options regression",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "daily planning works",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "station identifies employee without user session",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "station starts only after confirmation",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee can open active task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "active task accepts own comment",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "active employee uploads canonical task photo",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "company B cannot read company A photo",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "tablet setting is isolated per organization",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin B cannot read checkin A",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "station day summary preserved",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "confirmation retry does not duplicate",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "rescan only consults active task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "explicit finish works",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "finished task is locked on mobile",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "bad station credential rejected",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "legacy manual finish remains available in its company",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "station B cannot identify card A",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "station B cannot replay ticket A",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "disabled card rejected",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "disabled station rejected",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "shared identity is member not admin in B",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "ambiguous shared identity requires choice",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee list is scoped",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee profile edit preserves global identity",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "cannot edit foreign employee profile",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "cannot retrieve foreign employee recovery target",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "existing delegated role permissions preserved",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "delegated task creation works",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "delegated supervisor cannot delete",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "delegated RPC cannot edit B task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "foreign detail helper returns false",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "NFC cannot act for another identity",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "NFC cannot access foreign task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "QR resolves only authorized organization",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "QR does not grant foreign assignment",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "anon cannot resolve QR data",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "authenticated cannot invoke service onboarding",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "server onboarding attaches new identity to exactly one company",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "server onboarding refuses reuse in another company",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "member cannot reserve email changes",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin cannot change foreign email",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin cannot change shared global identity",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "email grant inaccessible to browser",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "service email grant bound to checked target",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "new memberships blocked during identity change",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "now-shared identity rejects admin email change",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "removing employee preserves other company membership",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "removing employee preserves global identity",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "cannot upload into foreign task path",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "anon cannot read private task files",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "disabled membership cannot read own task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "invited membership cannot read tasks",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin A does not inherit administration in B",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin A as member B cannot manage B codes",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin A as member B cannot manage B employees",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "suspended company blocks administrator",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "executor is non-login and cannot bypass RLS",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "API roles cannot assume executor",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "business functions do not own their tables",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "all business tables retain RLS and an organization boundary",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "API cannot truncate tenant records",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "executor cannot grant itself membership administration",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "all tenant columns are mandatory",
+      "expected": "PASS",
+      "actual": "PASS"
+    }
+  ]
+}

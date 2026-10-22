@@ -84,7 +84,7 @@ export default function QRGenerator() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">📱 Generar Código QR</h1>
             <p className="text-gray-600 mt-1">Genera códigos QR para las tareas del hotel</p>
@@ -102,7 +102,7 @@ export default function QRGenerator() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Panel Izquierdo - Selección */}
           <Card>
-            <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+            <CardHeader className="  bg-white border-b border-gray-200 text-gray-900">
               <CardTitle className="flex items-center gap-2">
                 <span className="text-2xl">📋</span>
                 Seleccionar Tarea

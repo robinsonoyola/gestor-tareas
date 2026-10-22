@@ -1,0 +1,6 @@
+{
+  "scope": "Server-rendered actual Layout with synthetic auth; not physical-device or live-session test",
+  "legacyMarkupUnchanged": true,
+  "singleOrganizationMarkupUnchanged": true,
+  "multipleOrganizationsShowSelector": true
+}

@@ -3,16 +3,18 @@ import { supabase } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Settings, Save, NfcIcon, QrCode, Hand, ArrowLeft } from 'lucide-react'
+import { Settings, Save, NfcIcon, QrCode, Hand, ArrowLeft, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 export default function TaskCheckinMethodsConfig() {
   const navigate = useNavigate()
   const [tasks, setTasks] = useState([])
+  const [search, setSearch] = useState('')
   const [configs, setConfigs] = useState({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -120,6 +122,14 @@ export default function TaskCheckinMethodsConfig() {
     }
   }
 
+  const normalizeSearch = (value) => String(value ?? '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  const searchTerms = normalizeSearch(search).trim().split(/\s+/).filter(Boolean)
+  const filteredTasks = tasks.filter(task => {
+    const text = normalizeSearch([task.title, task.description, task.location].filter(Boolean).join(' '))
+    return searchTerms.every(term => text.includes(term))
+  })
+
   if (loading) {
     return (
       <Layout>
@@ -136,8 +146,9 @@ export default function TaskCheckinMethodsConfig() {
   return (
     <Layout>
       <div className="space-y-6 max-w-7xl mx-auto">
+        <p className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">Estas reglas configuran los métodos por tarea. Si está activo el modo exclusivo de tablet, el inicio y fin se confirman en el punto compartido, aunque aquí aparezca habilitado el método manual.</p>
         {/* Header con navegación */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
@@ -210,9 +221,45 @@ export default function TaskCheckinMethodsConfig() {
           </CardContent>
         </Card>
 
+        <div className="space-y-2">
+          <Label htmlFor="task-method-search" className="font-semibold text-gray-900">
+            Buscar tarea
+          </Label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="relative flex-1">
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+              <Input
+                id="task-method-search"
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Nombre, descripción o ubicación…"
+                className="bg-white pl-9 text-gray-900"
+                aria-describedby="task-method-search-results"
+              />
+            </div>
+            {search && (
+              <Button type="button" variant="outline" onClick={() => setSearch('')}>
+                Limpiar búsqueda
+              </Button>
+            )}
+          </div>
+          <p id="task-method-search-results" role="status" className="text-sm text-gray-600">
+            {filteredTasks.length} de {tasks.length} tareas
+          </p>
+        </div>
+
+        {tasks.length > 0 && filteredTasks.length === 0 && (
+          <Card className="border-dashed">
+            <CardContent className="py-8 text-center text-gray-600">
+              No hay tareas que coincidan con la búsqueda. Usa otro término o limpia el buscador.
+            </CardContent>
+          </Card>
+        )}
+
         {/* Lista de Tareas */}
         <div className="space-y-4">
-          {tasks.map(task => {
+          {filteredTasks.map(task => {
             const config = configs[task.id] || {
               nfc_enabled: false,
               qr_enabled: true,

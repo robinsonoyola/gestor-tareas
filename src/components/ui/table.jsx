@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 function Table({ className, ...props }) {
-    return (<div data-slot="table-container" className="relative w-full overflow-x-auto">
+    return (<div data-slot="table-container" className="relative min-w-0 w-full max-w-full overflow-x-auto overscroll-x-contain">
       <table data-slot="table" className={cn("w-full caption-bottom text-sm", className)} {...props}/>
     </div>);
 }

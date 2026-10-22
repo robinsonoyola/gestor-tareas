@@ -271,7 +271,7 @@ export default function TaskDetail({ task, open, onClose }) {
 
         <div className="space-y-6">
           {/* Barra de Progreso */}
-          <div className="space-y-3 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
+          <div className="space-y-3 p-4 bg-blue-600 rounded-xl border-2 border-gray-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-blue-600" />
@@ -291,7 +291,7 @@ export default function TaskDetail({ task, open, onClose }) {
 
           {/* Métricas de Rendimiento */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 hover:shadow-md transition-shadow">
+            <Card className="border-2 border-blue-200 bg-blue-600 hover:shadow-md transition-shadow">
               <CardContent className="pt-5 pb-4">
                 <div className="text-center">
                   <div className="mx-auto w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-2 shadow-sm">
@@ -303,7 +303,7 @@ export default function TaskDetail({ task, open, onClose }) {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-green-100 hover:shadow-md transition-shadow">
+            <Card className="border-2 border-green-200 bg-blue-600 hover:shadow-md transition-shadow">
               <CardContent className="pt-5 pb-4">
                 <div className="text-center">
                   <div className="mx-auto w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-2 shadow-sm">
@@ -315,7 +315,7 @@ export default function TaskDetail({ task, open, onClose }) {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 hover:shadow-md transition-shadow">
+            <Card className="border-2 border-purple-200 bg-blue-600 hover:shadow-md transition-shadow">
               <CardContent className="pt-5 pb-4">
                 <div className="text-center">
                   <div className="mx-auto w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mb-2 shadow-sm">
@@ -327,7 +327,7 @@ export default function TaskDetail({ task, open, onClose }) {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100 hover:shadow-md transition-shadow">
+            <Card className="border-2 border-orange-200 bg-blue-600 hover:shadow-md transition-shadow">
               <CardContent className="pt-5 pb-4">
                 <div className="text-center">
                   <div className="mx-auto w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mb-2 shadow-sm">
@@ -352,7 +352,7 @@ export default function TaskDetail({ task, open, onClose }) {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {task.schedule_date && (
-                  <div className="flex items-start gap-3 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+                  <div className="flex items-start gap-3 p-4 bg-blue-600 rounded-xl border border-gray-200">
                     <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
                       <Calendar className="h-5 w-5 text-blue-600" />
                     </div>
@@ -365,7 +365,7 @@ export default function TaskDetail({ task, open, onClose }) {
                   </div>
                 )}
 
-                <div className="flex items-start gap-3 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+                <div className="flex items-start gap-3 p-4 bg-blue-600 rounded-xl border border-gray-200">
                   <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
                     <Users className="h-5 w-5 text-purple-600" />
                   </div>
@@ -376,7 +376,7 @@ export default function TaskDetail({ task, open, onClose }) {
                 </div>
 
                 {task.last_checkin && (
-                  <div className="flex items-start gap-3 p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
+                  <div className="flex items-start gap-3 p-4 bg-blue-600 rounded-xl border border-green-200">
                     <div className="w-10 h-10 bg-green-200 rounded-lg flex items-center justify-center shrink-0">
                       <Clock className="h-5 w-5 text-green-700" />
                     </div>
@@ -390,7 +390,7 @@ export default function TaskDetail({ task, open, onClose }) {
                 )}
 
                 {task.expected_latitude && task.expected_longitude && (
-                  <div className="flex items-start gap-3 p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                  <div className="flex items-start gap-3 p-4 bg-blue-600 rounded-xl border border-blue-200">
                     <div className="w-10 h-10 bg-blue-200 rounded-lg flex items-center justify-center shrink-0">
                       <MapPin className="h-5 w-5 text-blue-700" />
                     </div>
@@ -408,7 +408,7 @@ export default function TaskDetail({ task, open, onClose }) {
 
           {/* Incidencia */}
           {task.incident_description && (
-            <Alert className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-300 shadow-sm">
+            <Alert className="bg-blue-600 border-2 border-red-300 shadow-sm">
               <AlertCircle className="h-5 w-5 text-red-600" />
               <AlertDescription className="text-red-900">
                 <strong className="block mb-2 text-base">⚠️ Incidencia Reportada</strong>
@@ -445,7 +445,7 @@ export default function TaskDetail({ task, open, onClose }) {
                   <p className="mt-4 text-sm text-gray-600 font-medium">Cargando fichajes...</p>
                 </div>
               ) : checkins.length === 0 ? (
-                <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-dashed border-gray-300">
+                <div className="text-center py-12 bg-blue-600 rounded-xl border-2 border-dashed border-gray-300">
                   <div className="mx-auto w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-3">
                     <Clock className="h-8 w-8 text-gray-400" />
                   </div>
@@ -456,7 +456,7 @@ export default function TaskDetail({ task, open, onClose }) {
                 <div className="rounded-xl border-2 overflow-hidden shadow-sm">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-gradient-to-r from-gray-100 to-gray-50">
+                      <TableRow className="bg-blue-600">
                         <TableHead className="font-bold text-gray-700">Fecha y Hora</TableHead>
                         <TableHead className="font-bold text-gray-700">Empleado</TableHead>
                         <TableHead className="font-bold text-gray-700">Duración</TableHead>
@@ -516,7 +516,7 @@ export default function TaskDetail({ task, open, onClose }) {
           <div className="sticky bottom-0 pt-4 pb-2 bg-white/95 backdrop-blur-sm border-t-2 border-gray-200">
             <Button
               onClick={handleGoToFullDetail}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all group"
+              className="w-full bg-blue-600 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all group"
               size="lg"
             >
               <span className="flex items-center justify-center gap-2">

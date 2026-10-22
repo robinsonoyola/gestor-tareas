@@ -31,7 +31,7 @@ export default function TaskCard({ task }) {
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
+      <CardHeader className=" bg-white border-b border-gray-200 text-gray-900">
         <div className="flex items-start justify-between">
           <CardTitle className="text-lg text-gray-900">{task.title}</CardTitle>
           {getStatusBadge(task.status)}

@@ -1,3 +1,5 @@
+import {tenantMode,currentOrganization} from '@/lib/organizationScope'
+import {MobileEmployees} from './MobileRecords'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import Layout from '@/components/layout/Layout'
@@ -38,37 +40,87 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { createEmployeeAccount } from '@/lib/createEmployee'
+import { requestEmployeePasswordReset } from '@/lib/passwordRecovery'
+import { workRpc } from '@/lib/workflow'
+import { normalizeWhatsApp } from '@/lib/whatsapp'
+
+async function employeeEmailError(data, error, response) {
+  const http = response || error?.context
+  const status = http?.status
+  let payload = data
+  if (!payload && typeof http?.json === 'function') {
+    try { payload = await (typeof http.clone === 'function' ? http.clone() : http).json() }
+    catch { /* Fall back to the status-specific message. */ }
+  }
+  const serverMessage = typeof payload?.error === 'string' ? payload.error.trim().slice(0, 500) : ''
+  let message
+  if (status === 401) message = 'La sesión de administrador no fue aceptada. Cierra sesión, vuelve a entrar e intenta cambiar el correo.'
+  else if (status === 404) message = 'No se encontró la función update-employee-email en este proyecto de Supabase.'
+  else if (status === 403) message = serverMessage || 'Tu cuenta no tiene permiso para cambiar el correo de este empleado.'
+  else if (serverMessage) message = serverMessage
+  else if (error?.name === 'FunctionsFetchError') message = 'No se pudo conectar con el servicio que cambia el correo. Comprueba la conexión y recarga la lista antes de reintentar.'
+  else if (status >= 500) message = 'El servicio no pudo completar el cambio de correo. Revisa los registros de update-employee-email en Supabase.'
+  else message = 'El servidor no confirmó el cambio de correo. Recarga la lista antes de reintentar.'
+  const result = new Error(message)
+  result.code = status ? `EMPLOYEE_EMAIL_HTTP_${status}` : 'EMPLOYEE_EMAIL_UNCONFIRMED'
+  return result
+}
 
 export default function EmployeeManager() {
   const navigate = useNavigate()
+  const [search,setSearch]=useState('')
+  const [roleFilter,setRoleFilter]=useState('')
+  const [roles, setRoles] = useState([])
+  const [assignments, setAssignments] = useState([])
+  const [rolesReady, setRolesReady] = useState(false)
+  const [roleError, setRoleError] = useState('')
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [sendingReset, setSendingReset] = useState(false)
+  const [whatsappError, setWhatsappError] = useState('')
   
   const [employeeForm, setEmployeeForm] = useState({
     full_name: '',
     email: '',
     password: '',
+    role_id: '',
     whatsapp: ''
   })
 
   useEffect(() => {
     fetchEmployees()
+    const refreshRoles = () => fetchRoles()
+    refreshRoles()
+    window.addEventListener('focus', refreshRoles)
+    return () => window.removeEventListener('focus', refreshRoles)
   }, [])
+
+  const fetchRoles = async () => {
+    try {
+      const data = await workRpc('work_roles_overview')
+      setRoles(data.roles); setAssignments(data.assignments); setRolesReady(true); setRoleError('')
+    } catch(e) { setRolesReady(false); setRoleError('No se pudieron cargar los roles. Comprueba que instalaste 15-ROLES-DE-EMPLEADOS.sql en Supabase.') }
+  }
+  const roleIdFor = id => assignments.find(a=>a.user_id===id)?.role_id || ''
+  const roleNameFor = id => roles.find(r=>r.id===roleIdFor(id))?.name || 'Sin rol'
+  const roleField = prefix => <div className="space-y-2"><Label htmlFor={prefix+'-role'}>Rol de trabajo</Label><select id={prefix+'-role'} className="w-full border rounded-md bg-white p-2" disabled={!rolesReady||submitting} value={employeeForm.role_id} onChange={e=>setEmployeeForm(prev=>({...prev,role_id:e.target.value}))}><option value="">Sin rol asignado</option>{roles.filter(r=>r.active||r.id===employeeForm.role_id).map(r=><option key={r.id} value={r.id}>{r.name}{r.active?'':' (desactivado)'}</option>)}</select><p className="text-xs text-gray-500">Crea y gestiona los roles en la sección Roles.</p></div>
 
   const fetchEmployees = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('is_admin', false)
-        .order('created_at', { ascending: false })
+      let data
+      if(tenantMode())data=await workRpc('mt_employees')
+      else {
+        const response=await supabase.from('users').select('*').eq('is_admin',false).order('created_at',{ascending:false})
+        if(response.error)throw response.error
+        data=response.data
+      }
 
-      if (error) throw error
       setEmployees(data || [])
     } catch (error) {
       console.error('Error fetching employees:', error)
@@ -78,78 +130,60 @@ export default function EmployeeManager() {
     }
   }
 
+  const handleWhatsappChange = (value) => {
+    setWhatsappError('')
+    setEmployeeForm(prev => ({ ...prev, whatsapp: value }))
+  }
+
+  const validateWhatsappField = () => {
+    try { normalizeWhatsApp(employeeForm.whatsapp); setWhatsappError('') }
+    catch (error) { setWhatsappError(error.message) }
+  }
+
   const handleCreateEmployee = async (e) => {
     e.preventDefault()
+    if (submitting || !rolesReady) return
     setSubmitting(true)
-
     try {
-      // Crear usuario en Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: employeeForm.email,
-        password: employeeForm.password,
-        options: {
-          data: {
-            full_name: employeeForm.full_name
-          }
-        }
-      })
-
-      if (authError) throw authError
-
-      // Insertar en tabla users
-      const { error: dbError } = await supabase
-        .from('users')
-        .insert([{
-          id: authData.user.id,
-          email: employeeForm.email,
-          full_name: employeeForm.full_name,
-          whatsapp: employeeForm.whatsapp || null,
-          is_admin: false
-        }])
-
-      if (dbError) throw dbError
-
-      toast.success('✅ Empleado creado correctamente')
+      const result = await createEmployeeAccount(employeeForm)
+      toast.success(result.confirmationRequired
+        ? 'Empleado creado. Debe confirmar su email antes de acceder.'
+        : 'Empleado creado y perfil guardado correctamente')
       setIsCreateModalOpen(false)
       resetForm()
-      fetchEmployees()
+      await fetchEmployees(); await fetchRoles()
     } catch (error) {
-      console.error('Error creating employee:', error)
-      toast.error('Error al crear empleado: ' + (error.message || 'Error desconocido'))
+      console.error('Error creating employee:', error?.code || 'unknown')
+      toast.error(error.message || 'No se pudo crear el empleado')
+      if (error?.code === 'INVALID_WHATSAPP') setWhatsappError(error.message)
+      // Never retain the initial password after a failed or partial attempt.
+      setEmployeeForm(prev => ({ ...prev, password: '' }))
+      if (error?.code === 'EMPLOYEE_PROFILE_INCOMPLETE') await fetchEmployees()
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleEditEmployee = async (e) => {
+    const operationOrganization=currentOrganization()
     e.preventDefault()
+    if (submitting || !rolesReady) return
     setSubmitting(true)
 
     try {
-      // Actualizar en tabla users
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({
-          full_name: employeeForm.full_name,
-          email: employeeForm.email,
-          whatsapp: employeeForm.whatsapp || null
+      const whatsapp = normalizeWhatsApp(employeeForm.whatsapp)
+      if (employeeForm.email.trim().toLowerCase() !== selectedEmployee.email.trim().toLowerCase()) {
+        const { data, error, response } = await supabase.functions.invoke('update-employee-email', {
+          body: { userId: selectedEmployee.id, email: employeeForm.email.trim().toLowerCase() }
         })
-        .eq('id', selectedEmployee.id)
-
-      if (updateError) throw updateError
-
-      // Si se proporcionó una nueva contraseña, actualizarla
-      if (employeeForm.password) {
-        const { error: passwordError } = await supabase.auth.admin.updateUserById(
-          selectedEmployee.id,
-          { password: employeeForm.password }
-        )
-
-        if (passwordError) {
-          console.error('Error updating password:', passwordError)
-          toast.warning('⚠️ Empleado actualizado pero no se pudo cambiar la contraseña')
+        if (error || !data?.success) {
+          throw await employeeEmailError(data, error, response)
         }
       }
+      if(operationOrganization!==currentOrganization())throw new Error('La empresa activa cambió. Revisa el empleado antes de guardar.')
+      // Email changes are verified by the Auth service; profile and role save together.
+      await workRpc('work_save_employee_profile', {p_user:selectedEmployee.id,p_name:employeeForm.full_name,p_whatsapp:whatsapp,p_role:employeeForm.role_id || null})
+      await fetchRoles()
 
       toast.success('✅ Empleado actualizado correctamente')
       setIsEditModalOpen(false)
@@ -157,10 +191,25 @@ export default function EmployeeManager() {
       resetForm()
       fetchEmployees()
     } catch (error) {
-      console.error('Error updating employee:', error)
-      toast.error('Error al actualizar empleado')
+      console.error('Error updating employee:', error?.code || 'unknown')
+      if (error?.code === 'INVALID_WHATSAPP') setWhatsappError(error.message)
+      toast.error(error.message || 'Error al actualizar empleado')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleSendPasswordReset = async () => {
+    if (!selectedEmployee?.id || sendingReset) return
+    setSendingReset(true)
+    try {
+      await requestEmployeePasswordReset(selectedEmployee.id)
+      toast.success('Solicitud aceptada. El empleado debe revisar su correo y la carpeta de spam.')
+    } catch (error) {
+      console.error('Error requesting password reset:', error?.code || 'unknown')
+      toast.error(error.message || 'No se pudo solicitar la recuperación de contraseña')
+    } finally {
+      setSendingReset(false)
     }
   }
 
@@ -169,13 +218,11 @@ export default function EmployeeManager() {
     if (!confirm) return
 
     try {
-      // Eliminar de la tabla users (las asignaciones de tareas se eliminan automáticamente por CASCADE)
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', employeeId)
-
-      if (error) throw error
+      if(tenantMode())await workRpc('mt_delete_employee',{p_user:employeeId})
+      else {
+        const {error}=await supabase.from('users').delete().eq('id',employeeId)
+        if(error)throw error
+      }
 
       toast.success('✅ Empleado eliminado')
       fetchEmployees()
@@ -186,44 +233,49 @@ export default function EmployeeManager() {
   }
 
   const openEditModal = (employee) => {
+    setWhatsappError('')
     setSelectedEmployee(employee)
     setEmployeeForm({
       full_name: employee.full_name,
       email: employee.email,
       password: '',
+      role_id: roleIdFor(employee.id),
       whatsapp: employee.whatsapp || ''
     })
     setIsEditModalOpen(true)
   }
 
   const resetForm = () => {
+    setWhatsappError('')
     setEmployeeForm({
       full_name: '',
       email: '',
       password: '',
-      whatsapp: ''
+      role_id: '',
+    whatsapp: ''
     })
   }
 
   const getEmployeeStats = () => {
     return {
       total: employees.length,
-      active: employees.length // Por ahora todos son activos
+      withoutRole: employees.filter(e=>!roleIdFor(e.id)).length
     }
   }
 
+  const filteredEmployees = employees.filter(e=>(e.full_name+' '+e.email+' '+(e.whatsapp||'')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')) && (!roleFilter||(roleFilter==='none'?!roleIdFor(e.id):roleIdFor(e.id)===roleFilter)))
   const stats = getEmployeeStats()
 
   return (
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">👥 Gestionar Empleados</h1>
             <p className="text-gray-900 mt-1">Administra tu equipo de trabajo</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               onClick={() => navigate('/admin')}
@@ -234,7 +286,7 @@ export default function EmployeeManager() {
             </Button>
             <Button
               onClick={() => setIsCreateModalOpen(true)}
-              className="bg-green-500 hover:bg-green-600 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Plus className="mr-2 h-4 w-4" />
               Nuevo Empleado
@@ -242,6 +294,7 @@ export default function EmployeeManager() {
           </div>
         </div>
 
+        {roleError && <p role="alert" className="rounded-lg bg-red-50 text-red-800 p-4">{roleError} <Button variant="outline" onClick={fetchRoles}>Reintentar</Button></p>}
         {/* Estadísticas */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
@@ -265,14 +318,15 @@ export default function EmployeeManager() {
                   <CheckCircle className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-900">Empleados Activos</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.active}</p>
+                  <p className="text-sm text-gray-900">Sin rol asignado</p>
+                  <p className="text-3xl font-bold text-gray-900">{rolesReady?stats.withoutRole:'—'}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
+        <div className="grid sm:grid-cols-2 gap-3"><Input aria-label="Buscar empleados" placeholder="Buscar por nombre, email o WhatsApp" value={search} onChange={e=>setSearch(e.target.value)}/><select aria-label="Filtrar empleados por rol" className="w-full border rounded-md bg-white p-2" value={roleFilter} onChange={e=>setRoleFilter(e.target.value)}><option value="">Todos los roles</option><option value="none">Sin rol asignado</option>{roles.map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
         {/* Tabla de Empleados */}
         <Card>
           <CardHeader>
@@ -284,21 +338,24 @@ export default function EmployeeManager() {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
                 <p className="mt-4 text-gray-900">Cargando empleados...</p>
               </div>
-            ) : employees.length === 0 ? (
+            ) : filteredEmployees.length === 0 ? (
               <div className="text-center py-12">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-900 mb-4">No hay empleados registrados</p>
+                <p className="text-gray-900 mb-4">{employees.length?'No hay empleados con estos filtros':'No hay empleados registrados'}</p>
                 <Button onClick={() => setIsCreateModalOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Crear Primer Empleado
                 </Button>
               </div>
             ) : (
-              <div className="rounded-md border">
+              <>
+              <MobileEmployees items={filteredEmployees} roleName={roleNameFor} rolesReady={rolesReady} onPlan={employee=>navigate('/admin/planning?employee='+employee.id)} onHistory={employee=>navigate('/admin/checkins?employee='+employee.id)} onEdit={openEditModal} onDelete={handleDeleteEmployee}/>
+              <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-gray-900">Nombre Completo</TableHead>
+                      <TableHead className="text-gray-900">Rol</TableHead>
                       <TableHead className="text-gray-900">Email</TableHead>
                       <TableHead className="text-gray-900">WhatsApp</TableHead>
                       <TableHead className="text-gray-900">Fecha Registro</TableHead>
@@ -306,11 +363,12 @@ export default function EmployeeManager() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {employees.map((employee) => (
+                    {filteredEmployees.map((employee) => (
                       <TableRow key={employee.id}>
                         <TableCell className="font-medium text-gray-900">
                           {employee.full_name}
                         </TableCell>
+                        <TableCell className="text-gray-900">{rolesReady?roleNameFor(employee.id):'No disponible'}</TableCell>
                         <TableCell className="text-gray-900">
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4 text-gray-500" />
@@ -331,6 +389,8 @@ export default function EmployeeManager() {
                           {employee.created_at ? format(new Date(employee.created_at), 'PPP', { locale: es }) : '-'}
                         </TableCell>
                         <TableCell className="text-right space-x-2">
+                          <Button size="sm" variant="outline" onClick={()=>navigate('/admin/planning?employee='+employee.id)}>Planificación</Button>
+                          <Button size="sm" variant="outline" onClick={()=>navigate('/admin/checkins?employee='+employee.id)}>Fichajes</Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -352,6 +412,7 @@ export default function EmployeeManager() {
                   </TableBody>
                 </Table>
               </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -359,7 +420,7 @@ export default function EmployeeManager() {
 
       {/* Modal Crear Empleado */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-gray-900">👤 Crear Nuevo Empleado</DialogTitle>
             <DialogDescription className="text-gray-900">
@@ -368,6 +429,7 @@ export default function EmployeeManager() {
           </DialogHeader>
 
           <form onSubmit={handleCreateEmployee} className="space-y-4">
+            {roleField('create')}
             <div className="space-y-2">
               <Label htmlFor="create-name" className="text-gray-900 font-semibold">
                 Nombre Completo *
@@ -421,10 +483,17 @@ export default function EmployeeManager() {
                 id="create-whatsapp"
                 type="tel"
                 value={employeeForm.whatsapp}
-                onChange={(e) => setEmployeeForm(prev => ({ ...prev, whatsapp: e.target.value }))}
+                onChange={(e) => handleWhatsappChange(e.target.value)}
+                onBlur={validateWhatsappField}
+                inputMode="tel"
+                autoComplete="tel"
+                maxLength={32}
+                aria-invalid={Boolean(whatsappError)}
                 placeholder="+34 600 000 000"
                 className="text-gray-900"
               />
+              {whatsappError && <p role="alert" className="text-sm text-red-700">{whatsappError}</p>}
+              <p className="text-xs text-gray-600">Opcional. Entre 7 y 15 dígitos; puedes incluir el prefijo de país.</p>
             </div>
 
             <Alert className="bg-blue-50 border-blue-200">
@@ -436,8 +505,8 @@ export default function EmployeeManager() {
 
             <Button
               type="submit"
-              disabled={submitting}
-              className="w-full bg-green-500 hover:bg-green-600 text-white"
+              disabled={submitting || !rolesReady}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             >
               {submitting ? '⏳ Creando...' : '✅ Crear Empleado'}
             </Button>
@@ -447,7 +516,7 @@ export default function EmployeeManager() {
 
       {/* Modal Editar Empleado */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-gray-900">✏️ Editar Empleado</DialogTitle>
             <DialogDescription className="text-gray-900">
@@ -456,6 +525,7 @@ export default function EmployeeManager() {
           </DialogHeader>
 
           <form onSubmit={handleEditEmployee} className="space-y-4">
+            {roleField('edit')}
             <div className="space-y-2">
               <Label htmlFor="edit-name" className="text-gray-900 font-semibold">
                 Nombre Completo *
@@ -483,19 +553,16 @@ export default function EmployeeManager() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-password" className="text-gray-900 font-semibold">
-                Nueva Contraseña (dejar vacío para no cambiar)
-              </Label>
-              <Input
-                id="edit-password"
-                type="password"
-                value={employeeForm.password}
-                onChange={(e) => setEmployeeForm(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="Mínimo 6 caracteres"
-                minLength={6}
-                className="text-gray-900"
-              />
+            <div className="space-y-2 rounded-md border bg-blue-50 p-3">
+              <p className="font-medium text-gray-900">Recuperar contraseña</p>
+              <p className="text-sm text-gray-700">
+                El empleado recibirá un enlace en su email guardado y elegirá una contraseña nueva.
+                Guarda antes cualquier cambio de email.
+              </p>
+              <Button type="button" variant="outline" disabled={sendingReset || submitting}
+                onClick={handleSendPasswordReset}>
+                {sendingReset ? 'Solicitando envío…' : 'Enviar enlace de recuperación'}
+              </Button>
             </div>
 
             <div className="space-y-2">
@@ -506,15 +573,22 @@ export default function EmployeeManager() {
                 id="edit-whatsapp"
                 type="tel"
                 value={employeeForm.whatsapp}
-                onChange={(e) => setEmployeeForm(prev => ({ ...prev, whatsapp: e.target.value }))}
+                onChange={(e) => handleWhatsappChange(e.target.value)}
+                onBlur={validateWhatsappField}
+                inputMode="tel"
+                autoComplete="tel"
+                maxLength={32}
+                aria-invalid={Boolean(whatsappError)}
                 placeholder="+34 600 000 000"
                 className="text-gray-900"
               />
+              {whatsappError && <p role="alert" className="text-sm text-red-700">{whatsappError}</p>}
+              <p className="text-xs text-gray-600">Opcional. Entre 7 y 15 dígitos; puedes incluir el prefijo de país.</p>
             </div>
 
             <Button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !rolesReady}
               className="w-full bg-blue-500 hover:bg-blue-600 text-white"
             >
               {submitting ? '⏳ Guardando...' : '💾 Guardar Cambios'}

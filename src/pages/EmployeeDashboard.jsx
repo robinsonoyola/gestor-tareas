@@ -88,7 +88,7 @@ export default function EmployeeDashboard() {
     <Layout>
       <div className="space-y-8 max-w-7xl mx-auto">
         {/* Header con navegación */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
@@ -121,7 +121,7 @@ export default function EmployeeDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="border-2 border-gray-200 hover:border-gray-300 transition-colors">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">Total</p>
                   <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
@@ -133,9 +133,9 @@ export default function EmployeeDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-amber-200 hover:border-amber-300 transition-colors bg-amber-50">
+          <Card className="border border-gray-200 transition-colors">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-amber-700 mb-1">Pendientes</p>
                   <p className="text-3xl font-bold text-amber-600">{stats.pending}</p>
@@ -147,9 +147,9 @@ export default function EmployeeDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-blue-200 hover:border-blue-300 transition-colors bg-blue-50">
+          <Card className="border border-gray-200 transition-colors">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-blue-700 mb-1">En Progreso</p>
                   <p className="text-3xl font-bold text-blue-600">{stats.in_progress}</p>
@@ -161,9 +161,9 @@ export default function EmployeeDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-green-200 hover:border-green-300 transition-colors bg-green-50">
+          <Card className="border border-gray-200 transition-colors">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-green-700 mb-1">Completadas</p>
                   <p className="text-3xl font-bold text-green-600">{stats.completed}</p>
