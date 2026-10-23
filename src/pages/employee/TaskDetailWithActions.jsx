@@ -1,3 +1,4 @@
+import TaskChecklist from '@/components/checklists/TaskChecklist'
 import TaskNfcControl from '@/components/TaskNfcControl'
 import IncidentReporter from '@/components/IncidentReporter'
 import { useState, useEffect, useRef } from 'react'
@@ -470,7 +471,7 @@ export default function TaskDetailWithActions() {
       returnToTasks()
     } catch (error) {
       console.error('Error al finalizar fichaje:', error?.code || 'unknown')
-      toast.error('No se confirmó el cierre. El fichaje sigue pendiente; puedes reintentar sin duplicarlo.')
+      toast.error(error?.message || 'No se confirmó el cierre. El fichaje sigue pendiente; puedes reintentar sin duplicarlo.')
     } finally {
       setEndingCheckin(false)
     }
@@ -791,6 +792,7 @@ export default function TaskDetailWithActions() {
           </CardContent>
         </Card>
 
+        <TaskChecklist key={id} taskId={id} userId={userData?.id} activeCheckin={activeCheckin} checkins={checkins} readOnly={!canAct}/>
         {/* Historial de Fichajes */}
         <Card className="border-2 shadow-sm">
           <CardHeader>

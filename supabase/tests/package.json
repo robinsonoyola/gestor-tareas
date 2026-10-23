@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node usability-core-regression.mjs && node usability-security.mjs && node usability-client.mjs && node scope.mjs && node migration-abort.mjs && node task-nfc-security.mjs && node task-nfc-client.mjs && node resolved-incident-lock.mjs && node reports-security.mjs && node report-employee.mjs && node report-pivot.mjs"
+    "test": "node usability-core-regression.mjs && node usability-security.mjs && node usability-client.mjs && node scope.mjs && node migration-abort.mjs && node task-nfc-security.mjs && node task-nfc-client.mjs && node resolved-incident-lock.mjs && node reports-security.mjs && node report-employee.mjs && node report-pivot.mjs && node checklists-security.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.10"

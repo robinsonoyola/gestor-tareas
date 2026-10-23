@@ -1,3 +1,4 @@
+import ChecklistEditor from '@/components/checklists/ChecklistEditor'
 import {MobileTasks} from './admin/MobileRecords'
 import { useState, useEffect } from 'react'
 import TaskFollowup from './admin/TaskFollowup'
@@ -61,6 +62,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [checklistTask,setChecklistTask]=useState(null)
   const [selectedTask, setSelectedTask] = useState(null)
   
   const [taskForm, setTaskForm] = useState({
@@ -191,6 +193,7 @@ export default function AdminDashboard() {
 
   return (
     <Layout>
+      {checklistTask&&<ChecklistEditor key={checklistTask.id} task={checklistTask} onClose={()=>setChecklistTask(null)}/>}
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -221,7 +224,7 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <>
-              <MobileTasks items={filteredTasks} statusBadge={getStatusBadge} can={can} isAdmin={isAdmin} onShare={task=>navigate('/admin/access?task='+task.id)} onPlan={task=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))} onEdit={openEditModal} onDelete={handleDeleteTask}/>
+              <MobileTasks items={filteredTasks} statusBadge={getStatusBadge} can={can} isAdmin={isAdmin} onShare={task=>navigate('/admin/access?task='+task.id)} onPlan={task=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))} onChecklist={setChecklistTask} onEdit={openEditModal} onDelete={handleDeleteTask}/>
               <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
@@ -252,6 +255,7 @@ export default function AdminDashboard() {
                         <TableCell className="text-right space-x-2">
                           {isAdmin && <Button size="sm" variant="outline" onClick={()=>navigate('/admin/access?task='+task.id)}>Compartir acceso</Button>}
                           {can('planning.view') && <Button size="sm" variant="outline" onClick={()=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))}>Planificar</Button>}
+                          {can('tasks.edit') && <Button size="sm" variant="outline" onClick={()=>setChecklistTask(task)}>Pasos</Button>}
                           {can('tasks.edit') && <Button size="sm" variant="outline" onClick={() => openEditModal(task)}><Edit className="h-4 w-4" /></Button>}
                           {can('tasks.delete') && <Button size="sm" variant="outline" onClick={() => handleDeleteTask(task.id)} className="text-red-600 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>}
                         </TableCell>

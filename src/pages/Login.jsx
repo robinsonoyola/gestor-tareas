@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,9 @@ import { requestPasswordReset } from '@/lib/passwordRecovery'
 export default function Login() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [loginError,setLoginError]=useState('')
+  const [loginStalled,setLoginStalled]=useState(false)
+  const signingIn=useRef(false)
   const [resetMode, setResetMode] = useState(false)
   const [resetMessage, setResetMessage] = useState('')
   const [resetError, setResetError] = useState('')
@@ -53,41 +56,24 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault()
-    setLoading(true)
-
+    if(signingIn.current||loginStalled)return
+    signingIn.current=true;setLoading(true);setLoginError('')
+    let timer
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: credentials.email,
-        password: credentials.password
-      })
-
-      if (authError) throw authError
-
-      const context=await supabase.rpc('mt_context')
-      if(context.error && !['PGRST202','42883'].includes(context.error.code))throw context.error
-      let userData=context.data?.profile
-      if(context.error){
-        const response=await supabase.from('users').select('*').eq('id',authData.user.id).single()
-        if(response.error)throw response.error
-        userData=response.data
-      }
-
-      toast.success('✅ Inicio de sesión exitoso')
-
-      if (userData?.is_admin) {
-        navigate('/admin')
-      } else {
-        navigate('/employee')
-      }
-    } catch (error) {
-      console.error('Error logging in:', error)
-      toast.error(error?.code === 'invalid_credentials'
-        ? '❌ Correo o contraseña incorrectos'
-        : error?.message?.includes('AbortError')
-          ? 'La sesión cambió durante el acceso. Vuelve a intentarlo.'
-          : 'No se pudo completar el acceso. Comprueba la conexión o la configuración del proyecto.')
+      const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error('El acceso está tardando demasiado. Recarga esta pantalla y vuelve a intentarlo.'),{code:'login_timeout'})),20000)})
+      const {data,error}=await Promise.race([supabase.auth.signInWithPassword({email:credentials.email.trim(),password:credentials.password}),deadline])
+      if(error)throw error
+      if(!data?.user)throw new Error('No se confirmó la sesión')
+      // The organization provider owns company/permission loading. Do not race a second mt_context request here.
+      toast.success('Inicio de sesión correcto')
+      navigate('/login/complete',{replace:true})
+    } catch(error) {
+      console.error('Error logging in:',error?.code||'unknown')
+      if(error?.code==='login_timeout')setLoginStalled(true)
+      const message=error?.code==='login_timeout'?error.message:error?.code==='invalid_credentials'||error?.message==='Invalid login credentials'?'Correo o contraseña incorrectos.':error?.name==='AbortError'||error?.message?.includes('AbortError')?'La sesión cambió durante el acceso. Vuelve a intentarlo.':'No se pudo completar el acceso. Comprueba la conexión y vuelve a intentarlo.'
+      setLoginError(message)
     } finally {
-      setLoading(false)
+      clearTimeout(timer);signingIn.current=false;setLoading(false)
     }
   }
 
@@ -104,7 +90,6 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {window.history.state?.idx>0 && <Button type="button" variant="outline" size="sm" className="mb-4" onClick={()=>navigate(-1)}>← Atrás</Button>}
           <form onSubmit={resetMode ? handleResetRequest : handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-gray-900 font-semibold">
@@ -141,12 +126,14 @@ export default function Login() {
 
             )}
 
-            {resetMessage && <p role="status" className="rounded-md bg-green-50 p-3 text-sm text-green-800">{resetMessage}</p>}
+            {!resetMode&&loginError&&<p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800">{loginError}</p>}
+          {!resetMode&&loginStalled&&<Button type="button" variant="outline" className="w-full" onClick={()=>window.location.reload()}>Recargar acceso</Button>}
+          {resetMessage && <p role="status" className="rounded-md bg-green-50 p-3 text-sm text-green-800">{resetMessage}</p>}
             {resetError && <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800">{resetError}</p>}
 
             <Button
               type="submit"
-              disabled={loading || (resetMode && resetCooldown > 0)}
+              disabled={loading || (!resetMode && loginStalled) || (resetMode && resetCooldown > 0)}
               className="w-full h-12 text-base  bg-blue-600 hover:bg-blue-700 cursor-pointer text-white font-semibold"
             >
               {loading ? (

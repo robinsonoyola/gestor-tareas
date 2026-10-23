@@ -1,3 +1,4 @@
+import LoginDestination from './components/auth/LoginDestination'
 import Reports from './pages/admin/Reports'
 import Incidents from './pages/Incidents'
 import WorkAreas from './pages/admin/WorkAreas'
@@ -48,6 +49,7 @@ function App() {
         <Route path="/incidents" element={<ProtectedRoute><Incidents/></ProtectedRoute>}/>
         <Route path="/admin/team/areas" element={<ProtectedRoute requireAdmin><WorkAreas/></ProtectedRoute>}/>
         <Route path="/login" element={<Login />} />
+        <Route path="/login/complete" element={<ProtectedRoute><LoginDestination /></ProtectedRoute>} />
         <Route path="/station" element={<WorkStation />} />
         <Route path="/admin" element={<ProtectedRoute requireAny={['tasks.view','planning.view','reports.view','checkins.view']}><Overview /></ProtectedRoute>} />
         <Route path="/admin/tasks" element={<ProtectedRoute requirePermission="tasks.view"><AdminDashboard /></ProtectedRoute>} />

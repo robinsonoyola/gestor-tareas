@@ -1,3 +1,4 @@
+import StationChecklist from '@/components/checklists/StationChecklist'
 import {usabilityReady} from '@/lib/workFeatures'
 import {startPersonalCardReader} from '@/lib/personalCardNfc'
 import { useEffect, useRef, useState } from 'react'
@@ -147,6 +148,7 @@ export default function WorkStation() {
         <div><p className="text-gray-500">Identificado como</p><h2 className="text-3xl font-bold mt-1">{person.employee}</h2></div>
         {person.title ? <div className="border rounded-xl p-5 space-y-3"><p className="text-sm text-gray-500">{person.action === 'finish' ? 'Tu tarea en curso' : 'Tu siguiente tarea'}</p><h3 className="text-2xl font-semibold">{person.title}</h3><p className="text-gray-600 whitespace-pre-wrap">{person.description || 'Sin instrucciones adicionales'}</p>{person.started_at && <p className="font-mono text-3xl text-blue-700">{elapsedSince(person.started_at)}</p>}</div> : <p>No tienes más tareas pendientes para hoy.</p>}
         {person.action === 'start' && <Button disabled={busy} className="w-full h-16 text-xl" onClick={() => confirm('start')}>{busy ? 'Guardando…' : 'Comenzar tarea'}</Button>}
+        {extras&&person.action==='finish'&&<StationChecklist key={person.ticket} station={station} ticket={person.ticket} onInteract={()=>setRemaining(60)}/>}
         {person.action === 'finish' && (!confirmFinish ? <Button disabled={busy} className="w-full h-16 text-xl" onClick={() => setConfirmFinish(true)}>Finalizar tarea</Button> : <div className="border border-red-200 bg-red-50 rounded-lg p-4 space-y-4"><p>¿Confirmas que has terminado esta tarea?</p><div className="flex flex-col sm:flex-row gap-3"><Button disabled={busy} variant="destructive" onClick={() => confirm('finish')}>{busy ? 'Guardando…' : 'Sí, finalizar tarea'}</Button><Button variant="outline" disabled={busy} onClick={() => setConfirmFinish(false)}>Seguir consultando</Button></div></div>)}
         {!showDay && <Button variant="outline" disabled={busy} className="w-full" onClick={()=>{setShowDay(true); setRemaining(n=>Math.min(n,10)); loadDay(lastTicket.current)}}>Ver mis tareas del día</Button>}
         {daySummary}

@@ -1,0 +1,715 @@
+{
+  "scope": "Synthetic isolated PostgreSQL; no hosted writes or physical NFC testing",
+  "results": [
+    {
+      "test": "backfill preserves every legacy field in tasks",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in task_assignments",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in checkins",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in task_comments",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in task_access_codes",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in task_checkin_config",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in nfc_cards",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_day_plan",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_employee_cards",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_employee_card_keys",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_stations",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_station_keys",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_station_tickets",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_roles",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_employee_roles",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "backfill preserves every legacy field in work_settings",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "legacy task retained",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "legacy role retained as membership",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "global admin retired",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "station migration leaves executor without schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "anonymous task NFC denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "unassigned actor cannot check in",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "foreign company task NFC denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "unknown card denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "invalid action denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "empty UID denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "rejected identification has no writes",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "explicit start creates NFC checkin",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "checkin retains authenticated actor and assigned card",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "repeated start cannot close current NFC checkin",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "record remains open after repeated start",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "legacy toggle endpoint no longer writes",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "closing requires expected checkin",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "closing with another tag denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other employee cannot close the checkin",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "explicit close records the same checkin",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "retrying close is idempotent",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "only one record created",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "exclusive tablet mode still blocks mobile NFC",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "disabled NFC task denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "executor retains no schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "comment without open checkin denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "incident without open checkin denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "upload without open checkin denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "closed checkin grants no actions",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "own live checkin allows actions",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "comment while checked in succeeds",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "incident while checked in succeeds",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "upload while checked in succeeds",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other worker cannot use the active checkin",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other company cannot use the active checkin",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "comment after closing denied",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin retains actions",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "queue contains all assigned tasks",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "first priority is the next task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "cannot skip to third task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "first task plan becomes active",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "completion advances to second task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "completed task sorted below pending",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "completed task cannot restart",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "completed task detail remains readable",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "manual insert cannot bypass priority",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "incident recipient sees task even without ordinary assignment",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "incident recipient can read task details",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "repair does not reopen original completed plan",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "foreign company receives no task in its queue",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "resolved incident removes reopening exception",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "resolved incident cannot start again",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "manager priority change is honored immediately",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "old next task no longer startable",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "existing incidents receive labeled current-state snapshots",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "reporter can see creation event",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "all successive status transitions are retained",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "earlier note survives later resolution",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee sees date and actor",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "responsible person sees the same history",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "foreign company cannot read timeline",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "anonymous cannot read timeline",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee cannot insert invented history",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "unrelated employee in same company cannot read timeline",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "responsible cannot reopen resolved incident",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "responsible cannot overwrite final solution",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "administrator cannot modify resolved incident",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "resolved deletion blocked at database level",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "locked row remains unchanged",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "rejected changes append no history",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "rejected changes send no notifications",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "resolved incident has no management permission in inbox",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "open incident still resolves normally",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "report table available: checkins",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "report excludes other-company task: checkins",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "report table available: tasks",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "report excludes other-company task: tasks",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "report table available: productivity",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "report excludes other-company task: productivity",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "report table available: incidents",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "report excludes other-company task: incidents",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "report table available: closures",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "report excludes other-company task: closures",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "ordinary worker cannot read management reports",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "anonymous cannot read reports",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "personal search never returns other workers",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "search applies before pagination and count",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "method and closed filters apply together",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other company admin cannot read this company incidents",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "search treats percent as literal rather than wildcard",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "large report is rejected instead of silently truncating",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee filter returns the selected workers report",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "different employee does not receive selected workers rows",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee selector is company-scoped",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "foreign employee cannot appear in tasks",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "foreign employee cannot appear in productivity",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "foreign employee cannot appear in incidents",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "foreign employee cannot appear in closures",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee directory requires reports permission",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "filtered reports require reports permission",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "checklist template saved with required and optional steps",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "worker cannot change checklist template",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other company cannot read checklist",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "anonymous cannot read checklist",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "unassigned worker cannot read checklist",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "template detects stale editor",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "checkin snapshots the template and starts unchecked",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "cannot change template while checkin open",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "another worker cannot mark someone elses steps",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other company cannot mark steps",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "direct run writes denied to worker",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "checklist cannot be bypassed by closing checkin",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "marking is idempotent and leaves actor history",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "unmarking required step blocks completion again",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "optional steps do not block closure",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "closed checkin steps are immutable",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "editing template preserves closed execution history",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "checklist activation can run twice without losing history",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "new execution gets a fresh unchecked checklist",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "blocking incident closes checkin despite incomplete steps",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "incident leaves task blocked not completed",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "station finish requires mandatory steps",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "identified station reads only active checkin steps",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "station checklist rejects wrong station key",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "station closes normally after required steps",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "consumed station ticket cannot change steps",
+      "expected": "PASS",
+      "actual": "PASS"
+    }
+  ]
+}
