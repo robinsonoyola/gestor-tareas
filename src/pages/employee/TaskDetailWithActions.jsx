@@ -58,6 +58,8 @@ export default function TaskDetailWithActions() {
   const [activeCheckin, setActiveCheckin] = useState(null)
   const [incidentBlocked,setIncidentBlocked] = useState(false)
   const incidentReporter = useRef(null)
+  const imagePicker = useRef(null)
+  const videoPicker = useRef(null)
   const incidentSection = useRef(null)
   const openIncident = () => {
     if (!canAct) return
@@ -872,7 +874,7 @@ export default function TaskDetailWithActions() {
               </div>
 
               <div className="flex gap-4">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <Label htmlFor="image">
                     <div className="flex items-center gap-2 cursor-pointer">
                       <ImageIcon className="h-4 w-4" />
@@ -881,14 +883,17 @@ export default function TaskDetailWithActions() {
                   </Label>
                   <Input
                     id="image"
+                    ref={imagePicker}
                     type="file"
                     accept="image/png,image/jpeg,image/gif,image/webp"
                     onChange={handleImageChange}
-                    className="mt-1"
+                    className="hidden"
+                    tabIndex={-1}
                   />
+                  <Button type="button" variant="outline" className="mt-1 w-full min-w-0 h-auto min-h-10 whitespace-normal px-2 py-2" aria-label="Seleccionar archivos de imagen" onClick={()=>imagePicker.current?.click()}>Seleccionar archivos</Button>
                 </div>
 
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <Label htmlFor="video">
                     <div className="flex items-center gap-2 cursor-pointer">
                       <Video className="h-4 w-4" />
@@ -897,11 +902,14 @@ export default function TaskDetailWithActions() {
                   </Label>
                   <Input
                     id="video"
+                    ref={videoPicker}
                     type="file"
                     accept="video/mp4,video/webm,video/quicktime"
                     onChange={handleVideoChange}
-                    className="mt-1"
+                    className="hidden"
+                    tabIndex={-1}
                   />
+                  <Button type="button" variant="outline" className="mt-1 w-full min-w-0 h-auto min-h-10 whitespace-normal px-2 py-2" aria-label="Seleccionar archivos de vídeo" onClick={()=>videoPicker.current?.click()}>Seleccionar archivos</Button>
                 </div>
               </div>
 
