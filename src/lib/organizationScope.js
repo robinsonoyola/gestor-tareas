@@ -27,6 +27,16 @@ export function setOrganizationScope(userId, value) {
 }
 export async function organizationFetch(input, init = {}) {
   const url = typeof input === 'string' ? input : input.url
+  if (/\/auth\/v1\//.test(url)) {
+    const controller = new AbortController()
+    const inherited = init.signal || (typeof input === 'object' ? input.signal : null)
+    const abort = () => controller.abort()
+    if (inherited?.aborted) abort()
+    inherited?.addEventListener('abort', abort, {once:true})
+    const timer = setTimeout(abort, 10000)
+    try { return await fetch(input, {...init, signal:controller.signal}) }
+    finally { clearTimeout(timer); inherited?.removeEventListener('abort', abort) }
+  }
   if (!/\/(rest|storage|functions)\/v1\//.test(url)) return fetch(input,init)
   const started = epoch
   const controller = new AbortController()
