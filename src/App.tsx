@@ -1,3 +1,4 @@
+import Reports from './pages/admin/Reports'
 import Incidents from './pages/Incidents'
 import WorkAreas from './pages/admin/WorkAreas'
 import {useOrganization} from './components/auth/OrganizationProvider'
@@ -43,7 +44,7 @@ function App() {
         {/* ============================= */}
         {/*      RUTAS PÚBLICAS          */}
         {/* ============================= */}
-        
+
         <Route path="/incidents" element={<ProtectedRoute><Incidents/></ProtectedRoute>}/>
         <Route path="/admin/team/areas" element={<ProtectedRoute requireAdmin><WorkAreas/></ProtectedRoute>}/>
         <Route path="/login" element={<Login />} />
@@ -53,6 +54,7 @@ function App() {
         <Route path="/admin/planning" element={<ProtectedRoute requirePermission="planning.view"><WorkdayManager key="planning" /></ProtectedRoute>} />
         <Route path="/admin/checkins" element={<ProtectedRoute requirePermission="checkins.view"><CheckinHistory /></ProtectedRoute>} />
         <Route path="/admin/checkins/points" element={<ProtectedRoute requireAdmin><WorkdayManager key="points" section="points" /></ProtectedRoute>} />
+        <Route path="/admin/reports" element={<ProtectedRoute requirePermission="reports.view"><Reports /></ProtectedRoute>} />
         <Route path="/admin/productivity" element={<ProtectedRoute requirePermission="reports.view"><Productivity /></ProtectedRoute>} />
         <Route path="/admin/team" element={<ProtectedRoute requireAdmin><EmployeeManager /></ProtectedRoute>} />
         <Route path="/admin/team/roles" element={<ProtectedRoute requireAdmin><RoleManager /></ProtectedRoute>} />
@@ -67,14 +69,14 @@ function App() {
         <Route path="/admin/roles" element={<LegacyRedirect to="/admin/team/roles" />} />
         <Route path="/admin/workday" element={<LegacyRedirect to="/admin/planning" />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        
+
         {/* Ruta de acceso con código único (pública) */}
         <Route path="/task-access/:accessCode" element={<TaskAccessLogin />} />
-        
+
         {/* ============================= */}
         {/*      RUTAS DE ADMIN          */}
         {/* ============================= */}
-        
+
         <Route path="/admin/employees" element={<LegacyRedirect to="/admin/team" />} />
         <Route path="/admin/qr-generator" element={<LegacyRedirect to="/admin/access/qr" />} />
         <Route path="/admin/gps-locations" element={<LegacyRedirect to="/admin/settings" />} />
@@ -84,44 +86,44 @@ function App() {
         {/* ============================= */}
         {/*     RUTAS DE EMPLEADO        */}
         {/* ============================= */}
-        
-        <Route 
-          path="/employee" 
+
+        <Route
+          path="/employee"
           element={
             <ProtectedRoute>
               <EmployeeWorkHome />
             </ProtectedRoute>
-          } 
+          }
         />
 
-        <Route 
-          path="/employee/settings" 
+        <Route
+          path="/employee/settings"
           element={
             <ProtectedRoute>
               <EmployeeSettings />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Ruta para trabajar en la tarea (protegida) */}
-        <Route 
-          path="/employee/task/:id/work" 
+        <Route
+          path="/employee/task/:id/work"
           element={
             <ProtectedRoute>
               <TaskDetailWithActions />
             </ProtectedRoute>
-          } 
+          }
         />
-        
+
         {/* ============================= */}
         {/*      RUTAS GENERALES         */}
         {/* ============================= */}
-        
+
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       </StationNavigation>
-      
+
       <Toaster />
     </BrowserRouter>
   )

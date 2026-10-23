@@ -1,0 +1,10 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+const source=fs.readFileSync(new URL('../../src/lib/reportPivot.js',import.meta.url),'utf8');const {pivotReport}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const rows=[{employee:'Ana',status:'Cerrado',minutes:10},{employee:'Ana',status:'En curso',minutes:20},{employee:'Pepe',status:'Cerrado',minutes:30},{employee:'Pepe',status:'En curso',minutes:40}];
+let p=pivotReport(rows,{rowField:'employee',columnField:'status'});assert.equal(p.rows.length,2);assert.equal(p.rows[0].total,2);assert.equal(p.total.total,4);assert.equal(p.total.col_0,2);
+p=pivotReport(rows,{rowField:'employee',columnField:'status',metric:'minutes'});assert.equal(p.total.total,100);assert.equal(p.rows[1].total,70);
+p=pivotReport([{employee:'Pepe',date:'2026-03-01',minutes:40,count:2},{employee:'Pepe',date:'2026-05-01',minutes:240,count:8}],{rowField:'employee',columnField:'date',metric:'average',weighted:true});assert.equal(p.rows[0].total,28);assert.equal(p.total.total,28);
+p=pivotReport([{employee:'__proto__',minutes:null},{employee:'__proto__',minutes:10}],{rowField:'employee',columnField:'',metric:'average'});assert.equal(p.columns.length,2);assert.equal(p.rows[0].total,10);
+assert(pivotReport(Array.from({length:101},(_,i)=>({employee:'Pepe',date:i})),{rowField:'employee',columnField:'date'}).error);
+assert.equal(pivotReport([],{rowField:'employee',columnField:'status'}).rows.length,0);
+console.log('PASS: counts, cross-tabs, sums, weighted averages, null handling, safe group labels, empty data and column limit');

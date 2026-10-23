@@ -32,6 +32,7 @@ export default function Sidebar({ onClose }) {
   }
 
   const isActive = (path) => {
+    if (path==='/admin/reports' && location.pathname==='/admin/productivity') return true
     const [pathname,query] = path.split('?')
     if (query) return location.pathname===pathname && new URLSearchParams(location.search).get('status')===new URLSearchParams(query).get('status')
     if (pathname==='/employee') return location.pathname===pathname && !['pending','in_progress','completed'].includes(new URLSearchParams(location.search).get('status'))
@@ -43,7 +44,7 @@ export default function Sidebar({ onClose }) {
     {icon:ListTodo,label:'Tareas',path:'/admin/tasks',permission:'tasks.view'},
     {icon:CalendarDays,label:'Planificación',path:'/admin/planning',permission:'planning.view'},
     {icon:Clock,label:'Fichajes',path:'/admin/checkins',permission:'checkins.view'},
-    {icon:BarChart3,label:'Productividad',path:'/admin/productivity',permission:'reports.view'},
+    {icon:BarChart3,label:'Informes y análisis',path:'/admin/reports',permission:'reports.view'},
     {icon:Clock,label:'Incidencias',path:'/incidents',permission:'incidents.view'},
     {icon:Users,label:'Equipo',path:'/admin/team'},
     {icon:Key,label:'Accesos y credenciales',path:'/admin/access'},
