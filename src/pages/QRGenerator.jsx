@@ -14,7 +14,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { QRCodeSVG } from 'qrcode.react'
-import { ArrowLeft, Download, Share2, Info, Calendar, Users } from 'lucide-react'
+import { Download, Share2, Info, Calendar, Users } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -56,7 +56,7 @@ export default function QRGenerator() {
 
   const getQRData = () => {
     if (!selectedTask) return ''
-    
+
     const baseURL = window.location.origin
     return JSON.stringify({
       task_id: selectedTask.id,
@@ -89,14 +89,7 @@ export default function QRGenerator() {
             <h1 className="text-3xl font-bold text-gray-900">📱 Generar Código QR</h1>
             <p className="text-gray-600 mt-1">Genera códigos QR para las tareas del hotel</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/admin')}
-            className="bg-gray-600 text-white hover:bg-gray-700 hover:text-white"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver al Panel
-          </Button>
+
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

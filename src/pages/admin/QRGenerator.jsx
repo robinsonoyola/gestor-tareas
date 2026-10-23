@@ -11,11 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { 
-  QrCode, 
-  Download, 
+import {
+  QrCode,
+  Download,
   Copy,
-  ArrowLeft,
   Calendar,
   Users,
   Info,
@@ -75,8 +74,8 @@ export default function QRGenerator() {
         return {
           ...task,
           assigned_users: assignedUsers,
-          assigned_names: assignedUsers.length > 0 
-            ? assignedUsers.map(u => u.full_name).join(', ') 
+          assigned_names: assignedUsers.length > 0
+            ? assignedUsers.map(u => u.full_name).join(', ')
             : 'Sin asignar'
         }
       })
@@ -109,30 +108,30 @@ export default function QRGenerator() {
       height: qrSize,
       data: employeeUrl, // ← Cambio importante: usar la URL directamente
       margin: 10,
-      qrOptions: { 
-        typeNumber: 0, 
-        mode: 'Byte', 
+      qrOptions: {
+        typeNumber: 0,
+        mode: 'Byte',
         errorCorrectionLevel: 'H' // ← Cambiado a 'H' para mayor tolerancia
       },
-      imageOptions: { 
-        hideBackgroundDots: true, 
-        imageSize: 0.4, 
-        margin: 0 
+      imageOptions: {
+        hideBackgroundDots: true,
+        imageSize: 0.4,
+        margin: 0
       },
       dotsOptions: {
         color: '#1e40af', // Azul más oscuro para mejor contraste
         type: 'rounded'
       },
-      backgroundOptions: { 
-        color: '#ffffff' 
+      backgroundOptions: {
+        color: '#ffffff'
       },
-      cornersSquareOptions: { 
-        color: '#1e40af', 
-        type: 'extra-rounded' 
+      cornersSquareOptions: {
+        color: '#1e40af',
+        type: 'extra-rounded'
       },
-      cornersDotOptions: { 
-        color: '#1e40af', 
-        type: 'dot' 
+      cornersDotOptions: {
+        color: '#1e40af',
+        type: 'dot'
       }
     })
 
@@ -150,12 +149,12 @@ export default function QRGenerator() {
 
   const downloadQRCode = () => {
     if (!qrCode || !selectedTask) return
-    
+
     // Nombre de archivo más limpio
     const fileName = `qr-${selectedTask.title.toLowerCase().replace(/\s+/g, '-')}`
-    qrCode.download({ 
-      name: fileName, 
-      extension: 'png' 
+    qrCode.download({
+      name: fileName,
+      extension: 'png'
     })
     toast.success('📥 Código QR descargado')
   }
@@ -187,10 +186,7 @@ export default function QRGenerator() {
             <h1 className="text-3xl font-bold text-gray-900">📱 Generar Código QR</h1>
             <p className="text-gray-600 mt-1">Genera códigos QR para las tareas del hotel</p>
           </div>
-          <Button variant="outline" onClick={() => navigate('/admin')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
+
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -235,7 +231,7 @@ export default function QRGenerator() {
                 <div className="space-y-3 border-t pt-4">
                   <h3 className="font-semibold text-gray-900">{selectedTask.title}</h3>
                   <p className="text-sm text-gray-600">{selectedTask.description || 'Sin descripción'}</p>
-                  
+
                   {selectedTask.schedule_date && (
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Calendar className="h-4 w-4" />
@@ -264,7 +260,7 @@ export default function QRGenerator() {
 
                   <div className="pt-2 space-y-3">
                     <label className="text-sm font-medium text-gray-900">URLs generadas:</label>
-                    
+
                     <div className="space-y-2">
                       <div className="bg-blue-50 p-3 rounded-lg">
                         <div className="flex items-center justify-between mb-2">

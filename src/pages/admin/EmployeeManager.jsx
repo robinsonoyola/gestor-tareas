@@ -24,11 +24,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  ArrowLeft,
+import {
+  Plus,
+  Edit,
+  Trash2,
   Users,
   Mail,
   Phone,
@@ -83,7 +82,7 @@ export default function EmployeeManager() {
   const [submitting, setSubmitting] = useState(false)
   const [sendingReset, setSendingReset] = useState(false)
   const [whatsappError, setWhatsappError] = useState('')
-  
+
   const [employeeForm, setEmployeeForm] = useState({
     full_name: '',
     email: '',
@@ -276,14 +275,7 @@ export default function EmployeeManager() {
             <p className="text-gray-900 mt-1">Administra tu equipo de trabajo</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/admin')}
-              className="text-gray-900"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver
-            </Button>
+
             <Button
               onClick={() => setIsCreateModalOpen(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white"

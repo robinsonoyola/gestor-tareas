@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, User, Mail, Lock, Info } from 'lucide-react'
+import { User, Mail, Lock, Info } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 export default function EmployeeSettings() {
@@ -125,14 +125,7 @@ export default function EmployeeSettings() {
             <h1 className="text-3xl font-bold text-gray-900">⚙️ Configuración</h1>
             <p className="text-gray-600 mt-1">Administra tu información personal y seguridad</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/employee')}
-            className="bg-gray-600 text-white hover:bg-gray-700 hover:text-white"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a Mis Tareas
-          </Button>
+
         </div>
 
         {/* Mi Información */}

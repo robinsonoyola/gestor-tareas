@@ -1,0 +1,9 @@
+{
+  "scope": "Actual provider and protected route, synthetic stalled session and network calls, no real account data",
+  "results": [
+    "stalled company request leaves spinner after deadline with retry",
+    "retry recovers and late expired response cannot replace current company",
+    "stalled permissions fail closed instead of exposing administrator form",
+    "initial authentication event restores session without waiting on stuck getSession"
+  ]
+}

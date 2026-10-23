@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, MapPin, Edit, Trash2, Info, AlertTriangle } from 'lucide-react'
+import { MapPin, Edit, Trash2, Info, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 export default function GPSLocations() {
@@ -186,14 +186,7 @@ export default function GPSLocations() {
               Configura las coordenadas GPS exactas donde deben realizarse las tareas
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/admin')}
-            className="bg-gray-600 text-white hover:bg-gray-700 hover:text-white"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver al Panel
-          </Button>
+
         </div>
 
         <Alert className="bg-blue-50 border-blue-200">

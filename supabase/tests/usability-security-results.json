@@ -97,6 +97,11 @@
       "actual": "PASS"
     },
     {
+      "test": "station migration leaves executor without schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
       "test": "employee cannot set a PIN",
       "expected": "PASS",
       "actual": "PASS"
@@ -323,6 +328,61 @@
     },
     {
       "test": "unknown automatic code fails without employee data",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee cannot choose a station key",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "anonymous caller cannot create a station",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "short station key rejected",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "control characters in station key rejected",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin station uses the exact chosen key",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "manual station remains within creator company",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "admin can recover custom station key",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other company cannot recover custom key",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "duplicate chosen station key rejected",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "empty station key preserves random generation",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "chosen station key works with automatic employee PIN",
       "expected": "PASS",
       "actual": "PASS"
     }

@@ -18,6 +18,8 @@ export default function ProtectedRoute({ children, requireAdmin = false, require
     )
   }
 
+  if(context?.error) return <OrganizationChoice />
+
   if (!user) {
     return <Navigate to="/login" replace />
   }

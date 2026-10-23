@@ -32,7 +32,10 @@ export default function Sidebar({ onClose }) {
   }
 
   const isActive = (path) => {
-    return location.pathname === path || (path !== '/admin' && location.pathname.startsWith(path+'/'))
+    const [pathname,query] = path.split('?')
+    if (query) return location.pathname===pathname && new URLSearchParams(location.search).get('status')===new URLSearchParams(query).get('status')
+    if (pathname==='/employee') return location.pathname===pathname && !['pending','in_progress','completed'].includes(new URLSearchParams(location.search).get('status'))
+    return location.pathname === pathname || (pathname !== '/admin' && location.pathname.startsWith(pathname+'/'))
   }
 
   const adminMenuItems = [
@@ -54,6 +57,9 @@ export default function Sidebar({ onClose }) {
       path: '/employee',
       badge: null
     },
+    {icon:ListTodo,label:'Pendientes',path:'/employee?status=pending',badge:null},
+    {icon:Clock,label:'En progreso',path:'/employee?status=in_progress',badge:null},
+    {icon:ListTodo,label:'Completadas',path:'/employee?status=completed',badge:null},
     {icon:Clock,label:'Incidencias',path:'/incidents',badge:null},
     {icon:Clock,label:'Mi historial',path:'/employee/history',badge:null},
     {

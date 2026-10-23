@@ -1,4 +1,4 @@
-import {createContext,useCallback,useContext,useEffect,useRef,useState,Fragment} from 'react'
+import {createContext,useCallback,useContext,useEffect,useRef,useState} from 'react'
 import {supabase} from '@/lib/supabase'
 import {savedOrganization,setOrganizationScope,setTenantMode} from '@/lib/organizationScope'
 
@@ -8,13 +8,23 @@ export default function OrganizationProvider({children}) {
   const [state,setState]=useState({mode:'checking',user:null,userData:null,organizations:[],activeOrganizationId:null,permissions:[],roleName:null,loading:true,error:''})
   const generation=useRef(0)
   const alive=useRef(true)
-  const refresh=useCallback(async (identityOverride) => {
+  const identity=useRef(null)
+  const refresh=useCallback(async (identityOverride=undefined) => {
     const request=++generation.current
+    let step='la sesión'
+    // A stalled browser token refresh or network call must not leave the route loading forever.
+    const deadline=setTimeout(()=>{
+      if(!alive.current || request!==generation.current)return
+      generation.current++
+      setState(previous=>({...previous,mode:'tenant',loading:false,userData:null,permissions:[],activeOrganizationId:null,
+        error:`No se pudo comprobar ${step} a tiempo. Comprueba la conexión y pulsa Volver a intentar.`}))
+    },15000)
     try {
-      const {data,error}=identityOverride ? {data:{session:{user:identityOverride}}} : await supabase.auth.getSession()
+      const {data,error}=identityOverride!==undefined ? {data:{session:{user:identityOverride}}} : await supabase.auth.getSession()
       if(error)throw error
       const user=data.session?.user || null
       if(!alive.current||request!==generation.current)return null
+      identity.current=user?.id || null
       setState(previous=>previous.user?.id===user?.id && previous.mode!=='checking' ? previous : {...previous,user,loading:true,error:'',permissions:[],userData:null})
       if(!user) {
         setOrganizationScope(null,null)
@@ -22,6 +32,7 @@ export default function OrganizationProvider({children}) {
         return null
       }
       setOrganizationScope(user.id,savedOrganization(user.id))
+      step='la empresa'
       let result=await supabase.rpc('mt_context')
       if(!alive.current||request!==generation.current)return null
       if(['PGRST202','42883'].includes(result.error?.code)) {
@@ -44,6 +55,7 @@ export default function OrganizationProvider({children}) {
       setTenantMode('tenant')
       let permissions={permissions:[],role:null}
       if(selected) {
+        step='los permisos'
         const response=await supabase.rpc('work_my_permissions')
         if(response.error)throw response.error
         permissions=response.data
@@ -58,7 +70,7 @@ export default function OrganizationProvider({children}) {
         setState(previous=>({...previous,mode:'tenant',loading:false,error:'No se pudo verificar la empresa y sus permisos. Vuelve a intentarlo.',userData:null,permissions:[],activeOrganizationId:null}))
       }
       throw error
-    }
+    } finally {clearTimeout(deadline)}
   },[])
   const selectOrganization=async id=>{
     const {data,error}=await supabase.auth.getSession()
@@ -77,14 +89,19 @@ export default function OrganizationProvider({children}) {
     const run=()=>refresh().catch(()=>{})
     run()
     const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
-      if(event==='TOKEN_REFRESHED' || event==='INITIAL_SESSION'){setTimeout(run,0);return}
+      const nextUser=session?.user || null
+      // SIGNED_IN also occurs when returning to a tab with an existing session.
+      // Recheck permissions in the background without unmounting unsaved forms.
+      if(event!=='SIGNED_OUT' && nextUser?.id && nextUser.id===identity.current){
+        setTimeout(()=>refresh(nextUser).catch(()=>{}),0)
+        return
+      }
       generation.current++
-      // Establish the authenticated identity before signInWithPassword resolves.
-      // A concurrent profile/context request must share this scope, not be aborted by its setup.
-      const nextUser=session?.user
+      identity.current=nextUser?.id || null
+      // A real account change/sign-out still clears all user and tenant context.
       setOrganizationScope(nextUser?.id || null,nextUser ? savedOrganization(nextUser.id) : null)
-      setState(previous=>({...previous,loading:true,userData:null,permissions:[],activeOrganizationId:null}))
-      setTimeout(run,0)
+      setState({mode:'checking',user:nextUser,userData:null,organizations:[],activeOrganizationId:null,permissions:[],roleName:null,loading:true,error:''})
+      setTimeout(()=>refresh(nextUser).catch(()=>{}),0)
     })
     const timer=setInterval(run,30000)
     window.addEventListener('focus',run)

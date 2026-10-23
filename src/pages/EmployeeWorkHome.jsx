@@ -1,7 +1,7 @@
 import WorkSearch from '@/components/WorkSearch'
 import {usabilityReady} from '@/lib/workFeatures'
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import Layout from '@/components/layout/Layout'
 import EmployeeDashboard from './EmployeeDashboard'
@@ -14,7 +14,10 @@ import { getWorkMode, workRpc, elapsedSince } from '@/lib/workflow'
 export default function EmployeeWorkHome() {
   const { userData } = useAuth()
   const navigate = useNavigate()
-  const [filter,setFilter] = useState('all')
+  const [searchParams,setSearchParams] = useSearchParams()
+  const requestedFilter=searchParams.get('status') || 'all'
+  const filter=requestedFilter==='in_progress'?'active':requestedFilter
+  const setFilter=value=>setSearchParams(value==='all'?{}:{status:value==='active'?'in_progress':value})
   const [mode, setMode] = useState(null)
   const [day, setDay] = useState(null)
   const [error, setError] = useState('')

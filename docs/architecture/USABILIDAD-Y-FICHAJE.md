@@ -70,3 +70,7 @@ No se ha ejecutado ese instalador remoto ni creado un commit o publicado cambios
 
 ## Identificación sin selector de método
 El punto mantiene el lector NFC y un campo de código. Un PIN de cinco dígitos identifica automáticamente al empleado, sin seleccionar nombre ni método. La migración 20261022000400 añade búsqueda acotada a la empresa y conserva el límite de intentos del punto. Los nuevos PIN activos no pueden duplicar otro PIN activo en la empresa. Ante PIN históricos duplicados, la identificación automática se rechaza sin escoger una identidad. Los códigos siguen cifrados mediante hash bcrypt; la búsqueda verifica esos hashes. La lectura NFC y la introducción del PIN nunca confirman por sí mismas un inicio o cierre. Ejecutar deployment/activar-codigo-automatico.sql en pruebas antes de usar la nueva pantalla.
+
+
+## Clave manual al crear un punto (23 de octubre)
+En Puntos de fichaje se puede escribir una clave propia de 8 a 128 caracteres o dejar el campo vacío para generación automática. Solo administración puede crear puntos. La clave configura el dispositivo y es independiente del PIN de empleados y de las tarjetas NFC. Las claves repetidas se rechazan sin revelar el punto ni la empresa que las utiliza. Los puntos existentes mantienen sus claves. Para activar esta ampliación en la base ya instalada de pruebas, ejecutar deployment/activar-clave-manual-punto.sql, sin repetir el instalador completo. Pendiente prueba manual alojada.

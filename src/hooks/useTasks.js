@@ -13,12 +13,13 @@ export function useTasks(userId = null) {
   const fetchTasks = async () => {
     try {
       setLoading(true)
-      
+      setError(null)
+
       let query = supabase
         .from('tasks')
         .select(`
           *,
-          task_assignments!inner (
+          task_assignments!task_assignments_task_id_fkey!inner (
             user_id,
             users (
               id,
@@ -38,10 +39,10 @@ export function useTasks(userId = null) {
       if (error) throw error
 
       const tasksMap = new Map()
-      
+
       data.forEach(item => {
         const taskId = item.id
-        
+
         if (!tasksMap.has(taskId)) {
           tasksMap.set(taskId, {
             ...item,
@@ -50,15 +51,15 @@ export function useTasks(userId = null) {
             assigned_names: ''
           })
         }
-        
+
         const task = tasksMap.get(taskId)
-        
-        if (item.task_assignments && item.task_assignments.users) {
-          task.task_assignments.push(item.task_assignments)
-          task.assigned_users.push(item.task_assignments.users)
+
+        for (const assignment of item.task_assignments || []) {
+          task.task_assignments.push(assignment)
+          if (assignment.users) task.assigned_users.push(assignment.users)
         }
       })
-      
+
       const formattedTasks = Array.from(tasksMap.values()).map(task => ({
         ...task,
         assigned_names: task.assigned_users
@@ -79,9 +80,9 @@ export function useTasks(userId = null) {
   const createTask = async (taskData) => {
     try {
       console.log('📝 Datos recibidos para crear tarea:', taskData)
-      
+
       const { assigned_users, ...taskFields } = taskData
-      
+
       console.log('📋 Campos de tarea:', taskFields)
       console.log('👥 Usuarios a asignar:', assigned_users)
 
@@ -100,7 +101,7 @@ export function useTasks(userId = null) {
 
       if (assigned_users && assigned_users.length > 0) {
         console.log('👥 Asignando empleados...')
-        
+
         const assignments = assigned_users.map(userId => ({
           task_id: newTask.id,
           user_id: userId

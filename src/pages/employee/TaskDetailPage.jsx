@@ -19,7 +19,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  ArrowLeft,
   Calendar,
   Users,
   Clock,
@@ -292,9 +291,7 @@ export default function TaskDetailPage() {
               <strong>Error:</strong> No se encontró la tarea. Verifica el ID en la URL.
             </AlertDescription>
           </Alert>
-          <Button onClick={() => navigate('/employee')} className="mt-4">
-            Volver a Mis Tareas
-          </Button>
+
         </div>
       </Layout>
     )
@@ -312,14 +309,7 @@ export default function TaskDetailPage() {
             </div>
             <p className="text-gray-600 mt-1">{task.title}</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/employee')}
-            className="bg-gray-600 text-white hover:bg-gray-700 hover:text-white"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a Mis Tareas
-          </Button>
+
         </div>
 
         {/* Información de la Tarea */}

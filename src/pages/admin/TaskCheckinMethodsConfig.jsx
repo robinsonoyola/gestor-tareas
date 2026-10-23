@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Settings, Save, NfcIcon, QrCode, Hand, ArrowLeft, Search } from 'lucide-react'
+import { Settings, Save, NfcIcon, QrCode, Hand, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 export default function TaskCheckinMethodsConfig() {
@@ -150,13 +150,7 @@ export default function TaskCheckinMethodsConfig() {
         {/* Header con navegación */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate('/admin')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                 <Settings className="h-8 w-8 text-purple-600" />

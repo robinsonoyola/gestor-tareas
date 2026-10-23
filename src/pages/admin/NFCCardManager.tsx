@@ -1,3 +1,4 @@
+import {normalizeTaskCardUid} from '@/lib/taskCardNfc'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Layout from '@/components/layout/Layout'
@@ -10,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
-import { CreditCard, Plus, Power, PowerOff, Trash2, Edit, Search, ArrowLeft } from 'lucide-react'
+import { CreditCard, Plus, Power, PowerOff, Trash2, Edit, Search} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 interface NFCCard {
@@ -37,6 +38,7 @@ export default function NFCCardManager() {
   const [cards, setCards] = useState<NFCCard[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -57,29 +59,22 @@ export default function NFCCardManager() {
     try {
       setLoading(true)
 
-      const { data: cardsData, error: cardsError } = await supabase
-        .from('nfc_cards')
-        .select(`
-          *,
-          task:tasks(title)
-        `)
-        .order('created_at', { ascending: false })
-
-      if (cardsError) throw cardsError
-
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('id, title')
-        .order('title')
-
-      if (tasksError) throw tasksError
-
-      setCards(cardsData || [])
-      setTasks(tasksData || [])
-
-    } catch (error) {
-      console.error('Error:', error)
-      toast.error('Error al cargar datos')
+      setLoadError('')
+      // Both tables have legacy and tenant foreign keys. Avoid ambiguous embeds.
+      const [cardResponse,taskResponse] = await Promise.all([
+        supabase.from('nfc_cards').select('*').order('created_at', {ascending:false}),
+        supabase.from('tasks').select('id, title').order('title')
+      ])
+      if (cardResponse.error) throw cardResponse.error
+      if (taskResponse.error) throw taskResponse.error
+      const tasksData = taskResponse.data || []
+      const taskNames = new Map(tasksData.map(task => [task.id,task]))
+      setCards((cardResponse.data || []).map(card => ({...card,task:taskNames.get(card.task_id) || null})))
+      setTasks(tasksData)
+    } catch (error: any) {
+      console.error('Error al cargar tarjetas NFC:', error?.code || 'unknown')
+      setLoadError(error?.message || 'No se pudieron cargar las tarjetas y tareas. Vuelve a intentarlo.')
+      toast.error('No se pudieron cargar las tarjetas NFC')
     } finally {
       setLoading(false)
     }
@@ -95,11 +90,11 @@ export default function NFCCardManager() {
       const { error } = await supabase
         .from('nfc_cards')
         .insert({
-          card_uid: formData.card_uid.trim(),
+          card_uid: normalizeTaskCardUid(formData.card_uid),
           card_name: formData.card_name.trim() || null,
-          task_id: formData.task_id === 'none' ? null : formData.task_id,
+          task_id: !formData.task_id || formData.task_id === 'none' ? null : formData.task_id,
           notes: formData.notes.trim() || null,
-          assigned_at: formData.task_id ? new Date().toISOString() : null
+          assigned_at: formData.task_id && formData.task_id !== 'none' ? new Date().toISOString() : null
         })
 
       if (error) throw error
@@ -114,7 +109,7 @@ export default function NFCCardManager() {
       if (error.code === '23505') {
         toast.error('Esta tarjeta NFC ya está registrada')
       } else {
-        toast.error('Error al crear tarjeta')
+        toast.error(error.message?.startsWith('El UID') ? error.message : 'Error al crear tarjeta')
       }
     }
   }
@@ -129,7 +124,7 @@ export default function NFCCardManager() {
           card_name: formData.card_name.trim() || null,
           task_id: formData.task_id === 'none' ? null : formData.task_id || null,
           notes: formData.notes.trim() || null,
-          assigned_at: formData.task_id ? new Date().toISOString() : null
+          assigned_at: formData.task_id && formData.task_id !== 'none' ? new Date().toISOString() : null
         })
         .eq('id', selectedCard.id)
 
@@ -224,19 +219,15 @@ export default function NFCCardManager() {
     )
   }
 
+  if (loadError) return <Layout><div className="max-w-7xl mx-auto space-y-4"><h1 className="text-3xl font-bold text-gray-900">Tarjetas NFC</h1><Card><CardContent className="pt-6 space-y-4"><p role="alert" className="text-red-700">No se pudieron cargar las tarjetas y tareas: {loadError}</p><p className="text-sm text-gray-600">La lista no está disponible. Esto no significa que no haya tarjetas registradas.</p><Button variant="outline" onClick={fetchData}>Volver a intentar</Button></CardContent></Card></div></Layout>
+
   return (
     <Layout>
       <div className="space-y-6 max-w-7xl mx-auto">
         {/* Header con navegación */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate('/admin')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                 <CreditCard className="h-8 w-8 text-blue-600" />
@@ -272,7 +263,7 @@ export default function NFCCardManager() {
                     onChange={(e) => setFormData({ ...formData, card_uid: e.target.value })}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    El identificador único de la tarjeta NFC
+                    Número de serie físico mostrado por NFC Tools. Se admite con o sin dos puntos; registrarla aquí no cambia el contenido de la tarjeta.
                   </p>
                 </div>
 

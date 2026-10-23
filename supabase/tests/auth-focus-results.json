@@ -1,0 +1,12 @@
+{
+  "scope": "Actual provider and protected card form in Chromium with synthetic authentication, no real sessions",
+  "results": [
+    "same-user focus/SIGNED_IN preserves the real card dialog and all typed fields",
+    "token refresh and same-account profile updates preserve drafts",
+    "30 second permissions refresh preserves the open form",
+    "real organization change clears the previous company draft",
+    "sign-out removes the protected form immediately",
+    "account change never inherits the previous account draft",
+    "revoked administrator permission still closes the protected screen"
+  ]
+}

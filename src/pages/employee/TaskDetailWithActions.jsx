@@ -1,6 +1,7 @@
+import TaskNfcControl from '@/components/TaskNfcControl'
 import IncidentReporter from '@/components/IncidentReporter'
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import Layout from '@/components/layout/Layout'
 import { Button } from '@/components/ui/button'
@@ -18,10 +19,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { 
-  Clock, 
-  MapPin, 
-  Users, 
+import {
+  Clock,
+  MapPin,
+  Users,
   Calendar,
   CheckCircle,
   Info,
@@ -29,8 +30,6 @@ import {
   Image as ImageIcon,
   Video,
   X,
-  NfcIcon,
-  ArrowLeft,
   Activity,
   Timer,
   Play,
@@ -45,8 +44,10 @@ import { signedTaskAttachment, taskAttachmentExtension, taskAttachmentId } from 
 export default function TaskDetailWithActions() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const historyOnly = searchParams.get('view')==='history'
   const { userData } = useAuth()
-  
+
   const [task, setTask] = useState(null)
   const [accessDenied, setAccessDenied] = useState(false)
   const [tabletMode, setTabletMode] = useState(false)
@@ -55,18 +56,50 @@ export default function TaskDetailWithActions() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [activeCheckin, setActiveCheckin] = useState(null)
+  const [incidentBlocked,setIncidentBlocked] = useState(false)
+  const incidentReporter = useRef(null)
+  const incidentSection = useRef(null)
+  const openIncident = () => {
+    if (!canAct) return
+    incidentReporter.current?.open()
+    requestAnimationFrame(()=>incidentSection.current?.scrollIntoView({behavior:'smooth',block:'start'}))
+  }
   const [endingCheckin, setEndingCheckin] = useState(false)
+  const [finishedNotice, setFinishedNotice] = useState(false)
   const [activeCheckinStatus, setActiveCheckinStatus] = useState('loading')
   const [fichajeTime, setFichajeTime] = useState(null)
-  
-  const [nfcSupported, setNfcSupported] = useState(false)
-  const [isReadingNFC, setIsReadingNFC] = useState(false)
+  const [queueItem,setQueueItem] = useState(null)
+  const [queueReady,setQueueReady] = useState(false)
+  const [nextTaskId,setNextTaskId] = useState(null)
+  const [queueError,setQueueError] = useState('')
+  const loadQueue = async () => {
+    const {data,error} = await supabase.rpc('work_mobile_queue')
+    if(error){setQueueReady(false);setQueueError(['PGRST202','42883'].includes(error.code)?'Falta activar la actualización del orden de tareas en Supabase.':`No se pudo verificar el orden (${error.code || 'conexión'}): ${error.message || 'Sin respuesta'}`);return}
+    setQueueItem(data?.items?.find(item=>item.task_id===id)||null);setNextTaskId(data?.next_task||null);setQueueReady(true)
+  }
+  useEffect(()=>{setQueueItem(null);setQueueReady(false);if(userData?.id)loadQueue()},[id,userData?.id])
+  const returnToTasks = () => navigate('/employee',{replace:true})
+
+  const canStart = !incidentBlocked && !historyOnly && queueReady && nextTaskId===id && queueItem?.task_id===id && queueItem?.can_start===true
+  const canAct = !incidentBlocked && !historyOnly && Boolean(userData?.is_admin || (activeCheckin?.task_id===id && activeCheckinStatus === 'ready' && activeCheckin && !activeCheckin.checkout_time))
+
+  const handleIncidentReported = ({blocked}) => {
+    if (!blocked) return
+    setIncidentBlocked(true)
+    setActiveCheckin(null)
+    setActiveCheckinStatus('ready')
+    setFichajeTime(null)
+    toast.success('Fichaje detenido. Tarea bloqueada por incidencia, sin completarla.')
+    navigate('/employee',{replace:true})
+  }
+
+
   const [checkinConfig, setCheckinConfig] = useState({
     nfc_enabled: false,
     qr_enabled: true,
     manual_enabled: true
   })
-  
+
   const [commentForm, setCommentForm] = useState({
     comment: '',
     imageFile: null,
@@ -80,6 +113,8 @@ export default function TaskDetailWithActions() {
   useEffect(() => {
     let cancelled = false
     setLoading(true)
+    setFinishedNotice(false)
+    setIncidentBlocked(false)
     setTask(null)
     setAccessDenied(false)
     setCheckins([])
@@ -101,10 +136,6 @@ export default function TaskDetailWithActions() {
   }, [id, userData?.id, userData?.is_admin])
 
   useEffect(() => {
-    setNfcSupported('NDEFReader' in window)
-  }, [])
-
-  useEffect(() => {
     if (!tabletMode || !id || !userData?.id) return
     let current = true
     const refresh = async () => {
@@ -119,21 +150,21 @@ export default function TaskDetailWithActions() {
 
   useEffect(() => {
     let interval
-    if (activeCheckin) {
+    if (activeCheckin && !incidentBlocked) {
       interval = setInterval(() => {
         const start = new Date(activeCheckin.checkin_time)
         const now = new Date()
         const diff = Math.floor((now - start) / 1000)
-        
+
         const hours = Math.floor(diff / 3600)
         const minutes = Math.floor((diff % 3600) / 60)
         const seconds = diff % 60
-        
+
         setFichajeTime(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`)
       }, 1000)
     }
     return () => clearInterval(interval)
-  }, [activeCheckin])
+  }, [activeCheckin,incidentBlocked])
 
   const fetchTaskDetails = async (isCurrent = () => true) => {
     try {
@@ -158,7 +189,8 @@ export default function TaskDetailWithActions() {
           .maybeSingle()
         if (!isCurrent()) return false
         if (assignmentError) throw assignmentError
-        if (!assignment) {
+        const {data: resolver, error: resolverError} = assignment ? {data:false,error:null} : await supabase.rpc('work_incident_resolver',{p_task:id})
+        if (!assignment && (resolverError || !resolver)) {
           setAccessDenied(true)
           setTask(null)
           return false
@@ -168,7 +200,7 @@ export default function TaskDetailWithActions() {
         .from('tasks')
         .select(`
           *,
-          task_assignments (
+          task_assignments!task_assignments_task_id_fkey (
             user_id,
             users (
               id,
@@ -351,69 +383,8 @@ export default function TaskDetailWithActions() {
     return R * c
   }
 
-  const handleNFCCheckin = async () => {
-    if (tabletMode) { toast.info('Confirma esta acción en la tablet'); return }
-    if (!nfcSupported) {
-      toast.error('Tu dispositivo no soporta NFC')
-      return
-    }
-
-    try {
-      setIsReadingNFC(true)
-      toast.info('🏷️ Acerca la tarjeta NFC al móvil...')
-
-      const ndef = new NDEFReader()
-      await ndef.scan()
-
-      ndef.addEventListener('reading', async ({ serialNumber }) => {
-        try {
-          const { data, error } = await supabase.rpc('validate_nfc_checkin', {
-            p_card_uid: serialNumber,
-            p_task_id: id,
-            p_user_id: userData.id
-          })
-
-          if (error) throw error
-
-          if (data.success) {
-            toast.success(data.message)
-            
-            if (data.type === 'checkin') {
-              checkActiveCheckin()
-            } else {
-              setActiveCheckin(null)
-              setFichajeTime(null)
-            }
-            
-            fetchCheckins()
-            fetchTaskDetails()
-          } else {
-            toast.error(data.message)
-          }
-
-        } catch (error) {
-          console.error('Error procesando NFC:', error)
-          toast.error('Error al procesar fichaje NFC')
-        } finally {
-          setIsReadingNFC(false)
-        }
-      }, { once: true })
-
-    } catch (error) {
-      console.error('Error NFC:', error)
-      setIsReadingNFC(false)
-      
-      if (error.name === 'NotAllowedError') {
-        toast.error('Permiso NFC denegado. Activa NFC en la configuración del móvil.')
-      } else if (error.name === 'NotSupportedError') {
-        toast.error('NFC no soportado en este navegador. Usa Chrome en Android.')
-      } else {
-        toast.error('Error al leer NFC: ' + error.message)
-      }
-    }
-  }
-
   const handleStartCheckin = async () => {
+    if (!canStart) { toast.info('Esta tarea está disponible solo para consulta'); return }
     if (tabletMode) { toast.info('Confirma esta acción en la tablet'); return }
     if (!task || !userData?.id || activeCheckin) return
     const hasCoordinate = (value) => value !== null && value !== undefined && String(value).trim() !== ''
@@ -492,8 +463,9 @@ export default function TaskDetailWithActions() {
       }
       setActiveCheckin(null)
       setFichajeTime(null)
+      setFinishedNotice(true)
       toast.success('Fichaje finalizado y guardado')
-      await fetchCheckins()
+      returnToTasks()
     } catch (error) {
       console.error('Error al finalizar fichaje:', error?.code || 'unknown')
       toast.error('No se confirmó el cierre. El fichaje sigue pendiente; puedes reintentar sin duplicarlo.')
@@ -551,6 +523,7 @@ export default function TaskDetailWithActions() {
   const handleAddComment = async (e) => {
     e.preventDefault()
 
+    if (!canAct) { toast.error('Debes fichar en esta tarea antes de añadir comentarios o archivos.'); return }
     if (!commentForm.comment.trim()) {
       toast.error('Escribe un comentario para acompañar los archivos.')
       return
@@ -592,12 +565,12 @@ export default function TaskDetailWithActions() {
 
       setUploadProgress(100)
       toast.success('✅ Comentario agregado')
-      
+
       setCommentForm({ comment: '', imageFile: null, videoFile: null })
       setImagePreview(null)
       setVideoPreview(null)
       setUploadProgress(0)
-      
+
       fetchComments()
     } catch (error) {
       console.error('Error adding comment:', error?.code || 'unknown')
@@ -609,20 +582,21 @@ export default function TaskDetailWithActions() {
 
   const getStatusBadge = (status) => {
     const variants = {
-      pending: { 
-        bg: 'bg-amber-100', 
+      pending: {
+        bg: 'bg-amber-100',
         text: 'text-amber-800',
         border: 'border-amber-200',
         label: 'Pendiente'
       },
-      in_progress: { 
-        bg: 'bg-blue-100', 
+      in_progress: {
+        bg: 'bg-blue-100',
         text: 'text-blue-800',
         border: 'border-blue-200',
         label: 'En Progreso'
       },
-      completed: { 
-        bg: 'bg-green-100', 
+      blocked: {bg:'bg-amber-100',text:'text-amber-800',border:'border-amber-200',label:'Bloqueada por incidencia'},
+      completed: {
+        bg: 'bg-green-100',
         text: 'text-green-800',
         border: 'border-green-200',
         label: 'Completada'
@@ -639,7 +613,7 @@ export default function TaskDetailWithActions() {
       custom_date: { icon: '📅', label: 'Fecha Específica', bg: 'bg-pink-100', text: 'text-pink-800', border: 'border-pink-200' }
     }
     const config = types[type] || types.custom_date
-    
+
     return (
       <Badge variant="outline" className={`${config.bg} ${config.text} ${config.border} border text-xs font-medium`}>
         {config.icon} {config.label}
@@ -670,15 +644,13 @@ export default function TaskDetailWithActions() {
               {accessDenied ? (tabletMode ? 'Solo puedes abrir la tarea que tienes en curso. Comienza tu siguiente tarea en la tablet.' : 'No tienes asignada esta tarea o ya no está disponible.') : 'No se pudo cargar la tarea. Inténtalo de nuevo.'}
             </AlertDescription>
           </Alert>
-          <Button onClick={() => navigate('/employee')} className="mt-4">
-            Volver a Mis Tareas
-          </Button>
+
         </div>
       </Layout>
     )
   }
 
-  const statusBadge = getStatusBadge(task.status)
+  const statusBadge = getStatusBadge(incidentBlocked || queueItem?.state==='blocked' ? 'blocked' : task.status)
 
   return (
     <Layout>
@@ -686,21 +658,15 @@ export default function TaskDetailWithActions() {
         {/* Header con navegación */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap min-w-0 items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate('/employee')}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+
             <div>
               <h1 className="text-3xl font-bold text-gray-900">{task.title}</h1>
               <p className="text-gray-600 mt-1">{task.description || 'Sin descripción'}</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className={`${statusBadge.bg} ${statusBadge.text} ${statusBadge.border} border font-medium`}
             >
               {statusBadge.label}
@@ -761,7 +727,7 @@ export default function TaskDetailWithActions() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {tabletMode ? <div className="space-y-4">
+            {incidentBlocked ? <p role="status" className="text-gray-600">Fichaje detenido. La tarea está bloqueada por incidencia y no está completada.</p> : historyOnly ? <p className="text-gray-600">Solo consulta. Aquí puedes ver el historial y los comentarios; no se pueden realizar acciones.</p> : tabletMode ? <div className="space-y-4">
               <p className="text-gray-600">El inicio y la finalización se confirman únicamente en la tablet. Desde aquí puedes consultar la tarea y añadir fotos y comentarios.</p>
               {activeCheckin && <div className="rounded-lg border border-blue-200 bg-blue-50 p-4"><p className="text-blue-800 font-medium">Tu fichaje sigue activo</p><p className="font-mono text-3xl text-blue-700 mt-2">{fichajeTime || '00:00:00'}</p></div>}
             </div> : <>
@@ -778,16 +744,8 @@ export default function TaskDetailWithActions() {
                   </AlertDescription>
                 </Alert>
 
-                {activeCheckin.checkin_method === 'nfc' && checkinConfig.nfc_enabled && nfcSupported ? (
-                  <Button
-                    onClick={handleNFCCheckin}
-                    disabled={isReadingNFC}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    size="lg"
-                  >
-                    <NfcIcon className="mr-2 h-5 w-5" />
-                    {isReadingNFC ? 'Leyendo NFC...' : 'Finalizar con NFC'}
-                  </Button>
+                {activeCheckin.checkin_method === 'nfc' && checkinConfig.nfc_enabled ? (
+                  <TaskNfcControl onFinished={returnToTasks} taskId={id} userId={userData?.id} activeCheckin={activeCheckin} checkinStatus={activeCheckinStatus} onChanged={async()=>{await checkActiveCheckin();await fetchCheckins()}} />
                 ) : (
                   <Button
                     onClick={handleEndCheckin}
@@ -802,16 +760,9 @@ export default function TaskDetailWithActions() {
               </div>
             ) : (
               <div className="space-y-4">
-                {checkinConfig.nfc_enabled && nfcSupported && (
-                  <Button
-                    onClick={handleNFCCheckin}
-                    disabled={isReadingNFC}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    size="lg"
-                  >
-                    <NfcIcon className="mr-2 h-5 w-5" />
-                    {isReadingNFC ? 'Leyendo NFC...' : 'Fichar con NFC'}
-                  </Button>
+                {!queueReady ? <p role="status">{queueError || 'Comprobando el orden de tareas…'} <button className="underline" onClick={loadQueue}>Reintentar</button></p> : !canStart && <p className="text-gray-600">{queueItem?.state==='completed'?'Tarea finalizada. Solo puedes consultar el historial y los comentarios.':'Solo consulta. El NFC se habilita cuando sea tu siguiente tarea según el orden del encargado.'}</p>}
+                {checkinConfig.nfc_enabled && canStart && (
+                  <TaskNfcControl onFinished={returnToTasks} taskId={id} userId={userData?.id} activeCheckin={activeCheckin} checkinStatus={activeCheckinStatus} onChanged={async()=>{await checkActiveCheckin();await fetchCheckins()}} />
                 )}
 
                 {activeCheckinStatus !== 'ready' && (
@@ -821,7 +772,7 @@ export default function TaskDetailWithActions() {
                       : 'No se pudo comprobar el fichaje. Recarga antes de iniciar otro.'}
                   </p>
                 )}
-                {checkinConfig.manual_enabled && (
+                {checkinConfig.manual_enabled && canStart && (
                   <Button
                     onClick={handleStartCheckin}
                     disabled={activeCheckinStatus !== 'ready'}
@@ -873,7 +824,7 @@ export default function TaskDetailWithActions() {
                           {format(new Date(checkin.checkin_time), "dd/MM/yyyy HH:mm", { locale: es })}
                         </TableCell>
                         <TableCell>
-                          {checkin.checkout_time ? 
+                          {checkin.checkout_time ?
                             format(new Date(checkin.checkout_time), "dd/MM/yyyy HH:mm", { locale: es }) :
                             <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200 border">
                               En curso
@@ -901,14 +852,14 @@ export default function TaskDetailWithActions() {
           </CardContent>
         </Card>
 
-        <IncidentReporter taskId={id}/>
+        {finishedNotice && <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"><section role="dialog" aria-modal="true" aria-label="Actividad finalizada" className="bg-white rounded-lg p-6 space-y-4 w-full max-w-md text-center"><CheckCircle className="h-12 w-12 text-blue-600 mx-auto"/><p className="font-semibold">Fichaje finalizado y guardado</p><Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={returnToTasks}>Salir</Button></section></div>}
         {/* Comentarios */}
         <Card className="border-2 shadow-sm">
           <CardHeader>
             <CardTitle>Comentarios y Archivos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <form onSubmit={handleAddComment} className="space-y-4">
+            {canAct ? <form onSubmit={handleAddComment} className="space-y-4">
               <div>
                 <Label htmlFor="comment">Agregar comentario</Label>
                 <Textarea
@@ -997,7 +948,7 @@ export default function TaskDetailWithActions() {
                 <Upload className="mr-2 h-4 w-4" />
                 {submitting ? 'Subiendo...' : 'Agregar Comentario'}
               </Button>
-            </form>
+            </form> : <p className="text-sm text-gray-600">Ficha en esta tarea para añadir comentarios, archivos o reportar incidencias. Puedes consultar el historial.</p>}
 
             <div className="space-y-4">
               {comments.map((comment) => (
@@ -1034,6 +985,8 @@ export default function TaskDetailWithActions() {
             </div>
           </CardContent>
         </Card>
+        {canAct && <Button type="button" variant="outline" className="w-full min-h-12" onClick={openIncident}>Reportar incidencia</Button>}
+        {(canAct || incidentBlocked) && <div ref={incidentSection}><IncidentReporter ref={incidentReporter} taskId={id} hideTrigger onReported={handleIncidentReported}/></div>}
       </div>
     </Layout>
   )

@@ -9,8 +9,14 @@
     "XLSX formula rejected before import",
     "active task first; pending filter hides active task",
     "review day scrolls and focuses loaded planning detail",
+    "task NFC read and cancellation never write a checkin",
+    "task NFC start requires explicit confirmation and refreshes the control",
+    "task NFC close uses the expected checkin and explicit confirmation",
+    "task NFC cancellation aborts the reader",
+    "manual station key validates length, uses chosen key and clears input after creation",
+    "blank station key retains existing automatic creation",
     "incident explicitly distinguishes stop from completion",
     "admin closure requires reason and explicit confirmation",
-    "no document horizontal overflow in 24 viewport/screen combinations"
+    "no document horizontal overflow in 32 viewport/screen combinations"
   ]
 }

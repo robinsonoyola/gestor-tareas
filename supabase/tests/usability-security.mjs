@@ -33,6 +33,12 @@ await db.exec(fs.readFileSync(root+migration,'utf8'));
 await db.exec('REVOKE USAGE ON SCHEMA auth FROM ase_tenant_executor;');
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261022000300_hosted_auth_identity.sql','utf8'));
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261022000400_station_auto_code.sql','utf8'));
+// Hosted postgres is not superuser: exercise ALTER OWNER with the same restriction.
+await db.exec('CREATE ROLE station_migration_installer NOLOGIN NOSUPERUSER; GRANT ase_tenant_executor TO station_migration_installer; ALTER SCHEMA public OWNER TO station_migration_installer; SET ROLE station_migration_installer;');
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261023000100_manual_station_key.sql','utf8'));
+await db.exec('RESET ROLE; ALTER SCHEMA public OWNER TO postgres;');
+ok('station migration leaves executor without schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+
 
 const s=(await request(ADMIN,OA,`SELECT public.work_create_credential('station','Tablet A',NULL) v`))[0].v;
 await request(ADMIN,OA,`SELECT public.work_set_mode(true)`);
@@ -106,6 +112,21 @@ await denied('same company cannot assign an existing personal code',ADMIN,OA,`SE
 const badBefore=(await db.query(`SELECT attempts FROM public.work_pin_attempts WHERE station_id='${s.id}'`)).rows[0]?.attempts;
 const badAuto=(await request(null,null,`SELECT public.work_station_identify_v2('${s.token}','99999','pin',NULL) v`,'anon'))[0].v;
 ok('unknown automatic code fails without employee data',Boolean(badAuto.error)&&!badAuto.employee&&!badAuto.ticket);
+await denied('employee cannot choose a station key',A,OA,`SELECT public.work_create_station('Forbidden','Custom-Station-456')`);
+await denied('anonymous caller cannot create a station',null,null,`SELECT public.work_create_station('Forbidden','Custom-Station-456')`,'anon');
+await denied('short station key rejected',ADMIN,OA,`SELECT public.work_create_station('Short','12345')`);
+await denied('control characters in station key rejected',ADMIN,OA,`SELECT public.work_create_station('Control',E'Custom\\nKey123')`);
+const chosen=(await request(ADMIN,OA,`SELECT public.work_create_station('Manual test','Custom-Station-456') v`))[0].v;
+ok('admin station uses the exact chosen key',chosen.token==='Custom-Station-456'&&chosen.kind==='station');
+ok('manual station remains within creator company',(await db.query(`SELECT organization_id FROM public.work_stations WHERE id='${chosen.id}'`)).rows[0].organization_id===OA);
+const recovered=(await request(ADMIN,OA,`SELECT public.work_get_station_key('${chosen.id}') v`))[0].v;
+ok('admin can recover custom station key',recovered.token==='Custom-Station-456');
+await denied('other company cannot recover custom key',BADMIN,OB,`SELECT public.work_get_station_key('${chosen.id}')`);
+await denied('duplicate chosen station key rejected',ADMIN,OA,`SELECT public.work_create_station('Duplicate','Custom-Station-456')`);
+const automaticStation=(await request(ADMIN,OA,`SELECT public.work_create_station('Automatic test',NULL) v`))[0].v;
+ok('empty station key preserves random generation',automaticStation.token.startsWith('ASE-')&&automaticStation.token.length>32);
+const recognized=(await request(null,null,`SELECT public.work_station_identify_v2('Custom-Station-456','00123','pin',NULL) v`,'anon'))[0].v;
+ok('chosen station key works with automatic employee PIN',Boolean(recognized.ticket)&&recognized.employee==='Worker A');
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic isolated PostgreSQL; no hosted Supabase changes'}));
 
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/usability-security-results.json',JSON.stringify({scope:'Isolated PostgreSQL with synthetic identities and real RLS; not live Supabase',results},null,2));await db.close()}
