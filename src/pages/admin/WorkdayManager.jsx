@@ -1,3 +1,4 @@
+import DailyPlanningOverview from '@/components/planning/DailyPlanningOverview'
 import PersonalPinManager from '@/components/PersonalPinManager'
 import { useEffect, useRef, useState } from 'react'
 import PlanningCalendar from './PlanningCalendar'
@@ -76,6 +77,17 @@ export default function WorkdayManager({section='planning'}) {
     const next = index + step
     if (next < 0 || next >= plan.length || plan[index].state !== 'pending' || plan[next].state !== 'pending') return
     const items = [...plan]; [items[index], items[next]] = [items[next], items[index]]; setPlan(items)
+  }
+  const moveTo = (index, target) => {
+    if (busy || !canEdit || !Number.isInteger(target) || target<0 || target>=plan.length) return
+    if (plan.slice(Math.min(index,target),Math.max(index,target)+1).some(t=>t.state!=='pending')) return
+    const items=[...plan]; const [item]=items.splice(index,1); items.splice(target,0,item); setPlan(items)
+  }
+  const hasChanges = Boolean(overview) && JSON.stringify(plan.map(t=>t.task_id))!==JSON.stringify((overview.plan||[]).map(t=>t.task_id))
+  const selectTeamMember = id => {
+    if (id===user) { reviewDay(date); return }
+    if (hasChanges && !window.confirm('Hay cambios sin guardar. ¿Quieres descartarlos y revisar este empleado?')) return
+    setUser(id); reviewDay(date)
   }
   const save = () => action(async () => {
     await workRpc('work_save_plan', {p_user:user,p_date:date,p_tasks:plan.map(t => t.task_id)})
@@ -248,6 +260,7 @@ export default function WorkdayManager({section='planning'}) {
       </div>}
     </CardContent></Card>}
     {loading && <p role="status">Cargando datos…</p>}
+    {section==='planning' && <DailyPlanningOverview employees={employees} date={date} revision={overview} onSelect={selectTeamMember} disabled={busy}/>}
     {section==='planning' && user && <PlanningCalendar user={user} date={date} onSelect={reviewDay} revision={overview}/>}
     {overview && <>
       {section==='planning' && <>
@@ -257,7 +270,8 @@ export default function WorkdayManager({section='planning'}) {
         <p className="text-sm text-gray-500">Las tareas deben estar previamente asignadas al empleado. Cada tarea vence al terminar el día para el que se planifica (hora de Madrid). Las iniciadas y completadas conservan su lugar e historial.</p>
         {canEdit && <div className="flex gap-3"><select aria-label="Añadir tarea asignada" value={selected} onChange={e=>setSelected(e.target.value)} className="min-w-0 flex-1 border rounded-md bg-white p-2" disabled={busy}><option value="">Selecciona una tarea</option>{available.filter(t=>!plan.some(p=>p.task_id===t.id)).map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select><Button disabled={!selected || busy} onClick={()=>{const t=available.find(t=>t.id===selected);setPlan([...plan,{task_id:t.id,title:t.title,state:'pending'}]);setSelected('')}}><Plus className="h-4 w-4" /> Añadir</Button></div>}
         {plan.length===0 && <p className="text-gray-500 p-4 border border-dashed rounded-lg">Sin tareas planificadas para este día.</p>}
-        <ol className="space-y-2">{plan.map((t,index)=><li key={t.task_id} className="flex flex-wrap items-center gap-3 border rounded-lg p-3"><span className="text-gray-400">{index+1}.</span><div className="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-0"><p className="font-medium">{t.title}</p><p className="text-sm text-gray-500">{{pending:'Pendiente',active:'En curso',completed:'Completada',blocked:'Bloqueada por incidencia'}[t.state]}</p>{t.overdue && <p className="text-sm text-red-700">Atrasada</p>}{t.completed_late && <p className="text-sm text-amber-800">Finalizada fuera de plazo</p>}</div>{canEdit && <><Button variant="outline" size="icon" aria-label={`Subir ${t.title}`} disabled={busy || t.state!=='pending' || index===0 || plan[index-1]?.state!=='pending'} onClick={()=>move(index,-1)}><ArrowUp /></Button><Button variant="outline" size="icon" aria-label={`Bajar ${t.title}`} disabled={busy || t.state!=='pending' || index===plan.length-1 || plan[index+1]?.state!=='pending'} onClick={()=>move(index,1)}><ArrowDown /></Button><Button variant="outline" size="icon" aria-label={`Retirar ${t.title}`} disabled={busy || t.state!=='pending'} onClick={()=>setPlan(plan.filter((_,i)=>i!==index))}><Trash2 /></Button></>}</li>)}</ol>
+        <ol className="space-y-2">{plan.map((t,index)=><li key={t.task_id} className="flex flex-wrap items-center gap-3 border rounded-lg p-3"><span className="text-gray-400">{index+1}.</span><div className="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-0"><p className="font-medium">{t.title}</p><p className="text-sm text-gray-500">{{pending:'Pendiente',active:'En curso',completed:'Completada',blocked:'Bloqueada por incidencia'}[t.state]}</p>{t.overdue && <p className="text-sm text-red-700">Atrasada</p>}{t.completed_late && <p className="text-sm text-amber-800">Finalizada fuera de plazo</p>}</div>{canEdit && <><select aria-label={`Posición de ${t.title}`} className="border rounded-md bg-white p-2 max-w-full" value={index} disabled={busy || t.state!=='pending'} onChange={e=>moveTo(index,Number(e.target.value))}>{plan.map((_,position)=>position===index || plan.slice(Math.min(index,position),Math.max(index,position)+1).every(item=>item.state==='pending')?<option key={position} value={position}>Posición {position+1}</option>:null)}</select><Button variant="outline" size="icon" aria-label={`Subir ${t.title}`} disabled={busy || t.state!=='pending' || index===0 || plan[index-1]?.state!=='pending'} onClick={()=>move(index,-1)}><ArrowUp /></Button><Button variant="outline" size="icon" aria-label={`Bajar ${t.title}`} disabled={busy || t.state!=='pending' || index===plan.length-1 || plan[index+1]?.state!=='pending'} onClick={()=>move(index,1)}><ArrowDown /></Button><Button variant="outline" size="icon" aria-label={`Retirar ${t.title}`} disabled={busy || t.state!=='pending' || plan.slice(index+1).some(item=>item.state!=='pending')} onClick={()=>setPlan(plan.filter((_,i)=>i!==index))}><Trash2 /></Button></>}</li>)}</ol>
+        {hasChanges && <p role="status" className="text-sm text-amber-800">Hay cambios sin guardar. El empleado verá el nuevo orden cuando guardes la planificación.</p>}
         {canEdit && (periodMode==='day' ? <Button disabled={busy || loading || !date} onClick={save}>{busy?'Guardando…':'Guardar planificación del día'}</Button> : <Button disabled={busy || loading || !rangeDays || !plan.length} onClick={()=>setRangeConfirm(true)}>Revisar y aplicar al período</Button>)}
         {rangeResult && <p role="status" className="text-sm text-blue-800">{rangeResult}</p>}
       </CardContent></Card></div>
