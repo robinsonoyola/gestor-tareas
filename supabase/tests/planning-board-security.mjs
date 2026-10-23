@@ -1,0 +1,296 @@
+import {PGlite} from '@electric-sql/pglite';
+import {pgcrypto} from '@electric-sql/pglite/contrib/pgcrypto';
+import fs from 'node:fs';import assert from 'node:assert/strict';
+const root=new URL('../../',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1');const db=new PGlite({extensions:{pgcrypto}});const results=[];
+const id=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
+const [ADMIN,A,BADMIN,B,SHARED,TA,TB]=[1,2,3,4,5,10,20].map(id);
+const ok=(name,pass)=>{assert(pass,name);results.push({test:name,expected:'PASS',actual:'PASS'})};
+async function request(actor,org,sql,role='authenticated'){
+ await db.exec('BEGIN');try{await db.exec(`SET LOCAL ROLE ${role}`);await db.query(`SELECT set_config('request.jwt.claim.sub',$1,true),set_config('request.jwt.claim.role',$2,true),set_config('request.headers',$3,true)`,[actor||'',role,org?JSON.stringify({'x-ase-organization-id':org}):'{}']);const v=await db.query(sql);await db.exec('COMMIT');return v.rows;}catch(e){await db.exec('ROLLBACK');throw e;}}
+async function denied(name,actor,org,sql,role='authenticated'){try{const rows=await request(actor,org,sql,role);ok(name,rows.length===0||rows[0]?.n===0||rows[0]?.v===null||Array.isArray(rows[0]?.v)&&rows[0].v.length===0);}catch(e){ok(name,['42501','23503','23514','22023','P0001'].includes(e.code));}}
+try{
+await db.exec(fs.readFileSync(root+'supabase/tests/bootstrap.sql','utf8'));await db.exec(fs.readFileSync(root+'supabase/baseline/20261022_installed_public.sql','utf8'));await db.exec(fs.readFileSync(root+'supabase/tests/storage-baseline.sql','utf8'));
+await db.exec(`INSERT INTO auth.users(id,email,raw_user_meta_data) VALUES('${ADMIN}','admina@example.test','{"full_name":"Admin A"}'),('${A}','workera@example.test','{"full_name":"Worker A"}'),('${SHARED}','shared@example.test','{"full_name":"Shared"}');UPDATE public.users SET is_admin=true WHERE id='${ADMIN}';INSERT INTO public.work_settings VALUES(true,false);INSERT INTO public.tasks(id,title,status,schedule_type) VALUES('${TA}','Legacy A','pending','daily');INSERT INTO public.task_assignments(task_id,user_id) VALUES('${TA}','${A}');`);
+const legacyRole=id(100),legacyCard=id(101),legacyStation=id(102);
+await db.exec(`INSERT INTO public.work_roles(id,name) VALUES('${legacyRole}','Legacy role');INSERT INTO public.work_employee_roles(user_id,role_id) VALUES('${A}','${legacyRole}');INSERT INTO public.work_day_plan(user_id,task_id,work_date,priority) VALUES('${A}','${TA}',public.work_today(),1);INSERT INTO public.work_employee_cards(id,user_id,label,token_hash,active) VALUES('${legacyCard}','${A}','Old card',public.work_hash('ASE-OLD-CARD'),false);INSERT INTO public.work_employee_card_keys(card_id,token) VALUES('${legacyCard}','ASE-OLD-CARD');INSERT INTO public.work_stations(id,name,token_hash,active) VALUES('${legacyStation}','Old station',public.work_hash('ASE-OLD-STATION'),false);INSERT INTO public.work_station_keys(station_id,token) VALUES('${legacyStation}','ASE-OLD-STATION');INSERT INTO public.work_station_tickets(station_id,card_id,user_id,expected_action,expires_at) VALUES('${legacyStation}','${legacyCard}','${A}','none',now()-interval '1 day');INSERT INTO public.nfc_cards(card_uid,card_name,task_id) VALUES('OLD-UID','Old tag','${TA}');INSERT INTO public.checkins(task_id,user_id,checkin_time,checkout_time,checkin_method) VALUES('${TA}','${A}',now()-interval '1 day',now()-interval '23 hours','manual');INSERT INTO public.task_comments(task_id,user_id,comment) VALUES('${TA}','${A}','Legacy comment');INSERT INTO public.task_access_codes(task_id,access_code,created_by) VALUES('${TA}','TASK-LEGACY','${ADMIN}');`);
+const business=['tasks','task_assignments','checkins','task_comments','task_access_codes','task_checkin_config','nfc_cards','work_day_plan','work_employee_cards','work_employee_card_keys','work_stations','work_station_keys','work_station_tickets','work_roles','work_employee_roles','work_settings'];
+const snapshot={};for(const table of business)snapshot[table]=(await db.query(`SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) v FROM public.${table} t`)).rows[0].v;
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261022000100_core_multitenancy_a1.sql','utf8'));
+for(const table of business){const after=(await db.query(`SELECT jsonb_agg(to_jsonb(t)-'organization_id' ORDER BY (to_jsonb(t)-'organization_id')::text) v FROM public.${table} t`)).rows[0].v;ok('backfill preserves every legacy field in '+table,JSON.stringify(after)===JSON.stringify(snapshot[table]));}
+const OA=(await db.query(`SELECT id FROM public.organizations WHERE slug='ase-work'`)).rows[0].id;
+ok('legacy task retained',(await db.query(`SELECT count(*)::int n FROM public.tasks WHERE id='${TA}' AND organization_id='${OA}'`)).rows[0].n===1);
+ok('legacy role retained as membership',(await request(ADMIN,OA,'SELECT public.sec06_is_admin() v'))[0].v===true);
+ok('global admin retired',(await db.query('SELECT count(*)::int n FROM public.users WHERE is_admin IS TRUE')).rows[0].n===0);
+await db.exec(`INSERT INTO auth.users(id,email,raw_user_meta_data) VALUES('${BADMIN}','adminb@example.test','{"full_name":"Admin B"}'),('${B}','workerb@example.test','{"full_name":"Worker B"}');`);
+const OB=(await request(BADMIN,null,`SELECT public.mt_create_organization('Company B','company-b') v`))[0].v;
+await db.query(`INSERT INTO public.organization_memberships(organization_id,user_id,role,full_name) VALUES($1,$2,'member','Worker B'),($1,$3,'member','Shared B')`,[OB,B,SHARED]);
+await request(BADMIN,OB,`INSERT INTO public.tasks(id,title,status,schedule_type) VALUES('${TB}','Secret B','pending','daily')`);
+await request(BADMIN,OB,`INSERT INTO public.task_assignments(task_id,user_id) VALUES('${TB}','${B}')`);
+
+await db.exec(`CREATE SCHEMA extensions; CREATE EXTENSION pgcrypto WITH SCHEMA extensions; GRANT USAGE ON SCHEMA extensions TO ase_tenant_executor;`);
+const migration='supabase/migrations/20261022000200_work_usability.sql';
+await db.exec(fs.readFileSync(root+migration,'utf8'));
+await db.exec('REVOKE USAGE ON SCHEMA auth FROM ase_tenant_executor;');
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261022000300_hosted_auth_identity.sql','utf8'));
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261022000400_station_auto_code.sql','utf8'));
+// Hosted postgres is not superuser: exercise ALTER OWNER with the same restriction.
+await db.exec('CREATE ROLE station_migration_installer NOLOGIN NOSUPERUSER; GRANT ase_tenant_executor TO station_migration_installer; ALTER SCHEMA public OWNER TO station_migration_installer; SET ROLE station_migration_installer;');
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261023000100_manual_station_key.sql','utf8'));
+await db.exec('RESET ROLE; ALTER SCHEMA public OWNER TO postgres;');
+ok('station migration leaves executor without schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+
+
+await db.exec('ALTER SCHEMA public OWNER TO station_migration_installer; SET ROLE station_migration_installer;');
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261023000200_confirmed_task_nfc.sql','utf8'));
+await db.exec('RESET ROLE; ALTER SCHEMA public OWNER TO postgres;');
+const UID='04:A1:B2:C3:D4:E5:F6',CARD=id(701),CARD2=id(702);
+await db.exec(`INSERT INTO public.nfc_cards(id,organization_id,card_uid,card_name,task_id,is_active) VALUES('${CARD}','${OA}','${UID}','Task tag','${TA}',true),('${CARD2}','${OA}','04:A1:B2:C3:D4:E5:F7','Second tag','${TA}',true);UPDATE public.task_checkin_config SET nfc_enabled=true WHERE task_id='${TA}';INSERT INTO public.task_checkin_config(organization_id,task_id,nfc_enabled) SELECT '${OA}','${TA}',true WHERE NOT EXISTS(SELECT 1 FROM public.task_checkin_config WHERE task_id='${TA}');`);
+const countBefore=(await db.query(`SELECT count(*)::int n FROM public.checkins`)).rows[0].n;
+await denied('anonymous task NFC denied',null,null,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkin')`,'anon');
+await denied('unassigned actor cannot check in',SHARED,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkin')`);
+await denied('foreign company task NFC denied',B,OB,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkin')`);
+await denied('unknown card denied',A,OA,`SELECT public.work_task_nfc_checkin('04:00:00:00:00:00:00','${TA}','checkin')`);
+await denied('invalid action denied',A,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','toggle')`);
+await denied('empty UID denied',A,OA,`SELECT public.work_task_nfc_checkin('','${TA}','checkin')`);
+ok('rejected identification has no writes',(await db.query(`SELECT count(*)::int n FROM public.checkins`)).rows[0].n===countBefore);
+const started=(await request(A,OA,`SELECT public.work_task_nfc_checkin('04a1b2c3d4e5f6','${TA}','checkin') v`))[0].v;
+ok('explicit start creates NFC checkin',started.success&&started.type==='checkin'&&Boolean(started.checkin_id));
+ok('checkin retains authenticated actor and assigned card',(await db.query(`SELECT user_id,checkin_method,nfc_card_id FROM public.checkins WHERE id='${started.checkin_id}'`)).rows[0].nfc_card_id===CARD);
+await denied('repeated start cannot close current NFC checkin',A,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkin')`);
+ok('record remains open after repeated start',(await db.query(`SELECT checkout_time IS NULL v FROM public.checkins WHERE id='${started.checkin_id}'`)).rows[0].v);
+const old=(await request(A,OA,`SELECT public.validate_nfc_checkin('${UID}','${TA}','${A}') v`))[0].v;
+ok('legacy toggle endpoint no longer writes',old.success===false&&(await db.query(`SELECT checkout_time IS NULL v FROM public.checkins WHERE id='${started.checkin_id}'`)).rows[0].v);
+await denied('closing requires expected checkin',A,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkout')`);
+await denied('closing with another tag denied',A,OA,`SELECT public.work_task_nfc_checkin('04:A1:B2:C3:D4:E5:F7','${TA}','checkout','${started.checkin_id}')`);
+await denied('other employee cannot close the checkin',SHARED,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkout','${started.checkin_id}')`);
+const finished=(await request(A,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkout','${started.checkin_id}') v`))[0].v;
+ok('explicit close records the same checkin',finished.success&&finished.checkin_id===started.checkin_id&&finished.checkout_time);
+const repeat=(await request(A,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkout','${started.checkin_id}') v`))[0].v;
+ok('retrying close is idempotent',repeat.already_closed&&repeat.checkin_id===started.checkin_id&&repeat.checkout_time===finished.checkout_time);
+ok('only one record created',(await db.query(`SELECT count(*)::int n FROM public.checkins`)).rows[0].n===countBefore+1);
+await request(ADMIN,OA,`SELECT public.work_set_mode(true)`);
+await denied('exclusive tablet mode still blocks mobile NFC',A,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkin')`);
+await request(ADMIN,OA,`SELECT public.work_set_mode(false)`);
+await db.exec(`UPDATE public.task_checkin_config SET nfc_enabled=false WHERE task_id='${TA}'`);
+await denied('disabled NFC task denied',A,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkin')`);
+ok('executor retains no schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261023000300_active_checkin_actions.sql','utf8'));
+await denied('comment without open checkin denied',A,OA,`INSERT INTO public.task_comments(task_id,user_id,comment) VALUES('${TA}','${A}','No active checkin') RETURNING id`);
+await denied('incident without open checkin denied',A,OA,`INSERT INTO public.work_incidents(task_id,reporter_id,assigned_user,subject,description,blocks_work) VALUES('${TA}','${A}','${A}','Test incident','No active checkin',false) RETURNING id`);
+await denied('upload without open checkin denied',A,OA,`INSERT INTO storage.objects(bucket_id,name) VALUES('task-files','tasks/${TA}/${A}/${id(901)}.jpg') RETURNING id`);
+ok('closed checkin grants no actions',(await request(A,OA,`SELECT public.work_can_act('${TA}') v`))[0].v===false);
+await db.exec(`UPDATE public.task_checkin_config SET nfc_enabled=true WHERE task_id='${TA}'`);
+const live=(await request(A,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkin') v`))[0].v;
+ok('own live checkin allows actions',(await request(A,OA,`SELECT public.work_can_act('${TA}') v`))[0].v===true);
+ok('comment while checked in succeeds',(await request(A,OA,`INSERT INTO public.task_comments(task_id,user_id,comment) VALUES('${TA}','${A}','Working now') RETURNING id`)).length===1);
+ok('incident while checked in succeeds',(await request(A,OA,`SELECT public.work_report_incident('${TA}','Test incident','Work in progress','${A}',NULL,false,'{}') v`))[0].v);
+ok('upload while checked in succeeds',(await request(A,OA,`INSERT INTO storage.objects(bucket_id,name) VALUES('task-files','tasks/${TA}/${A}/${id(902)}.jpg') RETURNING id`)).length===1);
+ok('other worker cannot use the active checkin',(await request(SHARED,OA,`SELECT public.work_can_act('${TA}') v`))[0].v===false);
+ok('other company cannot use the active checkin',(await request(B,OB,`SELECT public.work_can_act('${TA}') v`))[0].v===false);
+await request(A,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkout','${live.checkin_id}')`);
+await denied('comment after closing denied',A,OA,`INSERT INTO public.task_comments(task_id,user_id,comment) VALUES('${TA}','${A}','Already closed') RETURNING id`);
+ok('admin retains actions',(await request(ADMIN,OA,`SELECT public.work_can_act('${TA}') v`))[0].v===true);
+
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261023000400_mobile_priority_queue.sql','utf8'));
+const TC=id(30),TD=id(31);
+await db.query(`SELECT set_config('request.headers',$1,false),set_config('request.jwt.claim.sub',$2,false)`,[JSON.stringify({'x-ase-organization-id':OA}),ADMIN]);
+await db.exec(`INSERT INTO public.tasks(id,title,status,schedule_type,organization_id) VALUES('${TC}','Second','pending','daily','${OA}'),('${TD}','Third','pending','daily','${OA}');INSERT INTO public.task_assignments(task_id,user_id,organization_id) VALUES('${TC}','${A}','${OA}'),('${TD}','${A}','${OA}');INSERT INTO public.work_day_plan(task_id,user_id,work_date,priority,organization_id) VALUES('${TC}','${A}',public.work_today(),2,'${OA}'),('${TD}','${A}',public.work_today(),3,'${OA}');INSERT INTO public.nfc_cards(card_uid,card_name,task_id,organization_id) VALUES('04:11:22:33:44:55:66','Second tag','${TC}','${OA}'),('04:11:22:33:44:55:77','Third tag','${TD}','${OA}');UPDATE public.task_checkin_config SET nfc_enabled=true WHERE task_id IN ('${TA}','${TC}','${TD}');UPDATE public.work_incidents SET state='resolved';`);
+await db.exec(`UPDATE public.work_day_plan SET created_at=clock_timestamp() WHERE user_id='${A}' AND task_id='${TA}';`);
+let q=(await request(A,OA,'SELECT public.work_mobile_queue() v'))[0].v;
+ok('queue contains all assigned tasks',q.items.length===3);
+ok('first priority is the next task',q.next_task===TA);
+await denied('cannot skip to third task',A,OA,`SELECT public.work_task_nfc_checkin('04:11:22:33:44:55:77','${TD}','checkin')`);
+const first=(await request(A,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkin') v`))[0].v;
+ok('first task plan becomes active',(await db.query(`SELECT state FROM public.work_day_plan WHERE task_id='${TA}' AND user_id='${A}'`)).rows[0].state==='active');
+await request(A,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkout','${first.checkin_id}')`);
+q=(await request(A,OA,'SELECT public.work_mobile_queue() v'))[0].v;
+ok('completion advances to second task',q.next_task===TC);
+ok('completed task sorted below pending',q.items.at(-1).task_id===TA&&q.items.at(-1).state==='completed');
+await denied('completed task cannot restart',A,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkin')`);
+ok('completed task detail remains readable',(await request(A,OA,`SELECT public.work_can_detail('${TA}') v`))[0].v===true);
+await denied('manual insert cannot bypass priority',A,OA,`INSERT INTO public.checkins(task_id,user_id,checkin_method) VALUES('${TD}','${A}','manual') RETURNING id`);
+await db.exec(`INSERT INTO public.work_incidents(organization_id,task_id,reporter_id,assigned_user,subject,description) VALUES('${OA}','${TA}','${ADMIN}','${SHARED}','Repair task','Assigned repair work');`);
+q=(await request(SHARED,OA,'SELECT public.work_mobile_queue() v'))[0].v;
+ok('incident recipient sees task even without ordinary assignment',q.items.some(x=>x.task_id===TA&&x.can_start));
+ok('incident recipient can read task details',(await request(SHARED,OA,`SELECT id FROM public.tasks WHERE id='${TA}'`)).length===1);
+const repair=(await request(SHARED,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkin') v`))[0].v;
+await request(SHARED,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkout','${repair.checkin_id}')`);
+ok('repair does not reopen original completed plan',(await db.query(`SELECT state FROM public.work_day_plan WHERE task_id='${TA}' AND user_id='${A}'`)).rows[0].state==='completed');
+ok('foreign company receives no task in its queue',!(await request(B,OB,'SELECT public.work_mobile_queue() v'))[0].v.items.some(x=>x.task_id===TA));
+
+await db.exec(`UPDATE public.work_incidents SET state='resolved' WHERE assigned_user='${SHARED}';`);
+ok('resolved incident removes reopening exception',!(await request(SHARED,OA,'SELECT public.work_mobile_queue() v'))[0].v.items.some(x=>x.task_id===TA));
+await denied('resolved incident cannot start again',SHARED,OA,`SELECT public.work_task_nfc_checkin('${UID}','${TA}','checkin')`);
+await db.exec(`UPDATE public.work_day_plan SET priority=priority+100 WHERE user_id='${A}' AND task_id IN ('${TC}','${TD}');UPDATE public.work_day_plan SET priority=2 WHERE user_id='${A}' AND task_id='${TD}';`);
+ok('manager priority change is honored immediately',(await request(A,OA,'SELECT public.work_mobile_queue() v'))[0].v.next_task===TD);
+await denied('old next task no longer startable',A,OA,`SELECT public.work_task_nfc_checkin('04:11:22:33:44:55:66','${TC}','checkin')`);
+
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261023000500_incident_history.sql','utf8'));
+ok('existing incidents receive labeled current-state snapshots',(await db.query(`SELECT count(*)::int n FROM public.work_incident_history WHERE kind='snapshot'`)).rows[0].n>0);
+await request(A,OA,`SELECT public.work_task_nfc_checkin('04:11:22:33:44:55:77','${TD}','checkin')`);
+const incident=(await request(A,OA,`SELECT public.work_report_incident('${TD}','Test timeline','Timeline description','${SHARED}',NULL,false,'{}') v`))[0].v;
+let history=(await request(A,OA,`SELECT public.work_incident_history('${incident}') v`))[0].v;
+ok('reporter can see creation event',history.length===1&&history[0].kind==='created'&&history[0].state==='open');
+await request(SHARED,OA,`SELECT public.work_update_incident('${incident}','in_progress','Reviewing the equipment')`);
+await request(SHARED,OA,`SELECT public.work_update_incident('${incident}','resolved','Replaced and verified the equipment')`);
+history=(await request(A,OA,`SELECT public.work_incident_history('${incident}') v`))[0].v;
+ok('all successive status transitions are retained',history.length===3&&history.map(e=>e.state).join(',')==='open,in_progress,resolved');
+ok('earlier note survives later resolution',history[1].note==='Reviewing the equipment'&&history[2].note==='Replaced and verified the equipment');
+ok('employee sees date and actor',history.every(e=>e.at&&e.actor));
+ok('responsible person sees the same history',(await request(SHARED,OA,`SELECT public.work_incident_history('${incident}') v`))[0].v.length===3);
+await denied('foreign company cannot read timeline',B,OB,`SELECT public.work_incident_history('${incident}') v`);
+await denied('anonymous cannot read timeline',null,null,`SELECT public.work_incident_history('${incident}') v`,'anon');
+await denied('employee cannot insert invented history',A,OA,`INSERT INTO public.work_incident_history(organization_id,incident_id,kind,state) VALUES('${OA}','${incident}','updated','resolved') RETURNING id`);
+const outsider=id(300);
+await db.exec(`INSERT INTO auth.users(id,email,raw_user_meta_data) VALUES('${outsider}','unrelated@example.test','{"full_name":"Unrelated"}');INSERT INTO public.organization_memberships(organization_id,user_id,role,full_name) VALUES('${OA}','${outsider}','member','Unrelated');`);
+await denied('unrelated employee in same company cannot read timeline',outsider,OA,`SELECT public.work_incident_history('${incident}') v`);
+
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261023000600_lock_resolved_incidents.sql','utf8'));
+const before=(await db.query(`SELECT to_jsonb(i) v FROM public.work_incidents i WHERE id='${incident}'`)).rows[0].v;
+const notifications=(await db.query(`SELECT count(*)::int n FROM public.work_notifications WHERE incident_id='${incident}'`)).rows[0].n;
+await denied('responsible cannot reopen resolved incident',SHARED,OA,`SELECT public.work_update_incident('${incident}','open','Reopen attempted')`);
+await denied('responsible cannot overwrite final solution',SHARED,OA,`SELECT public.work_update_incident('${incident}','resolved','Changed solution')`);
+await denied('administrator cannot modify resolved incident',ADMIN,OA,`SELECT public.work_update_incident('${incident}','in_progress','Admin change')`);
+try{await db.exec(`DELETE FROM public.work_incidents WHERE id='${incident}'`);throw new Error('resolved delete allowed')}catch(e){ok('resolved deletion blocked at database level',e.code==='42501')}
+ok('locked row remains unchanged',JSON.stringify(before)===JSON.stringify((await db.query(`SELECT to_jsonb(i) v FROM public.work_incidents i WHERE id='${incident}'`)).rows[0].v));
+ok('rejected changes append no history',(await request(A,OA,`SELECT public.work_incident_history('${incident}') v`))[0].v.length===3);
+ok('rejected changes send no notifications',(await db.query(`SELECT count(*)::int n FROM public.work_notifications WHERE incident_id='${incident}'`)).rows[0].n===notifications);
+ok('resolved incident has no management permission in inbox',(await request(SHARED,OA,'SELECT public.work_incident_inbox() v'))[0].v.items.find(i=>i.id===incident).can_manage===false);
+const another=(await request(A,OA,`SELECT public.work_report_incident('${TD}','Another incident','New work to resolve','${SHARED}',NULL,false,'{}') v`))[0].v;
+await request(SHARED,OA,`SELECT public.work_update_incident('${another}','resolved','Resolved correctly')`);
+ok('open incident still resolves normally',(await request(A,OA,`SELECT public.work_incident_history('${another}') v`))[0].v.at(-1).state==='resolved');
+
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261023000700_reports_and_history_search.sql','utf8'));
+for(const kind of ['checkins','tasks','productivity','incidents','closures']){
+ const table=(await request(ADMIN,OA,`SELECT public.work_report_table('${kind}',public.work_today()-29,public.work_today()) v`))[0].v;
+ ok('report table available: '+kind,Array.isArray(table.items)&&table.total===table.items.length);
+ ok('report excludes other-company task: '+kind,!JSON.stringify(table).includes('Secret B'));
+}
+await denied('ordinary worker cannot read management reports',A,OA,`SELECT public.work_report_table('checkins',public.work_today(),public.work_today()) v`);
+await denied('anonymous cannot read reports',null,null,`SELECT public.work_report_table('checkins',current_date,current_date) v`,'anon');
+const personal=(await request(A,OA,`SELECT public.work_checkin_history_search(public.work_today()-29,public.work_today(),NULL,NULL,false,0,100,true,'',NULL,NULL) v`))[0].v;
+ok('personal search never returns other workers',personal.items.every(i=>i.user_id===A));
+const searched=(await request(ADMIN,OA,`SELECT public.work_checkin_history_search(public.work_today()-29,public.work_today(),NULL,NULL,false,0,100,false,'Third',NULL,NULL) v`))[0].v;
+ok('search applies before pagination and count',searched.total>0&&searched.items.every(i=>i.title==='Third'));
+const filtered=(await request(ADMIN,OA,`SELECT public.work_checkin_history_search(public.work_today()-29,public.work_today(),NULL,NULL,false,0,100,false,'','nfc','closed') v`))[0].v;
+ok('method and closed filters apply together',filtered.items.every(i=>i.checkin_method==='nfc'&&i.checkout_time));
+const foreign=(await request(BADMIN,OB,`SELECT public.work_report_table('incidents',public.work_today()-29,public.work_today()) v`))[0].v;
+ok('other company admin cannot read this company incidents',!JSON.stringify(foreign).includes('Test timeline'));
+
+const literal=(await request(ADMIN,OA,`SELECT public.work_checkin_history_search(public.work_today()-29,public.work_today(),NULL,NULL,false,0,100,false,'%',NULL,NULL) v`))[0].v;
+ok('search treats percent as literal rather than wildcard',literal.total===0);
+await db.query(`SELECT set_config('request.jwt.claim.role','service_role',false),set_config('request.jwt.claim.sub',$1,false),set_config('request.headers',$2,false)`,[ADMIN,JSON.stringify({'x-ase-organization-id':OA})]);
+await db.exec(`INSERT INTO public.checkins(organization_id,user_id,task_id,checkin_method,checkin_time,checkout_time) SELECT '${OA}','${A}','${TA}','manual',now()-interval '1 hour',now() FROM generate_series(1,10001)`);
+await denied('large report is rejected instead of silently truncating',ADMIN,OA,`SELECT public.work_report_table('checkins',public.work_today()-1,public.work_today()) v`);
+
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261023000800_report_employee_filter.sql','utf8'));
+const employeeReport=(await request(ADMIN,OA,`SELECT public.work_report_table('checkins',public.work_today()-29,public.work_today(),'Third',NULL,NULL,'${A}') v`))[0].v;
+ok('employee filter returns the selected workers report',employeeReport.total>0&&employeeReport.items.every(i=>i.employee==='Worker A'));
+const otherEmployee=(await request(ADMIN,OA,`SELECT public.work_report_table('checkins',public.work_today()-29,public.work_today(),'Third',NULL,NULL,'${SHARED}') v`))[0].v;
+ok('different employee does not receive selected workers rows',otherEmployee.total===0);
+const people=(await request(ADMIN,OA,'SELECT public.work_report_employees() v'))[0].v;
+ok('employee selector is company-scoped',people.some(p=>p.id===A)&&!people.some(p=>p.id===B));
+for(const kind of ['tasks','productivity','incidents','closures']){
+ const v=(await request(ADMIN,OA,`SELECT public.work_report_table('${kind}',public.work_today()-29,public.work_today(),'',NULL,NULL,'${B}') v`))[0].v;
+ ok('foreign employee cannot appear in '+kind,v.total===0);
+}
+await denied('employee directory requires reports permission',A,OA,'SELECT public.work_report_employees() v');
+await denied('filtered reports require reports permission',A,OA,`SELECT public.work_report_table('tasks',public.work_today(),public.work_today(),'',NULL,NULL,'${A}') v`);
+
+{
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261023000900_task_checklists.sql','utf8'));
+const TC=id(9001),CX=id(9002),ST=id(9003),OPT=id(9004);
+await request(ADMIN,OA,`INSERT INTO public.tasks(id,title,status,schedule_type) VALUES('${TC}','Checklist test','pending','daily')`);
+await request(ADMIN,OA,`INSERT INTO public.task_assignments(task_id,user_id) VALUES('${TC}','${A}')`);
+const steps=JSON.stringify([{id:ST,title:'Required step',required:true},{id:OPT,title:'Optional step',required:false}]);
+await request(ADMIN,OA,`SELECT public.work_save_checklist('${TC}','${steps}','[]')`);
+ok('checklist template saved with required and optional steps',(await request(A,OA,`SELECT public.work_get_checklist('${TC}') v`))[0].v.steps.length===2);
+await denied('worker cannot change checklist template',A,OA,`SELECT public.work_save_checklist('${TC}','[]','${steps}')`);
+await denied('other company cannot read checklist',BADMIN,OB,`SELECT public.work_get_checklist('${TC}') v`);
+await denied('anonymous cannot read checklist',null,null,`SELECT public.work_get_checklist('${TC}') v`,'anon');
+await denied('unassigned worker cannot read checklist',SHARED,OA,`SELECT public.work_get_checklist('${TC}') v`);
+await denied('template detects stale editor',ADMIN,OA,`SELECT public.work_save_checklist('${TC}','[]','[]')`);
+await db.query(`SELECT set_config('request.jwt.claim.role','service_role',false),set_config('request.headers',$1,false)`,[JSON.stringify({'x-ase-organization-id':OA})]);
+await db.exec(`INSERT INTO public.checkins(id,organization_id,user_id,task_id,checkin_method,checkin_time) VALUES('${CX}','${OA}','${A}','${TC}','manual',now()-interval '1 minute')`);
+const snap=(await request(A,OA,`SELECT public.work_get_checklist('${TC}','${CX}') v`))[0].v;
+ok('checkin snapshots the template and starts unchecked',snap.editable&&snap.steps.every(s=>!s.done));
+await denied('cannot change template while checkin open',ADMIN,OA,`SELECT public.work_save_checklist('${TC}','[]','${steps}')`);
+await denied('another worker cannot mark someone elses steps',SHARED,OA,`SELECT public.work_mark_checklist('${CX}','${ST}',true)`);
+await denied('other company cannot mark steps',BADMIN,OB,`SELECT public.work_mark_checklist('${CX}','${ST}',true)`);
+await denied('direct run writes denied to worker',A,OA,`UPDATE public.work_checklist_runs SET steps='[]' WHERE checkin_id='${CX}'`);
+await denied('checklist cannot be bypassed by closing checkin',A,OA,`SELECT public.finish_manual_checkin('${CX}')`);
+await request(A,OA,`SELECT public.work_mark_checklist('${CX}','${ST}',true)`);
+await request(A,OA,`SELECT public.work_mark_checklist('${CX}','${ST}',true)`);
+const done=(await request(A,OA,`SELECT public.work_get_checklist('${TC}','${CX}') v`))[0].v;
+ok('marking is idempotent and leaves actor history',done.steps[0].done&&done.events.length===1&&done.events[0].actor==='Worker A');
+await request(A,OA,`SELECT public.work_mark_checklist('${CX}','${ST}',false)`);
+await denied('unmarking required step blocks completion again',A,OA,`SELECT public.finish_manual_checkin('${CX}')`);
+await request(A,OA,`SELECT public.work_mark_checklist('${CX}','${ST}',true)`);
+await request(A,OA,`SELECT public.finish_manual_checkin('${CX}')`);
+ok('optional steps do not block closure',(await request(A,OA,`SELECT public.work_get_checklist('${TC}','${CX}') v`))[0].v.editable===false);
+await denied('closed checkin steps are immutable',A,OA,`SELECT public.work_mark_checklist('${CX}','${OPT}',true)`);
+await request(ADMIN,OA,`SELECT public.work_save_checklist('${TC}','[]','${steps}')`);
+ok('editing template preserves closed execution history',(await request(A,OA,`SELECT public.work_get_checklist('${TC}','${CX}') v`))[0].v.steps.length===2);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261023000900_task_checklists.sql','utf8'));
+ok('checklist activation can run twice without losing history',(await request(A,OA,`SELECT public.work_get_checklist('${TC}','${CX}') v`))[0].v.events.length===3);
+
+await request(ADMIN,OA,`SELECT public.work_save_checklist('${TC}','${steps}','[]')`);
+await db.query(`SELECT set_config('request.jwt.claim.role','service_role',false),set_config('request.headers',$1,false)`,[JSON.stringify({'x-ase-organization-id':OA})]);
+await db.exec(`UPDATE public.checkins SET checkout_time=clock_timestamp() WHERE organization_id='${OA}' AND user_id='${A}' AND checkout_time IS NULL;UPDATE public.work_day_plan SET state='completed',finished_at=clock_timestamp() WHERE organization_id='${OA}' AND user_id='${A}' AND state='active';`);
+await request(ADMIN,OA,`SELECT public.work_save_plan('${A}',public.work_today()+1,ARRAY['${TC}']::uuid[])`);
+const incidentPlan=(await db.query(`SELECT id FROM public.work_day_plan WHERE task_id='${TC}' AND user_id='${A}' AND work_date=public.work_today()+1`)).rows[0].id;
+await db.query(`SELECT set_config('request.jwt.claim.role','service_role',false),set_config('request.headers',$1,false)`,[JSON.stringify({'x-ase-organization-id':OA})]);
+const C2=id(9006);
+await db.exec(`INSERT INTO public.checkins(id,organization_id,user_id,task_id,checkin_method,checkin_time,work_plan_id) VALUES('${C2}','${OA}','${A}','${TC}','manual',now()-interval '1 minute','${incidentPlan}')`);
+ok('new execution gets a fresh unchecked checklist',(await request(A,OA,`SELECT public.work_get_checklist('${TC}','${C2}') v`))[0].v.steps.every(s=>!s.done));
+await request(A,OA,`SELECT public.work_report_incident('${TC}','Blocked checklist','Cannot continue with required step','${ADMIN}',NULL,true,'{}') v`);
+ok('blocking incident closes checkin despite incomplete steps',(await request(A,OA,`SELECT public.work_get_checklist('${TC}','${C2}') v`))[0].v.editable===false);
+ok('incident leaves task blocked not completed',(await db.query(`SELECT state FROM public.work_day_plan WHERE id='${incidentPlan}'`)).rows[0].state==='blocked');
+// Exercise the anonymous shared station with an entirely new employee.
+const CU=id(9020),SC=id(9021),SS=id(9022),SP=id(9023);
+await db.query(`SELECT set_config('request.jwt.claim.role','service_role',false),set_config('request.headers',$1,false)`,[JSON.stringify({'x-ase-organization-id':OA})]);
+await db.exec(`INSERT INTO auth.users(id,email,raw_user_meta_data) VALUES('${CU}','checklist-station@example.test','{"full_name":"Station worker"}');INSERT INTO public.organization_memberships(organization_id,user_id,role,full_name) VALUES('${OA}','${CU}','member','Station worker');INSERT INTO public.task_assignments(organization_id,task_id,user_id) VALUES('${OA}','${TC}','${CU}');INSERT INTO public.work_day_plan(id,organization_id,user_id,task_id,work_date,priority) VALUES('${SP}','${OA}','${CU}','${TC}',public.work_today(),1);INSERT INTO public.work_employee_cards(id,organization_id,user_id,label,token_hash,active) VALUES('${SC}','${OA}','${CU}','Checklist station card',public.work_hash('ASE-CHECKLIST-CARD'),true);INSERT INTO public.work_stations(id,organization_id,name,token_hash,active) VALUES('${SS}','${OA}','Checklist station',public.work_hash('CHECKLIST-STATION-TOKEN'),true);UPDATE public.work_settings SET enabled=true WHERE organization_id='${OA}';`);
+const identify=()=>request(null,null,`SELECT public.work_station_identify_v2('CHECKLIST-STATION-TOKEN','ASE-CHECKLIST-CARD','manual',NULL) v`,'anon');
+const stationStart=(await identify())[0].v;
+await request(null,null,`SELECT public.work_station_confirm_v2('CHECKLIST-STATION-TOKEN','${stationStart.ticket}','start') v`,'anon');
+const stationFinish=(await identify())[0].v;
+await denied('station finish requires mandatory steps',null,null,`SELECT public.work_station_confirm_v2('CHECKLIST-STATION-TOKEN','${stationFinish.ticket}','finish') v`,'anon');
+const stationSteps=(await request(null,null,`SELECT public.work_station_checklist('CHECKLIST-STATION-TOKEN','${stationFinish.ticket}') v`,'anon'))[0].v;
+ok('identified station reads only active checkin steps',stationSteps.steps.length===2&&stationSteps.steps.every(s=>!s.done));
+await denied('station checklist rejects wrong station key',null,null,`SELECT public.work_station_checklist('INVALID-STATION-TOKEN','${stationFinish.ticket}','${ST}',true) v`,'anon');
+await request(null,null,`SELECT public.work_station_checklist('CHECKLIST-STATION-TOKEN','${stationFinish.ticket}','${ST}',true) v`,'anon');
+const stationClosed=(await request(null,null,`SELECT public.work_station_confirm_v2('CHECKLIST-STATION-TOKEN','${stationFinish.ticket}','finish') v`,'anon'))[0].v;
+ok('station closes normally after required steps',stationClosed.success===true);
+await denied('consumed station ticket cannot change steps',null,null,`SELECT public.work_station_checklist('CHECKLIST-STATION-TOKEN','${stationFinish.ticket}','${ST}',false) v`,'anon');
+
+}
+
+{
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261023001000_planning_board.sql','utf8'));
+const boardTasks=[9040,9041,9042,9043].map(id);
+await db.query(`SELECT set_config('request.jwt.claim.role','service_role',false),set_config('request.headers',$1,false)`,[JSON.stringify({'x-ase-organization-id':OA})]);
+for(let n=0;n<4;n++){
+ await db.exec(`INSERT INTO public.tasks(id,organization_id,title,description,status,schedule_type) VALUES('${boardTasks[n]}','${OA}','Board ${n}','Instructions ${n}','pending','daily');INSERT INTO public.task_assignments(organization_id,task_id,user_id) VALUES('${OA}','${boardTasks[n]}','${A}');INSERT INTO public.work_day_plan(organization_id,user_id,task_id,work_date,priority,state) VALUES('${OA}','${A}','${boardTasks[n]}',public.work_today()+10,${n+1},'${['pending','active','blocked','completed'][n]}')`);
+}
+await request(BADMIN,OB,`SELECT public.work_save_plan('${B}',public.work_today()+10,ARRAY['${TB}']::uuid[])`);
+const board=(await request(ADMIN,OA,`SELECT public.work_planning_board(public.work_today()+10) v`))[0].v;
+ok('board returns daily execution states rather than catalog status',board.total===4&&board.items.map(i=>i.state).join(',')==='pending,active,blocked,completed');
+ok('board includes assigned employee, instructions and stable plan identity',board.items.every(i=>i.employee_id===A&&i.employee==='Worker A'&&i.description.startsWith('Instructions')&&i.id&&i.task_id));
+ok('board excludes different days and companies',board.items.every(i=>i.title.startsWith('Board '))&&!JSON.stringify(board).includes('Secret B'));
+const one=(await request(ADMIN,OA,`SELECT public.work_planning_board(public.work_today()+10,'${A}') v`))[0].v;
+ok('employee filter applied on server',one.total===4&&one.items.every(i=>i.employee_id===A));
+ok('foreign employee filter never exposes their tasks',(await request(ADMIN,OA,`SELECT public.work_planning_board(public.work_today()+10,'${B}') v`))[0].v.total===0);
+const foreign=(await request(BADMIN,OB,`SELECT public.work_planning_board(public.work_today()+10) v`))[0].v;
+ok('other company gets only own board',foreign.total===1&&foreign.items[0].title==='Secret B');
+await denied('ordinary employee cannot query management board',A,OA,`SELECT public.work_planning_board(public.work_today()+10) v`);
+await denied('anonymous cannot query board',null,null,`SELECT public.work_planning_board(current_date) v`,'anon');
+await denied('null board date rejected',ADMIN,OA,`SELECT public.work_planning_board(NULL) v`);
+const role=(await request(ADMIN,OA,`SELECT public.work_save_role(NULL,'Board viewer','Planning only',true) v`))[0].v;
+await request(ADMIN,OA,`SELECT public.work_set_role_permissions('${role}',ARRAY['planning.view'])`);
+await request(ADMIN,OA,`SELECT public.work_save_employee_profile('${SHARED}','Shared',NULL, '${role}')`);
+ok('planning viewer can read board without admin or reports permission',(await request(SHARED,OA,`SELECT public.work_planning_board(public.work_today()+10) v`))[0].v.total===4);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261023001000_planning_board.sql','utf8'));
+ok('board activation is idempotent and leaves CREATE revoked',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+}
+console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: explicit task NFC actions, role boundaries and non-superuser installation'}));
+}catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/planning-board-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; no hosted writes or physical NFC testing',results},null,2));await db.close()}

@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-export async function workRpc(name, args) {
-  const { data, error } = await supabase.rpc(name, args)
+export async function workRpc(name, args, options = {}) {
+  let request = supabase.rpc(name, args)
+  if (options.signal) request = request.abortSignal(options.signal)
+  const { data, error } = await request
   if (error) throw new Error(error.message || 'No se pudo confirmar la operación')
   return data
 }

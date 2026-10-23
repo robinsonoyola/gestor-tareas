@@ -1,3 +1,4 @@
+import PlanningBoard from './pages/admin/PlanningBoard'
 import LoginDestination from './components/auth/LoginDestination'
 import Reports from './pages/admin/Reports'
 import Incidents from './pages/Incidents'
@@ -53,6 +54,7 @@ function App() {
         <Route path="/station" element={<WorkStation />} />
         <Route path="/admin" element={<ProtectedRoute requireAny={['tasks.view','planning.view','reports.view','checkins.view']}><Overview /></ProtectedRoute>} />
         <Route path="/admin/tasks" element={<ProtectedRoute requirePermission="tasks.view"><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/planning/board" element={<ProtectedRoute requirePermission="planning.view"><PlanningBoard /></ProtectedRoute>} />
         <Route path="/admin/planning" element={<ProtectedRoute requirePermission="planning.view"><WorkdayManager key="planning" /></ProtectedRoute>} />
         <Route path="/admin/checkins" element={<ProtectedRoute requirePermission="checkins.view"><CheckinHistory /></ProtectedRoute>} />
         <Route path="/admin/checkins/points" element={<ProtectedRoute requireAdmin><WorkdayManager key="points" section="points" /></ProtectedRoute>} />

@@ -58,6 +58,8 @@ export default function TaskDetailWithActions() {
   const [submitting, setSubmitting] = useState(false)
   const [activeCheckin, setActiveCheckin] = useState(null)
   const [incidentBlocked,setIncidentBlocked] = useState(false)
+  const observedActiveCheckin = useRef(null)
+  useEffect(()=>{observedActiveCheckin.current=activeCheckin},[activeCheckin])
   const incidentReporter = useRef(null)
   const imagePicker = useRef(null)
   const videoPicker = useRef(null)
@@ -138,18 +140,30 @@ export default function TaskDetailWithActions() {
     return () => { cancelled = true }
   }, [id, userData?.id, userData?.is_admin])
 
-  useEffect(() => {
-    if (!tabletMode || !id || !userData?.id) return
-    let current = true
-    const refresh = async () => {
-      const allowed = await fetchTaskDetails(() => current)
-      if (allowed && current) { checkActiveCheckin(); fetchCheckins() }
+  // Administrative board changes must also reach an employee using the mobile flow.
+  useEffect(()=>{
+    if(!id||!userData?.id)return
+    let live=true,running=false
+    const refresh=async()=>{
+      if(!live||running||document.hidden)return
+      running=true
+      try{
+        const {data,error}=await supabase.from('checkins').select('*').eq('task_id',id).eq('user_id',userData.id).is('checkout_time',null).maybeSingle()
+        if(!live||error)return
+        const previous=observedActiveCheckin.current
+        if(previous?.task_id===id&&previous.id&&!data){
+          observedActiveCheckin.current=null;setActiveCheckin(null);setActiveCheckinStatus('ready');setFichajeTime(null)
+          toast.info('La tarea ha cambiado. Volvemos a tus tareas asignadas.')
+          navigate('/employee',{replace:true});return
+        }
+        if(data?.id&&data.id!==previous?.id){observedActiveCheckin.current=data;setActiveCheckin(data);setActiveCheckinStatus('ready');loadQueue();await fetchTaskDetails(()=>live);if(live)fetchCheckins()}
+      }finally{running=false}
     }
-    const timer = setInterval(refresh, 10000)
-    window.addEventListener('focus', refresh)
-    return () => { current = false; clearInterval(timer); window.removeEventListener('focus', refresh) }
-  }, [tabletMode, id, userData?.id])
-
+    const timer=setInterval(()=>refresh().catch(()=>{}),10000)
+    const onFocus=()=>refresh().catch(()=>{})
+    window.addEventListener('focus',onFocus)
+    return()=>{live=false;clearInterval(timer);window.removeEventListener('focus',onFocus)}
+  },[tabletMode,id,userData?.id,navigate])
 
   useEffect(() => {
     let interval
@@ -653,7 +667,7 @@ export default function TaskDetailWithActions() {
     )
   }
 
-  const statusBadge = getStatusBadge(incidentBlocked || queueItem?.state==='blocked' ? 'blocked' : task.status)
+  const statusBadge = getStatusBadge(incidentBlocked || queueItem?.state==='blocked' ? 'blocked' : activeCheckin ? 'in_progress' : ({active:'in_progress',completed:'completed',pending:'pending'}[queueItem?.state]||task.status))
 
   return (
     <Layout>

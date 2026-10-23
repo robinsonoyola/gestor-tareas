@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 import {supabase} from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useTasks } from '@/hooks/useTasks'
@@ -22,12 +22,24 @@ export default function EmployeeDashboard() {
   const viewTitle = {all:'Mis tareas asignadas',pending:'Tareas pendientes',in_progress:'Tareas en progreso',completed:'Tareas completadas'}[statusFilter]
   const [day, setDay] = useState(null)
   const [dayError, setDayError] = useState('')
+  const dayRequest=useRef(0)
   const loadDay = async () => {
-    const {data,error} = await supabase.rpc('work_mobile_queue')
-    if (error) { setDayError(['PGRST202','42883'].includes(error.code) ? 'Falta activar la actualización del orden de tareas en Supabase.' : `No se pudo comprobar el orden de tareas (${error.code || 'conexión'}): ${error.message || 'Sin respuesta del servidor'}`); return }
-    setDay(data); setDayError(false)
+    const request=++dayRequest.current
+    try {
+      const {data,error} = await supabase.rpc('work_mobile_queue')
+      if(request!==dayRequest.current)return
+      if(error){setDayError(['PGRST202','42883'].includes(error.code)?'Falta activar la actualización del orden de tareas en Supabase.':`No se pudo comprobar el orden de tareas (${error.code||'conexión'}): ${error.message||'Sin respuesta del servidor'}`);return}
+      setDay(data);setDayError(false)
+    }catch{if(request===dayRequest.current)setDayError('No se pudo actualizar el estado de tus tareas. Vuelve a intentar.')}
   }
-  useEffect(() => { if (userData?.id) loadDay() }, [userData?.id])
+  useEffect(()=>{
+    if(!userData?.id)return
+    let live=true,running=false
+    const refresh=async()=>{if(!live||running)return;running=true;try{await loadDay()}finally{running=false}}
+    refresh();const onFocus=()=>{if(!document.hidden)refresh()};const interval=setInterval(onFocus,10000)
+    window.addEventListener('focus',onFocus)
+    return()=>{live=false;dayRequest.current++;clearInterval(interval);window.removeEventListener('focus',onFocus)}
+  },[userData?.id])
   const queue = day?.items || []
   const allTasks = (day ? queue : tasks.map(t=>({task_id:t.id,title:t.title,state:'unplanned',can_start:false}))).map(item => ({...tasks.find(t => t.id===item.task_id),...item,id:item.task_id,
     status:item.state==='active'?'in_progress':item.state==='completed'?'completed':'pending'}))
