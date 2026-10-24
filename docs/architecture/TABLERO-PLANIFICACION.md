@@ -2,6 +2,10 @@
 
 Ruta /admin/planning/board, accesible desde Planificación → Tablero. Exige planning.view en la interfaz y en work_planning_board(date,uuid). Cuatro columnas: pendientes (amarillo), en curso (azul), bloqueadas (rojo) y completadas (verde). Se conservan estilos, tipografías e identidad visual del resto de la app.
 
+La consulta operativa ampliada usa `work_planning_board_range`: admite Día, Semana, Mes o un rango personalizado de hasta 93 días, empleado, estado, búsqueda y paginación (máximo 200 ejecuciones por página). Los contadores se calculan en servidor sobre el periodo, empleado y búsqueda, antes del filtro de estado. Cada tarjeta conserva el `id` de ejecución, además del `task_id`, para que las recurrencias nunca colisionen.
+
+En móvil las columnas se apilan; solo se muestran dos columnas cuando existe anchura suficiente y cuatro en pantallas amplias. El detalle reúne programación, edición de fechas para ejecuciones abiertas, cambio de estado e historial. Reabrir una completada sigue siendo una transición explícita mediante el diálogo, con motivo, confirmación, versión de concurrencia, identificador idempotente y auditoría.
+
 Cada tarjeta es una aparición diaria por empleado, identificada por el plan, no el estado genérico del catálogo. Permite filtros de fecha/empleado y búsqueda por título, instrucciones o nombre. El detalle muestra instrucciones, persona, prioridad, fecha, inicio/cierre e historial administrativo. El enlace a planificación conserva empleado y fecha. La misma actividad para varias personas conserva tarjetas independientes.
 
 ## Movimientos

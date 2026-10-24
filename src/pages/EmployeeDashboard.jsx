@@ -1,4 +1,5 @@
 import {ImportanceBadge} from '@/components/TaskImportance'
+import {ScheduleText} from '@/components/planning/ExecutionSchedule'
 import {useEffect, useRef, useState} from 'react'
 import {supabase} from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -42,7 +43,7 @@ export default function EmployeeDashboard() {
     return()=>{live=false;dayRequest.current++;clearInterval(interval);window.removeEventListener('focus',onFocus)}
   },[userData?.id])
   const queue = day?.items || []
-  const allTasks = (day ? queue : tasks.map(t=>({task_id:t.id,title:t.title,state:'unplanned',can_start:false}))).map(item => ({...tasks.find(t => t.id===item.task_id),...item,id:item.task_id,
+  const allTasks = (day ? queue : tasks.map(t=>({task_id:t.id,title:t.title,state:'unplanned',can_start:false}))).map(item => ({...tasks.find(t => t.id===item.task_id),...item,id:item.task_id,executionId:item.plan_id||null,
     status:item.state==='active'?'in_progress':item.state==='completed'?'completed':'pending'}))
 
 
@@ -90,8 +91,9 @@ export default function EmployeeDashboard() {
   }
 
   const handleViewTask = (task) => {
-    const actionable = task.state==='active' || (task.id===day?.next_task && task.can_start===true)
-    navigate(`/employee/task/${task.id}/work${actionable ? '' : '?view=history'}`)
+    const actionable = task.state==='active' || (task.executionId===day?.next_plan && task.can_start===true)
+    const params=new URLSearchParams();if(task.executionId)params.set('plan',task.executionId);if(!actionable)params.set('view','history')
+    navigate(`/employee/task/${task.id}/work${params.size?'?'+params.toString():''}`)
   }
 
   if (loading) {
@@ -176,11 +178,11 @@ export default function EmployeeDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {visibleTasks.map((task) => {
                 const statusBadge = getStatusBadge(task.status)
-                const actionable = task.state==='active' || (task.id===day?.next_task && task.can_start===true)
+                const actionable = task.state==='active' || (task.executionId===day?.next_plan && task.can_start===true)
 
                 return (
                   <Card
-                    key={task.id}
+                    key={task.executionId||task.id}
                     className="border-2 hover:shadow-lg transition-all duration-200 flex flex-col group"
                   >
                     <CardHeader className="pb-3">
@@ -206,6 +208,7 @@ export default function EmployeeDashboard() {
                       <p className="text-sm text-gray-600 line-clamp-2 mt-2">
                         {task.description || 'Sin descripción'}
                       </p>
+                      <ScheduleText item={task}/>
                     </CardHeader>
 
                     <CardContent className="space-y-4 flex-1 flex flex-col pt-0">

@@ -1,4 +1,5 @@
-import DailyPlanningOverview from '@/components/planning/DailyPlanningOverview'
+import {ScheduleEditor,ScheduleText} from '@/components/planning/ExecutionSchedule'
+import PlanningScopeOverview from '@/components/planning/PlanningScopeOverview'
 import PersonalPinManager from '@/components/PersonalPinManager'
 import { useEffect, useRef, useState } from 'react'
 import PlanningCalendar from './PlanningCalendar'
@@ -20,7 +21,9 @@ export default function WorkdayManager({section='planning'}) {
   const { isAdmin, can } = useAuth()
   const canEdit = can('planning.edit')
   const [employees, setEmployees] = useState([])
+  const [areas,setAreas]=useState([])
   const [user, setUser] = useState(query.get('employee')||'')
+  const [planningScope,setPlanningScope]=useState(query.get('employee')?'employee':'all')
   const [date, setDate] = useState(()=>/^\d{4}-\d{2}-\d{2}$/.test(query.get('date')||'')?query.get('date'):workDate())
   const [periodMode, setPeriodMode] = useState('day')
   const [rangeStart, setRangeStart] = useState(workDate)
@@ -54,9 +57,14 @@ export default function WorkdayManager({section='planning'}) {
       setEmployees(data); setUser(current=>data.some(e=>e.id===current)?current:data[0]?.id || '')
       if (!data.length) setLoading(false)
     }).catch(e=>{setError(e.message);setLoading(false)})
+    workRpc('work_area_directory').then(data=>setAreas(data.areas||[])).catch(()=>setAreas([]))
   }, [])
   const load = async () => {
     const request = ++serial.current
+    if (section==='planning' && planningScope!=='employee') {
+      setLoading(false); setError(''); setOverview(null); setPlan([]); setAvailable([])
+      return
+    }
     if ((!user && !['points','rules'].includes(section)) || !date) {setLoading(false);return}
     setLoading(true); setError(''); setOverview(null); setPlan([]); setAvailable([])
     try {
@@ -67,7 +75,7 @@ export default function WorkdayManager({section='planning'}) {
     } catch (e) { if (request === serial.current) setError(e.message + '. Si faltan las funciones work_, instala primero el SQL del modo tablet.') }
     finally { if (request === serial.current) setLoading(false) }
   }
-  useEffect(() => { load(); return () => { serial.current++ } }, [user,date,section])
+  useEffect(() => { load(); return () => { serial.current++ } }, [user,date,section,planningScope])
   const action = async (fn) => {
     if (busy) return
     setBusy(true); setError('')
@@ -245,33 +253,33 @@ export default function WorkdayManager({section='planning'}) {
     {section==='points' && <div className="border border-amber-200 bg-amber-50 rounded-lg p-4 text-amber-900">Identificación mediante código personal. El inicio y la finalización se confirman en la tablet. La conexión con un lector NFC físico está pendiente de configurar.</div>}
     {error && <p role="alert" className="bg-red-50 text-red-800 p-4 rounded-lg">{error}</p>}
     {['planning','cards'].includes(section) && <Card><CardContent className="pt-6 grid lg:grid-cols-3 gap-6">
-      <div className="space-y-2"><Label htmlFor="work-employee">Empleado</Label><select id="work-employee" className="w-full border rounded-md bg-white p-2" value={user} disabled={busy} onChange={e=>{setSecret(null);setRangeResult('');setUser(e.target.value)}}>{employees.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}</select></div>
+      <div className="space-y-2"><Label htmlFor="work-employee">{section==='planning'?'Mostrar planificación de':'Empleado'}</Label><select id="work-employee" className="w-full border rounded-md bg-white p-2" value={section==='planning'?(planningScope==='employee'?'employee:'+user:planningScope):user} disabled={busy} onChange={e=>{setSecret(null);setRangeResult('');const value=e.target.value;if(section==='planning'){if(value.startsWith('employee:')){setPlanningScope('employee');setUser(value.slice(9))}else{setPlanningScope(value);updatePeriod('day',date)}}else setUser(value)}}>{section==='planning'?<><option value="all">Todos los empleados</option>{areas.length>0&&<optgroup label="Por área">{areas.map(area=><option key={area.id} value={`area:${area.id}`}>{area.name}</option>)}</optgroup>}<optgroup label="Por empleado">{employees.map(e=><option key={e.id} value={`employee:${e.id}`}>{e.full_name}</option>)}</optgroup></>:employees.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}</select></div>
       {section==='planning' && <div className="lg:col-span-2 space-y-4">
-        <div className="space-y-2"><Label htmlFor="period-mode">Período de planificación</Label><select id="period-mode" className="w-full border rounded-md bg-white p-2" value={periodMode} disabled={busy} onChange={e=>updatePeriod(e.target.value)}><option value="day">Día concreto</option><option value="range">Intervalo de fechas</option><option value="month">Mes completo</option><option value="year">Año completo</option></select></div>
-        {periodMode==='day' && <div className="space-y-2"><Label htmlFor="plan-day">Fecha</Label><Input id="plan-day" type="date" value={date} disabled={busy} onChange={e=>updatePeriod('day',e.target.value)} /></div>}
-        {periodMode==='range' && <div className="grid sm:grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor="range-start">Desde</Label><Input id="range-start" type="date" value={rangeStart} disabled={busy} onChange={e=>updatePeriod('range',e.target.value)} /></div><div className="space-y-2"><Label htmlFor="range-end">Hasta (incluido)</Label><Input id="range-end" type="date" value={rangeEnd} disabled={busy} onChange={e=>{setRangeEnd(e.target.value);setRangeResult('')}} /></div></div>}
-        {periodMode==='month' && <div className="space-y-2"><Label htmlFor="plan-month">Mes</Label><Input id="plan-month" type="month" value={rangeStart.slice(0,7)} disabled={busy} onChange={e=>{if(e.target.value)updatePeriod('month',e.target.value+'-01')}} /></div>}
-        {periodMode==='year' && <div className="space-y-2"><Label htmlFor="plan-year">Año</Label><Input id="plan-year" type="number" min="1900" max="9999" defaultValue={rangeStart.slice(0,4)} disabled={busy} key={periodMode} onBlur={e=>{if(/^\d{4}$/.test(e.target.value) && Number(e.target.value)>=1900)updatePeriod('year',e.target.value+'-01-01');else e.target.value=rangeStart.slice(0,4)}} /></div>}
-        {periodMode!=='day' && <>
+        {planningScope==='employee' && <div className="space-y-2"><Label htmlFor="period-mode">Período de planificación</Label><select id="period-mode" className="w-full border rounded-md bg-white p-2" value={periodMode} disabled={busy} onChange={e=>updatePeriod(e.target.value)}><option value="day">Día concreto</option><option value="range">Intervalo de fechas</option><option value="month">Mes completo</option><option value="year">Año completo</option></select></div>}
+        {(planningScope!=='employee'||periodMode==='day') && <div className="space-y-2"><Label htmlFor="plan-day">Fecha</Label><Input id="plan-day" type="date" value={date} disabled={busy} onChange={e=>updatePeriod('day',e.target.value)} /></div>}
+        {planningScope==='employee' && periodMode==='range' && <div className="grid sm:grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor="range-start">Desde</Label><Input id="range-start" type="date" value={rangeStart} disabled={busy} onChange={e=>updatePeriod('range',e.target.value)} /></div><div className="space-y-2"><Label htmlFor="range-end">Hasta (incluido)</Label><Input id="range-end" type="date" value={rangeEnd} disabled={busy} onChange={e=>{setRangeEnd(e.target.value);setRangeResult('')}} /></div></div>}
+        {planningScope==='employee' && periodMode==='month' && <div className="space-y-2"><Label htmlFor="plan-month">Mes</Label><Input id="plan-month" type="month" value={rangeStart.slice(0,7)} disabled={busy} onChange={e=>{if(e.target.value)updatePeriod('month',e.target.value+'-01')}} /></div>}
+        {planningScope==='employee' && periodMode==='year' && <div className="space-y-2"><Label htmlFor="plan-year">Año</Label><Input id="plan-year" type="number" min="1900" max="9999" defaultValue={rangeStart.slice(0,4)} disabled={busy} key={periodMode} onBlur={e=>{if(/^\d{4}$/.test(e.target.value) && Number(e.target.value)>=1900)updatePeriod('year',e.target.value+'-01-01');else e.target.value=rangeStart.slice(0,4)}} /></div>}
+        {planningScope==='employee' && periodMode!=='day' && <>
           <fieldset disabled={busy}><legend className="text-sm font-medium mb-2">Días de la semana</legend><div className="flex flex-wrap gap-4">{['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'].map((name,i)=><label key={name} className="flex gap-2 items-center text-sm"><input type="checkbox" checked={weekdays.includes(i+1)} onChange={e=>{setWeekdays(e.target.checked?[...weekdays,i+1]:weekdays.filter(d=>d!==i+1));setRangeResult('')}} />{name}</label>)}</div></fieldset>
           <div className="space-y-2"><Label htmlFor="existing-plans">Si un día ya tiene tareas</Label><select id="existing-plans" className="w-full border rounded-md bg-white p-2" value={existingMode} disabled={busy} onChange={e=>{setExistingMode(e.target.value);setRangeResult('')}}><option value="empty">Conservar ese día y completar solo días vacíos</option><option value="append">Añadir al final las tareas que falten</option></select></div>
           <p className="text-sm text-gray-500">{rangeDays ? `${rangeDays} días seleccionados. La lista de tareas parte de la planificación del ${date}.` : 'Selecciona un intervalo válido de hasta 366 días y al menos un día de la semana.'}</p>
         </>}
-        <p className="text-sm text-gray-500">Para modificar una sola fecha sin afectar a las demás, elige Día concreto.</p>
+        {planningScope==='employee' && <p className="text-sm text-gray-500">Para modificar una sola fecha sin afectar a las demás, elige Día concreto.</p>}
       </div>}
+      {section==='planning' && planningScope!=='employee' && <div className="lg:col-span-3 border-t pt-5"><PlanningScopeOverview employees={employees} areas={areas} date={date} scope={planningScope} disabled={busy} onSelect={id=>{setPlanningScope('employee');selectTeamMember(id)}} /></div>}
     </CardContent></Card>}
     {loading && <p role="status">Cargando datos…</p>}
-    {section==='planning' && <DailyPlanningOverview employees={employees} date={date} revision={overview} onSelect={selectTeamMember} disabled={busy}/>}
-    {section==='planning' && user && <PlanningCalendar user={user} date={date} onSelect={reviewDay} revision={overview}/>}
+    {section==='planning' && planningScope==='employee' && user && <PlanningCalendar user={user} date={date} onSelect={reviewDay} revision={overview}/>}
     {overview && <>
-      {section==='planning' && <>
+      {section==='planning' && planningScope==='employee' && <>
 
       {overview.overdue?.length>0 && <Card><CardHeader><CardTitle>Tareas atrasadas del empleado</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm text-gray-500">Estas tareas no finalizaron en su día. Revisa su fecha para reorganizar las pendientes. Los fichajes en curso deben finalizarse en la tablet.</p>{overview.overdue.map(t=><div key={t.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 p-3"><div><p className="font-medium">{t.title}</p><p className="text-sm text-red-700">{t.work_date} · {t.state==='active'?'En curso fuera de plazo':'Pendiente fuera de plazo'}</p></div><Button variant="outline" disabled={busy} onClick={()=>reviewDay(t.work_date)}>Revisar este día</Button></div>)}</CardContent></Card>}
       <div ref={dayDetail} tabIndex={-1} className="scroll-mt-4"><Card><CardHeader><CardTitle>Orden de las tareas · {date}</CardTitle></CardHeader><CardContent className="space-y-4">
-        <p className="text-sm text-gray-500">Las tareas deben estar previamente asignadas al empleado. Cada tarea vence al terminar el día para el que se planifica (hora de Madrid). Las iniciadas y completadas conservan su lugar e historial.</p>
+        <p className="text-sm text-gray-500">Las fechas pertenecen a cada ejecución. El orden lo decide el encargado y no cambia por la importancia ni por la fecha.</p>
         {canEdit && <div className="flex gap-3"><select aria-label="Añadir tarea asignada" value={selected} onChange={e=>setSelected(e.target.value)} className="min-w-0 flex-1 border rounded-md bg-white p-2" disabled={busy}><option value="">Selecciona una tarea</option>{available.filter(t=>!plan.some(p=>p.task_id===t.id)).map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select><Button disabled={!selected || busy} onClick={()=>{const t=available.find(t=>t.id===selected);setPlan([...plan,{task_id:t.id,title:t.title,state:'pending'}]);setSelected('')}}><Plus className="h-4 w-4" /> Añadir</Button></div>}
         {plan.length===0 && <p className="text-gray-500 p-4 border border-dashed rounded-lg">Sin tareas planificadas para este día.</p>}
-        <ol className="space-y-2">{plan.map((t,index)=><li key={t.task_id} className="flex flex-wrap items-center gap-3 border rounded-lg p-3"><span className="text-gray-400">{index+1}.</span><div className="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-0"><p className="font-medium">{t.title}</p><p className="text-sm text-gray-500">{{pending:'Pendiente',active:'En curso',completed:'Completada',blocked:'Bloqueada por incidencia'}[t.state]}</p>{t.overdue && <p className="text-sm text-red-700">Atrasada</p>}{t.completed_late && <p className="text-sm text-amber-800">Finalizada fuera de plazo</p>}</div>{canEdit && <><select aria-label={`Posición de ${t.title}`} className="border rounded-md bg-white p-2 max-w-full" value={index} disabled={busy || t.state!=='pending'} onChange={e=>moveTo(index,Number(e.target.value))}>{plan.map((_,position)=>position===index || plan.slice(Math.min(index,position),Math.max(index,position)+1).every(item=>item.state==='pending')?<option key={position} value={position}>Posición {position+1}</option>:null)}</select><Button variant="outline" size="icon" aria-label={`Subir ${t.title}`} disabled={busy || t.state!=='pending' || index===0 || plan[index-1]?.state!=='pending'} onClick={()=>move(index,-1)}><ArrowUp /></Button><Button variant="outline" size="icon" aria-label={`Bajar ${t.title}`} disabled={busy || t.state!=='pending' || index===plan.length-1 || plan[index+1]?.state!=='pending'} onClick={()=>move(index,1)}><ArrowDown /></Button><Button variant="outline" size="icon" aria-label={`Retirar ${t.title}`} disabled={busy || t.state!=='pending' || plan.slice(index+1).some(item=>item.state!=='pending')} onClick={()=>setPlan(plan.filter((_,i)=>i!==index))}><Trash2 /></Button></>}</li>)}</ol>
+        <ol className="space-y-2">{plan.map((t,index)=><li key={t.task_id} className="flex flex-wrap items-center gap-3 border rounded-lg p-3"><span className="text-gray-400">{index+1}.</span><div className="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-0"><p className="font-medium">{t.title}</p><p className="text-sm text-gray-500">{{pending:'Pendiente',active:'En curso',completed:'Completada',blocked:'Bloqueada por incidencia'}[t.state]}</p><ScheduleText item={t}/>{t.completed_late && <p className="text-sm text-amber-800">Finalizada fuera de plazo</p>}</div>{canEdit && <><select aria-label={`Posición de ${t.title}`} className="border rounded-md bg-white p-2 max-w-full" value={index} disabled={busy || t.state!=='pending'} onChange={e=>moveTo(index,Number(e.target.value))}>{plan.map((_,position)=>position===index || plan.slice(Math.min(index,position),Math.max(index,position)+1).every(item=>item.state==='pending')?<option key={position} value={position}>Posición {position+1}</option>:null)}</select><Button variant="outline" size="icon" aria-label={`Subir ${t.title}`} disabled={busy || t.state!=='pending' || index===0 || plan[index-1]?.state!=='pending'} onClick={()=>move(index,-1)}><ArrowUp /></Button><Button variant="outline" size="icon" aria-label={`Bajar ${t.title}`} disabled={busy || t.state!=='pending' || index===plan.length-1 || plan[index+1]?.state!=='pending'} onClick={()=>move(index,1)}><ArrowDown /></Button><Button variant="outline" size="icon" aria-label={`Retirar ${t.title}`} disabled={busy || t.state!=='pending' || plan.slice(index+1).some(item=>item.state!=='pending')} onClick={()=>setPlan(plan.filter((_,i)=>i!==index))}><Trash2 /></Button>{t.id&&<ScheduleEditor item={t} disabled={busy||t.state!=='pending'} onSaved={load}/>}</>}</li>)}</ol>
         {hasChanges && <p role="status" className="text-sm text-amber-800">Hay cambios sin guardar. El empleado verá el nuevo orden cuando guardes la planificación.</p>}
         {canEdit && (periodMode==='day' ? <Button disabled={busy || loading || !date} onClick={save}>{busy?'Guardando…':'Guardar planificación del día'}</Button> : <Button disabled={busy || loading || !rangeDays || !plan.length} onClick={()=>setRangeConfirm(true)}>Revisar y aplicar al período</Button>)}
         {rangeResult && <p role="status" className="text-sm text-blue-800">{rangeResult}</p>}

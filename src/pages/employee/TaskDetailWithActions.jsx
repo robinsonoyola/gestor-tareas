@@ -1,4 +1,5 @@
 import {ImportanceBadge} from '@/components/TaskImportance'
+import {ScheduleText} from '@/components/planning/ExecutionSchedule'
 import TaskChecklist from '@/components/checklists/TaskChecklist'
 import TaskNfcControl from '@/components/TaskNfcControl'
 import IncidentReporter from '@/components/IncidentReporter'
@@ -48,6 +49,7 @@ export default function TaskDetailWithActions() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const historyOnly = searchParams.get('view')==='history'
+  const requestedPlan = searchParams.get('plan')
   const { userData } = useAuth()
 
   const [task, setTask] = useState(null)
@@ -76,17 +78,18 @@ export default function TaskDetailWithActions() {
   const [fichajeTime, setFichajeTime] = useState(null)
   const [queueItem,setQueueItem] = useState(null)
   const [queueReady,setQueueReady] = useState(false)
-  const [nextTaskId,setNextTaskId] = useState(null)
+  const [nextPlanId,setNextPlanId] = useState(null)
   const [queueError,setQueueError] = useState('')
   const loadQueue = async () => {
     const {data,error} = await supabase.rpc('work_mobile_queue')
     if(error){setQueueReady(false);setQueueError(['PGRST202','42883'].includes(error.code)?'Falta activar la actualización del orden de tareas en Supabase.':`No se pudo verificar el orden (${error.code || 'conexión'}): ${error.message || 'Sin respuesta'}`);return}
-    setQueueItem(data?.items?.find(item=>item.task_id===id)||null);setNextTaskId(data?.next_task||null);setQueueReady(true)
+    const item=requestedPlan?data?.items?.find(row=>row.plan_id===requestedPlan&&row.task_id===id):data?.items?.find(row=>row.plan_id===data?.next_plan&&row.task_id===id)||data?.items?.find(row=>row.task_id===id&&row.state==='active')||null
+    setQueueItem(item||null);setNextPlanId(data?.next_plan||null);setQueueReady(true)
   }
-  useEffect(()=>{setQueueItem(null);setQueueReady(false);if(userData?.id)loadQueue()},[id,userData?.id])
+  useEffect(()=>{setQueueItem(null);setQueueReady(false);if(userData?.id)loadQueue()},[id,requestedPlan,userData?.id])
   const returnToTasks = () => navigate('/employee',{replace:true})
 
-  const canStart = !incidentBlocked && !historyOnly && queueReady && nextTaskId===id && queueItem?.task_id===id && queueItem?.can_start===true
+  const canStart = !incidentBlocked && !historyOnly && queueReady && nextPlanId===queueItem?.plan_id && queueItem?.task_id===id && queueItem?.can_start===true
   const canAct = !incidentBlocked && !historyOnly && Boolean(userData?.is_admin || (activeCheckin?.task_id===id && activeCheckinStatus === 'ready' && activeCheckin && !activeCheckin.checkout_time))
 
   const handleIncidentReported = ({blocked}) => {
@@ -702,6 +705,7 @@ export default function TaskDetailWithActions() {
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2 p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-500 font-medium">Cuándo debe hacerse</p><ScheduleText item={queueItem}/></div>
             {task.due_date && (
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <Calendar className="h-5 w-5 text-gray-500" />
@@ -778,7 +782,7 @@ export default function TaskDetailWithActions() {
               </div>
             ) : (
               <div className="space-y-4">
-                {!queueReady ? <p role="status">{queueError || 'Comprobando el orden de tareas…'} <button className="underline" onClick={loadQueue}>Reintentar</button></p> : !canStart && <p className="text-gray-600">{queueItem?.state==='completed'?'Tarea finalizada. Solo puedes consultar el historial y los comentarios.':'Solo consulta. El NFC se habilita cuando sea tu siguiente tarea según el orden del encargado.'}</p>}
+                {!queueReady ? <p role="status">{queueError || 'Comprobando el orden y la fecha…'} <button className="underline" onClick={loadQueue}>Reintentar</button></p> : !canStart && <p className="text-gray-600">{queueItem?.state==='completed'?'Tarea finalizada. Solo puedes consultar el historial y los comentarios.':queueItem?.starts_later?'Todavía no está disponible según su programación.':queueItem?.overdue?'La fecha límite ha pasado. Solicita al encargado que reprograme la ejecución.':'Solo consulta. El inicio se habilita cuando sea tu siguiente tarea según el orden del encargado.'}</p>}
                 {checkinConfig.nfc_enabled && canStart && (
                   <TaskNfcControl onFinished={returnToTasks} taskId={id} userId={userData?.id} activeCheckin={activeCheckin} checkinStatus={activeCheckinStatus} onChanged={async()=>{await checkActiveCheckin();await fetchCheckins()}} />
                 )}

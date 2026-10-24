@@ -1,4 +1,5 @@
 import StationChecklist from '@/components/checklists/StationChecklist'
+import {ScheduleText} from '@/components/planning/ExecutionSchedule'
 import {usabilityReady} from '@/lib/workFeatures'
 import {startPersonalCardReader} from '@/lib/personalCardNfc'
 import { useEffect, useRef, useState } from 'react'
@@ -127,7 +128,7 @@ export default function WorkStation() {
     {dayLoading && <p role="status">Cargando tareas…</p>}
     {dayError && <p role="alert" className="text-red-700">{dayError}</p>}
     {day?.items?.length === 0 && <p className="text-gray-600">No tienes tareas asignadas para hoy.</p>}
-    {day?.items?.length > 0 && <ol className="space-y-2">{day.items.map(item => <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 border rounded-lg p-3"><span>{item.priority}. {item.title}<small className="block text-gray-500">Fecha límite: {item.work_date}, fin del día (Madrid)</small></span><span className={item.state === 'active' ? 'text-blue-700' : item.state === 'completed' ? 'text-green-700' : 'text-amber-800'}>{{pending:'Pendiente',active:'En curso',completed:'Completada',blocked:'Bloqueada por incidencia'}[item.state]}{item.overdue && <small className="block text-red-700">Atrasada</small>}{item.completed_late && <small className="block text-amber-800">Fuera de plazo</small>}</span></li>)}</ol>}
+    {day?.items?.length > 0 && <ol className="space-y-2">{day.items.map(item => <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 border rounded-lg p-3"><span>{item.priority}. {item.title}<ScheduleText item={item} className="block text-sm text-gray-500"/></span><span className={item.state === 'active' ? 'text-blue-700' : item.state === 'completed' ? 'text-green-700' : 'text-amber-800'}>{{pending:'Pendiente',active:'En curso',completed:'Completada',blocked:'Bloqueada por incidencia'}[item.state]}{item.overdue && <small className="block text-red-700">Atrasada</small>}{item.completed_late && <small className="block text-amber-800">Fuera de plazo</small>}</span></li>)}</ol>}
     {person && <Button variant="outline" className="w-full" onClick={()=>setShowDay(false)}>Volver a mi tarea</Button>}
   </section>
   if (!sessionChecked) return <main className="min-h-screen flex items-center justify-center">Comprobando este navegador…</main>
