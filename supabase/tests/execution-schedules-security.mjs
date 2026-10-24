@@ -426,5 +426,21 @@ await denied('range board rejects excessive pages',ADMIN,OA,`SELECT public.work_
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261024000500_board_range_and_execution_identity.sql','utf8'));
 ok('range and queue activation is idempotent and revokes CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
+{
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261024000800_operational_notifications.sql','utf8'));
+const employee=id(9200),noticeTask=(await request(ADMIN,OA,`SELECT public.work_manage_task_importance('create','high',NULL,'Notification task','Test','daily',NULL,'pending',ARRAY['${employee}']::uuid[]) v`))[0].v;
+let notices=(await db.query(`SELECT kind,message,event_key FROM public.work_notifications WHERE organization_id='${OA}' AND user_id='${employee}' AND kind IN('assignment','importance') ORDER BY kind`)).rows;
+ok('new assignment and importance create notifications',notices.length===2&&notices.every(n=>n.event_key&&n.message.includes('Notification task')));
+await request(ADMIN,OA,`SELECT public.work_manage_task_importance('edit','urgent','${noticeTask}','Notification task','Test','daily',NULL,'pending',ARRAY['${employee}']::uuid[])`);
+const importanceCount=(await db.query(`SELECT count(*)::int n FROM public.work_notifications WHERE organization_id='${OA}' AND user_id='${employee}' AND kind='importance'`)).rows[0].n;
+ok('importance changes notify once per audited change',importanceCount===2);
+await request(ADMIN,OA,`SELECT public.work_save_plan('${employee}',public.work_today()+2,ARRAY['${noticeTask}']::uuid[])`);
+const noticePlan=(await db.query(`SELECT id FROM public.work_day_plan WHERE organization_id='${OA}' AND user_id='${employee}' AND task_id='${noticeTask}' AND work_date=public.work_today()+2`)).rows[0].id;
+await request(ADMIN,OA,`SELECT public.work_set_execution_schedule('${noticePlan}','deadline',NULL,NULL,(public.work_today()+3)::timestamp AT TIME ZONE 'Europe/Madrid',NULL,false,NULL,'${id(9901)}')`);
+notices=(await db.query(`SELECT kind,event_key FROM public.work_notifications WHERE organization_id='${OA}' AND user_id='${employee}' AND kind='schedule'`)).rows;
+ok('schedule changes notify the planned employee',notices.length===1&&Boolean(notices[0].event_key));
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261024000800_operational_notifications.sql','utf8'));
+ok('notification activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','ase_private','CREATE') v")).rows[0].v===false);
+}
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}

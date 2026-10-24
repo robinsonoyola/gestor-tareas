@@ -1045,6 +1045,26 @@
       "test": "range and queue activation is idempotent and revokes CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "new assignment and importance create notifications",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "importance changes notify once per audited change",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "schedule changes notify the planned employee",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "notification activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }
