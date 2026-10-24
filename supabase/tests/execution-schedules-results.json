@@ -1065,6 +1065,26 @@
       "test": "notification activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "deadline reminder is generated once inside 24 hours",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "overdue reminder is generated once",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "deadline inbox keeps upcoming and overdue events separately",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "deadline activation is idempotent and leaves executor without public CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }
