@@ -1,4 +1,4 @@
-import {ImportanceBadge,ImportanceField,ImportanceHistory} from '@/components/TaskImportance'
+import {ImportanceBadge,ImportanceField,TaskTimeline} from '@/components/TaskImportance'
 import ChecklistEditor from '@/components/checklists/ChecklistEditor'
 import {MobileTasks} from './admin/MobileRecords'
 import { useState, useEffect } from 'react'
@@ -346,7 +346,7 @@ export default function AdminDashboard() {
           </DialogHeader>
           <form onSubmit={handleEditTask} className="space-y-4">
             <ImportanceField id="edit-task-importance" value={taskForm.importance} onChange={importance=>setTaskForm(v=>({...v,importance}))}/>
-            {selectedTask&&<ImportanceHistory key={selectedTask.id} taskId={selectedTask.id}/>}
+            {selectedTask&&<TaskTimeline key={selectedTask.id} taskId={selectedTask.id}/>}
             <div className="space-y-2">
               <Label htmlFor="edit-title" className="text-gray-900 font-semibold">Título *</Label>
               <Input id="edit-title" value={taskForm.title} onChange={(e) => setTaskForm(prev => ({ ...prev, title: e.target.value }))} required className="text-gray-900" />

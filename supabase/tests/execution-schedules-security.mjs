@@ -454,6 +454,21 @@ const deadlineKinds=(await db.query(`SELECT kind FROM public.work_notifications 
 ok('deadline inbox keeps upcoming and overdue events separately',JSON.stringify(deadlineKinds)===JSON.stringify(['deadline_soon','overdue']));
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261024000900_deadline_notifications.sql','utf8'));
 ok('deadline activation is idempotent and leaves executor without public CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261024001000_unified_task_history.sql','utf8'));
+let timeline=(await request(ADMIN,OA,`SELECT public.work_task_timeline('${noticeTask}') v`))[0].v;
+ok('unified timeline includes creation importance and schedule',timeline.some(e=>e.kind==='created')&&timeline.some(e=>e.kind==='importance')&&timeline.some(e=>e.kind==='schedule'));
+ok('assigned employee can read unified task timeline',Array.isArray((await request(employee,OA,`SELECT public.work_task_timeline('${noticeTask}') v`))[0].v));
+await request(ADMIN,OA,`DELETE FROM public.task_assignments WHERE task_id='${noticeTask}' AND user_id='${employee}'`);
+timeline=(await request(ADMIN,OA,`SELECT public.work_task_timeline('${noticeTask}') v`))[0].v;
+ok('unified timeline preserves assignment removal',timeline.some(e=>e.kind==='assignment_unassigned'&&e.detail));
+await denied('unassigned employee cannot read unified task timeline',employee,OA,`SELECT public.work_task_timeline('${noticeTask}') v`);
+await request(ADMIN,OA,`INSERT INTO public.task_assignments(task_id,user_id) VALUES('${noticeTask}','${employee}')`);
+timeline=(await request(ADMIN,OA,`SELECT public.work_task_timeline('${noticeTask}') v`))[0].v;
+ok('unified timeline records a new assignment',timeline.some(e=>e.kind==='assignment_assigned'&&e.detail));
+await denied('other organization cannot read unified task timeline',BADMIN,OB,`SELECT public.work_task_timeline('${noticeTask}') v`);
+await denied('assignment history is append only',ADMIN,OA,`UPDATE public.work_task_assignment_events SET action='assigned' WHERE task_id='${noticeTask}'`);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261024001000_unified_task_history.sql','utf8'));
+ok('unified history activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false&&(await db.query("SELECT has_schema_privilege('ase_tenant_executor','ase_private','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}

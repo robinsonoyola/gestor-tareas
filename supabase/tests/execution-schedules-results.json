@@ -1085,6 +1085,46 @@
       "test": "deadline activation is idempotent and leaves executor without public CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "unified timeline includes creation importance and schedule",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "assigned employee can read unified task timeline",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "unified timeline preserves assignment removal",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "unassigned employee cannot read unified task timeline",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "unified timeline records a new assignment",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot read unified task timeline",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "assignment history is append only",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "unified history activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }
