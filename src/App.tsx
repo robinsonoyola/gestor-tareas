@@ -1,3 +1,4 @@
+import RecurringWork from './pages/admin/RecurringWork'
 import PlanningBoard from './pages/admin/PlanningBoard'
 import LoginDestination from './components/auth/LoginDestination'
 import Reports from './pages/admin/Reports'
@@ -54,6 +55,7 @@ function App() {
         <Route path="/station" element={<WorkStation />} />
         <Route path="/admin" element={<ProtectedRoute requireAny={['tasks.view','planning.view','reports.view','checkins.view']}><Overview /></ProtectedRoute>} />
         <Route path="/admin/tasks" element={<ProtectedRoute requirePermission="tasks.view"><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/planning/recurrences" element={<ProtectedRoute requirePermission="planning.view"><RecurringWork /></ProtectedRoute>} />
         <Route path="/admin/planning/board" element={<ProtectedRoute requirePermission="planning.view"><PlanningBoard /></ProtectedRoute>} />
         <Route path="/admin/planning" element={<ProtectedRoute requirePermission="planning.view"><WorkdayManager key="planning" /></ProtectedRoute>} />
         <Route path="/admin/checkins" element={<ProtectedRoute requirePermission="checkins.view"><CheckinHistory /></ProtectedRoute>} />
