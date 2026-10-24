@@ -1,3 +1,4 @@
+import {ImportanceBadge} from '@/components/TaskImportance'
 import TaskChecklist from '@/components/checklists/TaskChecklist'
 import TaskNfcControl from '@/components/TaskNfcControl'
 import IncidentReporter from '@/components/IncidentReporter'
@@ -688,7 +689,7 @@ export default function TaskDetailWithActions() {
             >
               {statusBadge.label}
             </Badge>
-            {task.schedule_type && getScheduleTypeBadge(task.schedule_type)}
+            <ImportanceBadge value={task.importance}/>{task.schedule_type && getScheduleTypeBadge(task.schedule_type)}
           </div>
         </div>
 

@@ -1,3 +1,4 @@
+import {ImportanceBadge,ImportanceField,ImportanceHistory} from '@/components/TaskImportance'
 import ChecklistEditor from '@/components/checklists/ChecklistEditor'
 import {MobileTasks} from './admin/MobileRecords'
 import { useState, useEffect } from 'react'
@@ -56,6 +57,7 @@ export default function AdminDashboard() {
   const [search,setSearch]=useState('')
   const [employeeFilter,setEmployeeFilter]=useState('')
   const [statusFilter,setStatusFilter]=useState('all')
+  const [importanceFilter,setImportanceFilter]=useState('all')
   const { can, isAdmin } = useAuth()
   const [tasks, setTasks] = useState([])
   const [employees, setEmployees] = useState([])
@@ -69,6 +71,7 @@ export default function AdminDashboard() {
     title: '',
     description: '',
     schedule_type: 'daily',
+    importance: 'normal',
     schedule_date: '',
     status: 'pending',
     assigned_users: []
@@ -106,14 +109,15 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      await workRpc('work_manage_task',{p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_users:taskForm.assigned_users})
+      await workRpc('work_manage_task_importance',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_users:taskForm.assigned_users})
       toast.success('✅ Tarea creada correctamente')
       setIsCreateModalOpen(false)
       resetForm()
       fetchTasks()
     } catch (error) {
       console.error('Error creating task:', error)
-      toast.error('Error al crear la tarea')
+      const message=String(error?.message||error||'')
+      toast.error(message.includes('work_manage_task_importance')?'Falta activar la importancia de tareas en Supabase.':message||'Error al crear la tarea')
     }
   }
 
@@ -121,7 +125,7 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      await workRpc('work_manage_task',{p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_users:taskForm.assigned_users})
+      await workRpc('work_manage_task_importance',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_users:taskForm.assigned_users})
       toast.success('✅ Tarea actualizada correctamente')
       setIsEditModalOpen(false)
       setSelectedTask(null)
@@ -129,7 +133,8 @@ export default function AdminDashboard() {
       fetchTasks()
     } catch (error) {
       console.error('Error updating task:', error)
-      toast.error('Error al actualizar la tarea')
+      const message=String(error?.message||error||'')
+      toast.error(message.includes('work_manage_task_importance')?'Falta activar la importancia de tareas en Supabase.':message||'Error al actualizar la tarea')
     }
   }
 
@@ -152,6 +157,7 @@ export default function AdminDashboard() {
       title: task.title,
       description: task.description || '',
       schedule_type: task.schedule_type,
+      importance: task.importance || 'normal',
       schedule_date: task.schedule_date || '',
       status: task.status,
       assigned_users: task.assigned_users.map(u => u.id)
@@ -164,6 +170,7 @@ export default function AdminDashboard() {
       title: '',
       description: '',
       schedule_type: 'daily',
+      importance: 'normal',
       schedule_date: '',
       status: 'pending',
       assigned_users: []
@@ -179,7 +186,7 @@ export default function AdminDashboard() {
     }))
   }
 
-  const filteredTasks = tasks.filter(t=>(t.title+' '+(t.description||'')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')) && (!employeeFilter||t.assigned_users.some(u=>u.id===employeeFilter)) && (statusFilter==='all'||t.status===statusFilter))
+  const filteredTasks = tasks.filter(t=>(t.title+' '+(t.description||'')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')) && (!employeeFilter||t.assigned_users.some(u=>u.id===employeeFilter)) && (statusFilter==='all'||t.status===statusFilter) && (importanceFilter==='all'||(t.importance||'normal')===importanceFilter))
 
   const getStatusBadge = (status) => {
     const variants = {
@@ -211,6 +218,7 @@ export default function AdminDashboard() {
             <CardTitle className="text-gray-900">Catálogo de actividades</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 max-w-xs"><Label htmlFor="importance-filter">Filtrar por importancia</Label><select id="importance-filter" className="w-full border rounded-md bg-white p-2" value={importanceFilter} onChange={e=>setImportanceFilter(e.target.value)}><option value="all">Todas</option><option value="low">Baja</option><option value="normal">Normal</option><option value="high">Alta</option><option value="urgent">Urgente</option></select></div>
             {loading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
@@ -240,7 +248,7 @@ export default function AdminDashboard() {
                   <TableBody>
                     {filteredTasks.map((task) => (
                       <TableRow key={task.id}>
-                        <TableCell className="font-medium text-gray-900">{task.title}</TableCell>
+                        <TableCell className="font-medium text-gray-900"><p>{task.title}</p><div className="mt-2"><ImportanceBadge value={task.importance}/></div></TableCell>
                         <TableCell className="text-gray-900">
                           {task.schedule_type === 'daily' && '🔄 Diaria'}
                           {task.schedule_type === 'weekly' && '📅 Semanal'}
@@ -256,8 +264,8 @@ export default function AdminDashboard() {
                           {isAdmin && <Button size="sm" variant="outline" onClick={()=>navigate('/admin/access?task='+task.id)}>Compartir acceso</Button>}
                           {can('planning.view') && <Button size="sm" variant="outline" onClick={()=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))}>Planificar</Button>}
                           {can('tasks.edit') && <Button size="sm" variant="outline" onClick={()=>setChecklistTask(task)}>Pasos</Button>}
-                          {can('tasks.edit') && <Button size="sm" variant="outline" onClick={() => openEditModal(task)}><Edit className="h-4 w-4" /></Button>}
-                          {can('tasks.delete') && <Button size="sm" variant="outline" onClick={() => handleDeleteTask(task.id)} className="text-red-600 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>}
+                          {can('tasks.edit') && <Button size="sm" variant="outline" aria-label={`Editar ${task.title}`} onClick={() => openEditModal(task)}><Edit className="h-4 w-4" /></Button>}
+                          {can('tasks.delete') && <Button size="sm" variant="outline" aria-label={`Eliminar ${task.title}`} onClick={() => handleDeleteTask(task.id)} className="text-red-600 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -278,6 +286,7 @@ export default function AdminDashboard() {
             <DialogDescription className="text-gray-900">Completa los datos de la nueva tarea</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateTask} className="space-y-4">
+            <ImportanceField id="task-importance" value={taskForm.importance} onChange={importance=>setTaskForm(v=>({...v,importance}))}/>
             <div className="space-y-2">
               <Label htmlFor="title" className="text-gray-900 font-semibold">Título *</Label>
               <Input id="title" value={taskForm.title} onChange={(e) => setTaskForm(prev => ({ ...prev, title: e.target.value }))} required className="text-gray-900" />
@@ -336,6 +345,8 @@ export default function AdminDashboard() {
             <DialogDescription className="text-gray-900">Modifica los datos de la tarea</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditTask} className="space-y-4">
+            <ImportanceField id="edit-task-importance" value={taskForm.importance} onChange={importance=>setTaskForm(v=>({...v,importance}))}/>
+            {selectedTask&&<ImportanceHistory key={selectedTask.id} taskId={selectedTask.id}/>}
             <div className="space-y-2">
               <Label htmlFor="edit-title" className="text-gray-900 font-semibold">Título *</Label>
               <Input id="edit-title" value={taskForm.title} onChange={(e) => setTaskForm(prev => ({ ...prev, title: e.target.value }))} required className="text-gray-900" />

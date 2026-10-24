@@ -1,3 +1,4 @@
+import {ImportanceBadge} from '@/components/TaskImportance'
 import {useEffect, useRef, useState} from 'react'
 import {supabase} from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -197,8 +198,8 @@ export default function EmployeeDashboard() {
                         >
                           {statusBadge.label}
                         </Badge>
-                        {task.schedule_type && getScheduleTypeBadge(task.schedule_type)}
-                        {task.priority != null && <Badge variant="outline">Prioridad {task.priority}</Badge>}
+                        <ImportanceBadge value={task.importance}/>{task.schedule_type && getScheduleTypeBadge(task.schedule_type)}
+                        {task.priority != null && <Badge variant="outline">Orden {task.priority}</Badge>}
                         <Badge variant="outline">{task.state==='completed'?'Finalizada · solo consulta':task.state==='active'?'En curso':actionable?'Siguiente tarea · NFC habilitado':'Solo consulta'}</Badge>
                       </div>
 
