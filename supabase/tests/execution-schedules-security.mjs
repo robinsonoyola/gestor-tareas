@@ -598,6 +598,15 @@ const resumed=(await db.query(`SELECT p.state,count(*)FILTER(WHERE c.checkout_ti
 ok('pause and resume are recorded in board history',(await request(ADMIN,OA,`SELECT public.work_board_history('${pausePlan}') v`))[0].v.filter(x=>['paused','active'].includes(x.to_state)).length===2);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000900_pause_resume_execution.sql','utf8'));
 ok('pause activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001000_comment_notifications.sql','utf8'));
+await db.query(`INSERT INTO public.work_task_followers(organization_id,task_id,user_id)VALUES($1,$2,$3)ON CONFLICT DO NOTHING`,[OA,pauseTask,A]);
+await request(employee,OA,`INSERT INTO public.task_comments(task_id,user_id,comment)VALUES('${pauseTask}','${employee}','Progress without sensitive notification text')`);
+ok('task follower receives a contextual comment notification',(await db.query(`SELECT count(*)::int n FROM public.work_notifications WHERE organization_id=$1 AND user_id=$2 AND kind='comment' AND message LIKE 'Nuevo comentario en: Pause task%'`,[OA,A])).rows[0].n===1);
+ok('comment author is not notified about their own comment',(await db.query(`SELECT count(*)::int n FROM public.work_notifications WHERE organization_id=$1 AND user_id=$2 AND kind='comment'`,[OA,employee])).rows[0].n===0);
+ok('comment notification does not expose the comment body',(await db.query(`SELECT count(*)::int n FROM public.work_notifications WHERE organization_id=$1 AND kind='comment' AND message LIKE '%sensitive notification text%'`,[OA])).rows[0].n===0);
+ok('other organization cannot read comment notifications',!(await request(BADMIN,OB,`SELECT public.work_incident_inbox() v`))[0].v.notifications.some(x=>x.kind==='comment'));
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001000_comment_notifications.sql','utf8'));
+ok('comment notification activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','ase_private','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}

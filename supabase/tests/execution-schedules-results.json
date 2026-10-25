@@ -1455,6 +1455,31 @@
       "test": "pause activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "task follower receives a contextual comment notification",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "comment author is not notified about their own comment",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "comment notification does not expose the comment body",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot read comment notifications",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "comment notification activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }
