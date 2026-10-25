@@ -627,6 +627,18 @@ await denied('labels reject case-insensitive duplicates',ADMIN,OA,`SELECT public
 await denied('other organization cannot edit labels of a foreign task',BADMIN,OB,`SELECT public.work_manage_task_labeled('edit','normal','${labeledTask}','Foreign edit','Invalid','daily',NULL,'pending',NULL,ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,NULL,false,NULL,ARRAY['Foreign']::text[])`);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001200_task_labels.sql','utf8'));
 ok('task label activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001300_task_context.sql','utf8'));
+const contextTask=(await request(ADMIN,OA,`SELECT public.work_manage_task_context('create','normal',NULL,'Context task','ERP connection','daily',NULL,'pending','${employee}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,20,false,NULL,ARRAY['Técnica']::text[],'Planta 2 · Habitación 204','Mantenimiento','Activo','AC-204','Aire acondicionado salón') v`))[0].v;
+let contextCatalog=(await request(ADMIN,OA,'SELECT public.work_task_catalog_labeled() v'))[0].v.find(t=>t.id===contextTask);
+ok('task stores operational location and related ERP origin',contextCatalog.location==='Planta 2 · Habitación 204'&&contextCatalog.source_module==='Mantenimiento'&&contextCatalog.related_entity_type==='Activo'&&contextCatalog.related_entity_reference==='AC-204'&&contextCatalog.related_entity_label==='Aire acondicionado salón');
+ok('task context preserves labels and operational fields',contextCatalog.labels[0]==='Técnica'&&contextCatalog.estimated_minutes===20);
+await request(ADMIN,OA,`SELECT public.work_manage_task_context('edit','normal','${contextTask}','Context task','ERP connection','daily',NULL,'pending','${employee}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,20,false,NULL,ARRAY['Técnica']::text[],NULL,NULL,NULL,NULL,NULL)`);
+contextCatalog=(await request(ADMIN,OA,'SELECT public.work_task_catalog_labeled() v'))[0].v.find(t=>t.id===contextTask);
+ok('task context can be cleared without changing the task',contextCatalog.location===null&&contextCatalog.source_module===null&&contextCatalog.labels[0]==='Técnica');
+await denied('related entity requires both type and reference',ADMIN,OA,`SELECT public.work_manage_task_context('edit','normal','${contextTask}','Context task','ERP connection','daily',NULL,'pending','${employee}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,20,false,NULL,ARRAY[]::text[],NULL,'CRM','Cliente',NULL,'Hotel Example')`);
+await denied('other organization cannot edit task context',BADMIN,OB,`SELECT public.work_manage_task_context('edit','normal','${contextTask}','Foreign context','Invalid','daily',NULL,'pending',NULL,ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,NULL,false,NULL,ARRAY[]::text[],'Foreign location',NULL,NULL,NULL,NULL)`);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001300_task_context.sql','utf8'));
+ok('task context activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}

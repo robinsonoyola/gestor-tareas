@@ -1535,6 +1535,36 @@
       "test": "task label activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "task stores operational location and related ERP origin",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "task context preserves labels and operational fields",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "task context can be cleared without changing the task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "related entity requires both type and reference",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot edit task context",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "task context activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }
