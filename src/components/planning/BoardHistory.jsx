@@ -1,7 +1,7 @@
 import {useEffect,useState} from 'react'
 import {workRpc} from '@/lib/workflow'
 import {Button} from '@/components/ui/button'
-const names={pending:'Pendiente',active:'En curso',blocked:'Bloqueada',review:'En revisión',completed:'Completada',cancelled:'Cancelada'}
+const names={pending:'Pendiente',active:'En curso',paused:'Pausada',blocked:'Bloqueada',review:'En revisión',completed:'Completada',cancelled:'Cancelada'}
 export default function BoardHistory({planId}){
  const [open,setOpen]=useState(false),[events,setEvents]=useState(null),[error,setError]=useState(''),[refresh,setRefresh]=useState(0)
  useEffect(()=>{if(!open)return;let live=true;const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),15000);setError('');workRpc('work_board_history',{p_plan:planId},{signal:controller.signal}).then(items=>{if(live)setEvents(items)}).catch(e=>{if(live)setError(e.message.includes('work_board_history')?'Falta activar el historial del tablero.':'No se pudo cargar el historial.')}).finally(()=>clearTimeout(timer));return()=>{live=false;clearTimeout(timer);controller.abort()}},[planId,open,refresh])

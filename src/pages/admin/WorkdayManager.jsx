@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import Layout from '@/components/layout/Layout'
 import { Button } from '@/components/ui/button'
+import { sectionTabClass, sectionTabsClass } from '@/components/ui/section-tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -249,7 +250,7 @@ export default function WorkdayManager({section='planning'}) {
     </Dialog>
     <div className="max-w-6xl mx-auto space-y-6">
     <div><h1 className="text-3xl font-bold">{{planning:'Planificación',cards:'Tarjetas personales',points:'Puntos de fichaje',rules:'Modo tablet'}[section]}</h1><p className="mt-2 text-gray-500">{{planning:'Organiza las tareas, fechas y orden de cada empleado.',cards:'Identificación personal del empleado, independiente de los enlaces a tareas.',points:'Configura los dispositivos compartidos donde se confirma el trabajo.',rules:'Gestiona el inicio y fin exclusivos desde los puntos compartidos.'}[section]}</p></div>
-    {section==='planning' && <div className="flex flex-wrap gap-2"><Button aria-current="page">Planificación</Button><Button variant="outline" asChild><Link to={`/admin/planning/board?date=${date}`}>Tablero</Link></Button><Button variant="outline" asChild><Link to="/admin/planning/recurrences">Repeticiones</Link></Button></div>}
+    {section==='planning' && <div className={sectionTabsClass}><Button variant="outline" className={sectionTabClass(true)} aria-current="page">Planificación</Button><Button variant="outline" className={sectionTabClass(false)} asChild><Link to={`/admin/planning/board?date=${date}`}>Tablero</Link></Button><Button variant="outline" className={sectionTabClass(false)} asChild><Link to="/admin/planning/recurrences">Repeticiones</Link></Button></div>}
     {section==='points' && <div className="border border-amber-200 bg-amber-50 rounded-lg p-4 text-amber-900">Identificación mediante código personal. El inicio y la finalización se confirman en la tablet. La conexión con un lector NFC físico está pendiente de configurar.</div>}
     {error && <p role="alert" className="bg-red-50 text-red-800 p-4 rounded-lg">{error}</p>}
     {['planning','cards'].includes(section) && <Card><CardContent className="pt-6 grid lg:grid-cols-3 gap-6">

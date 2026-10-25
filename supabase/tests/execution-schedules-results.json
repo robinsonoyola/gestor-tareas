@@ -1415,6 +1415,46 @@
       "test": "state reporting activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot pause an execution",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "pause closes only the active time segment",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "paused execution remains visible and resumable",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "paused execution remains openable from employee home",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "task report filters and labels paused executions",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "resume opens a new segment for the same execution",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "pause and resume are recorded in board history",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "pause activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }

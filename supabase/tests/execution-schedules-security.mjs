@@ -580,6 +580,24 @@ ok('task report labels review executions correctly',stateReport.items.some(x=>x.
 ok('task report labels cancelled executions correctly',stateReport.items.some(x=>x.task==='Review task'&&x.status==='Cancelada'));
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000800_state_reporting_consistency.sql','utf8'));
 ok('state reporting activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000900_pause_resume_execution.sql','utf8'));
+const pausePlan=id(9976),pauseCheckin=id(9977),pauseRequest=id(9978),resumeRequest=id(9979);
+const pauseTask=(await request(ADMIN,OA,`SELECT public.work_manage_task_team('create','normal',NULL,'Pause task','Execution segments','daily',NULL,'pending','${employee}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,20,false,NULL) v`))[0].v;
+await db.query(`UPDATE public.work_settings SET enabled=false WHERE organization_id=$1`,[OA]);
+await db.query(`INSERT INTO public.work_day_plan(organization_id,id,user_id,task_id,work_date,priority,state,started_at)VALUES($1,$2,$3,$4,public.work_today(),93,'active',clock_timestamp()-interval '10 minutes')`,[OA,pausePlan,employee,pauseTask]);
+await db.query(`INSERT INTO public.checkins(organization_id,id,task_id,user_id,checkin_time,checkin_method,location,work_plan_id)VALUES($1,$2,$3,$4,clock_timestamp()-interval '10 minutes','manual','Reanudación de ejecución',NULL)`,[OA,pauseCheckin,pauseTask,employee]);await db.query(`UPDATE public.checkins SET work_plan_id=$1 WHERE organization_id=$2 AND id=$3`,[pausePlan,OA,pauseCheckin]);
+await denied('other organization cannot pause an execution',BADMIN,OB,`SELECT public.work_pause_execution('${pausePlan}','pause','Foreign pause','${pauseRequest}')`);
+await request(employee,OA,`SELECT public.work_pause_execution('${pausePlan}','pause','Short operational break','${pauseRequest}')`);
+ok('pause closes only the active time segment',(await db.query(`SELECT p.state,c.checkout_time IS NOT NULL closed FROM public.work_day_plan p JOIN public.checkins c ON c.organization_id=p.organization_id AND c.id=$2 WHERE p.organization_id=$1 AND p.id=$3`,[OA,pauseCheckin,pausePlan])).rows[0].state==='paused');
+ok('paused execution remains visible and resumable',(await request(employee,OA,'SELECT public.work_mobile_queue() v'))[0].v.items.some(x=>x.plan_id===pausePlan&&x.state==='paused'&&x.can_resume&&!x.can_finish));
+ok('paused execution remains openable from employee home',(await request(employee,OA,'SELECT public.work_my_day_v2() v'))[0].v.items.some(x=>x.id===pausePlan&&x.state==='paused'&&x.can_open));
+const pausedReport=(await request(ADMIN,OA,`SELECT public.work_report_table_scope('tasks',public.work_today()-1,public.work_today()+1,NULL,'paused',NULL,NULL,NULL) v`))[0].v;
+ok('task report filters and labels paused executions',pausedReport.items.some(x=>x.task==='Pause task'&&x.status==='Pausada'));
+await request(employee,OA,`SELECT public.work_pause_execution('${pausePlan}','resume','Continue the same execution','${resumeRequest}')`);
+const resumed=(await db.query(`SELECT p.state,count(*)FILTER(WHERE c.checkout_time IS NULL)::int opened,count(*)::int segments FROM public.work_day_plan p JOIN public.checkins c ON c.organization_id=p.organization_id AND c.work_plan_id=p.id WHERE p.organization_id=$1 AND p.id=$2 GROUP BY p.state`,[OA,pausePlan])).rows[0];ok('resume opens a new segment for the same execution',resumed.state==='active'&&resumed.opened===1&&resumed.segments===2);
+ok('pause and resume are recorded in board history',(await request(ADMIN,OA,`SELECT public.work_board_history('${pausePlan}') v`))[0].v.filter(x=>['paused','active'].includes(x.to_state)).length===2);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000900_pause_resume_execution.sql','utf8'));
+ok('pause activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { workDate, workRpc } from '@/lib/workflow'
 import { Download, Printer, RefreshCw, BarChart3 } from 'lucide-react'
 
-const colors=['#2F6BFF','#0F172A','#64748B','#0D9488','#6366F1','#0369A1','#475569','#0891B2']
+const colors=['#2563EB','#16A34A','#F59E0B','#9333EA','#E11D48','#0891B2','#EA580C','#65A30D']
 const duration=value=>value==null?'—':`${(Number(value)/60).toLocaleString('es-ES',{maximumFractionDigits:1})} min`
 const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
 const csvCell=value=>'"'+String(value??'').replace(/^[=+@\-\t\r]/,'\'$&').replace(/"/g,'""')+'"'

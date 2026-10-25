@@ -43,6 +43,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
+import {workRpc} from '@/lib/workflow'
 import { signedTaskAttachment, taskAttachmentExtension, taskAttachmentId } from '@/lib/taskAttachments'
 
 export default function TaskDetailWithActions() {
@@ -75,6 +76,7 @@ export default function TaskDetailWithActions() {
     requestAnimationFrame(()=>incidentSection.current?.scrollIntoView({behavior:'smooth',block:'start'}))
   }
   const [endingCheckin, setEndingCheckin] = useState(false)
+  const [changingPause,setChangingPause] = useState(false)
   const [finishedNotice, setFinishedNotice] = useState(false)
   const [activeCheckinStatus, setActiveCheckinStatus] = useState('loading')
   const [fichajeTime, setFichajeTime] = useState(null)
@@ -85,13 +87,14 @@ export default function TaskDetailWithActions() {
   const loadQueue = async () => {
     const {data,error} = await supabase.rpc('work_mobile_queue')
     if(error){setQueueReady(false);setQueueError(['PGRST202','42883'].includes(error.code)?'Falta activar la actualización del orden de tareas en Supabase.':`No se pudo verificar el orden (${error.code || 'conexión'}): ${error.message || 'Sin respuesta'}`);return}
-    const item=requestedPlan?data?.items?.find(row=>row.plan_id===requestedPlan&&row.task_id===id):data?.items?.find(row=>row.plan_id===data?.next_plan&&row.task_id===id)||data?.items?.find(row=>row.task_id===id&&row.state==='active')||null
+    const item=requestedPlan?data?.items?.find(row=>row.plan_id===requestedPlan&&row.task_id===id):data?.items?.find(row=>row.plan_id===data?.next_plan&&row.task_id===id)||data?.items?.find(row=>row.task_id===id&&['active','paused'].includes(row.state))||null
     setQueueItem(item||null);setNextPlanId(data?.next_plan||null);setQueueReady(true)
   }
   useEffect(()=>{setQueueItem(null);setQueueReady(false);if(userData?.id)loadQueue()},[id,requestedPlan,userData?.id])
   const returnToTasks = () => navigate('/employee',{replace:true})
 
   const canStart = !incidentBlocked && !historyOnly && queueReady && nextPlanId===queueItem?.plan_id && queueItem?.task_id===id && queueItem?.can_start===true
+  const canResume = !incidentBlocked && !historyOnly && queueReady && queueItem?.task_id===id && queueItem?.state==='paused' && queueItem?.can_resume===true
   const canAct = !incidentBlocked && !historyOnly && Boolean(userData?.is_admin || (activeCheckin?.task_id===id && activeCheckinStatus === 'ready' && activeCheckin && !activeCheckin.checkout_time))
 
   const handleIncidentReported = ({blocked}) => {
@@ -500,6 +503,19 @@ export default function TaskDetailWithActions() {
     }
   }
 
+  const handlePauseResume = async action => {
+    if(tabletMode){toast.info('Confirma esta acción en la tablet');return}
+    if(changingPause||!queueItem?.plan_id)return
+    setChangingPause(true)
+    try{
+      const result=await workRpc('work_pause_execution',{p_plan:queueItem.plan_id,p_action:action,p_reason:action==='pause'?'Pausa indicada por el empleado':'Reanudación indicada por el empleado',p_request:crypto.randomUUID()})
+      if(!result?.success)throw Error('El servidor no confirmó la acción')
+      toast.success(action==='pause'?'Tarea pausada. El tiempo queda guardado.':'Tarea reanudada con un nuevo tramo de tiempo.')
+      if(action==='pause')returnToTasks();else{await loadQueue();await checkActiveCheckin();await fetchCheckins()}
+    }catch(error){toast.error(error?.message||'No se pudo cambiar la pausa')}
+    finally{setChangingPause(false)}
+  }
+
   const handleImageChange = (e) => {
     const file = e.target.files[0]
     if (file) {
@@ -638,7 +654,9 @@ export default function TaskDetailWithActions() {
         label: 'En Progreso'
       },
       blocked: {bg:'bg-amber-100',text:'text-amber-800',border:'border-amber-200',label:'Bloqueada por incidencia'},
+      paused: {bg:'bg-orange-100',text:'text-orange-800',border:'border-orange-200',label:'Pausada'},
       review: {bg:'bg-violet-100',text:'text-violet-800',border:'border-violet-200',label:'En revisión'},
+      cancelled: {bg:'bg-slate-100',text:'text-slate-800',border:'border-slate-200',label:'Cancelada'},
       completed: {
         bg: 'bg-green-100',
         text: 'text-green-800',
@@ -694,7 +712,7 @@ export default function TaskDetailWithActions() {
     )
   }
 
-  const statusBadge = getStatusBadge(incidentBlocked || queueItem?.state==='blocked' ? 'blocked' : activeCheckin ? 'in_progress' : ({active:'in_progress',review:'review',completed:'completed',pending:'pending'}[queueItem?.state]||task.status))
+  const statusBadge = getStatusBadge(incidentBlocked || queueItem?.state==='blocked' ? 'blocked' : activeCheckin ? 'in_progress' : ({active:'in_progress',paused:'paused',review:'review',cancelled:'cancelled',completed:'completed',pending:'pending'}[queueItem?.state]||task.status))
 
   return (
     <Layout>
@@ -790,6 +808,8 @@ export default function TaskDetailWithActions() {
                   </AlertDescription>
                 </Alert>
 
+                <Button variant="outline" className="w-full" disabled={changingPause} onClick={()=>handlePauseResume('pause')}>{changingPause?'Guardando pausa…':'Pausar trabajo'}</Button>
+
                 {activeCheckin.checkin_method === 'nfc' && checkinConfig.nfc_enabled ? (
                   <TaskNfcControl onFinished={returnToTasks} taskId={id} userId={userData?.id} activeCheckin={activeCheckin} checkinStatus={activeCheckinStatus} onChanged={async()=>{await checkActiveCheckin();await fetchCheckins()}} />
                 ) : (
@@ -806,7 +826,8 @@ export default function TaskDetailWithActions() {
               </div>
             ) : (
               <div className="space-y-4">
-                {!queueReady ? <p role="status">{queueError || 'Comprobando el orden y la fecha…'} <button className="underline" onClick={loadQueue}>Reintentar</button></p> : !canStart && <p className="text-gray-600">{queueItem?.state==='completed'?'Tarea finalizada. Solo puedes consultar el historial y los comentarios.':queueItem?.starts_later?'Todavía no está disponible según su programación.':queueItem?.overdue?'La fecha límite ha pasado. Solicita al encargado que reprograme la ejecución.':'Solo consulta. El inicio se habilita cuando sea tu siguiente tarea según el orden del encargado.'}</p>}
+                {!queueReady ? <p role="status">{queueError || 'Comprobando el orden y la fecha…'} <button className="underline" onClick={loadQueue}>Reintentar</button></p> : !canStart&&!canResume && <p className="text-gray-600">{queueItem?.state==='completed'?'Tarea finalizada. Solo puedes consultar el historial y los comentarios.':queueItem?.starts_later?'Todavía no está disponible según su programación.':queueItem?.overdue?'La fecha límite ha pasado. Solicita al encargado que reprograme la ejecución.':'Solo consulta. El inicio se habilita cuando sea tu siguiente tarea según el orden del encargado.'}</p>}
+                {canResume&&<Button className="w-full" size="lg" disabled={changingPause} onClick={()=>handlePauseResume('resume')}><Play className="mr-2 h-5 w-5"/>{changingPause?'Reanudando…':'Reanudar trabajo'}</Button>}
                 {checkinConfig.nfc_enabled && canStart && (
                   <TaskNfcControl onFinished={returnToTasks} taskId={id} userId={userData?.id} activeCheckin={activeCheckin} checkinStatus={activeCheckinStatus} onChanged={async()=>{await checkActiveCheckin();await fetchCheckins()}} />
                 )}
