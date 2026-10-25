@@ -527,6 +527,23 @@ await denied('estimate rejects zero and excessive values',ADMIN,OA,`SELECT publi
 await denied('other organization cannot change task estimate',BADMIN,OB,`SELECT public.work_manage_task_operational('edit','urgent','${roleTask}','Role task','Roles','daily',NULL,'pending',NULL,ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,30)`);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000400_task_time_estimates.sql','utf8'));
 ok('time estimate activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000500_task_review_approval.sql','utf8'));
+const reviewTask=(await request(ADMIN,OA,`SELECT public.work_manage_task_review('create','normal',NULL,'Review task','Approval','daily',NULL,'pending','${employee}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,30,true) v`))[0].v,reviewPlan=id(9970);
+await db.query(`INSERT INTO public.work_day_plan(organization_id,id,user_id,task_id,work_date,priority,state,started_at)VALUES($1,$2,$3,$4,public.work_today(),90,'active',clock_timestamp())`,[OA,reviewPlan,employee,reviewTask]);
+await db.query(`UPDATE public.work_day_plan SET state='completed',finished_at=clock_timestamp() WHERE organization_id=$1 AND id=$2`,[OA,reviewPlan]);
+ok('review-required completion is routed to review centrally',(await db.query(`SELECT state FROM public.work_day_plan WHERE organization_id=$1 AND id=$2`,[OA,reviewPlan])).rows[0].state==='review');
+ok('review queue exposes only pending review work',(await request(ADMIN,OA,'SELECT public.work_review_queue() v'))[0].v.some(x=>x.id===reviewPlan));
+ok('employee mobile queue keeps review item visible',(await request(employee,OA,'SELECT public.work_mobile_queue() v'))[0].v.items.some(x=>x.plan_id===reviewPlan&&x.state==='review'&&!x.can_finish));
+await denied('employee cannot approve own work',employee,OA,`SELECT public.work_decide_review('${reviewPlan}','approved','Self approval')`);
+await request(ADMIN,OA,`SELECT public.work_decide_review('${reviewPlan}','approved','Evidence checked and accepted')`);
+ok('administrator approval completes reviewed work',(await db.query(`SELECT state FROM public.work_day_plan WHERE organization_id=$1 AND id=$2`,[OA,reviewPlan])).rows[0].state==='completed');
+const rejectedPlan=id(9971);await db.query(`INSERT INTO public.work_day_plan(organization_id,id,user_id,task_id,work_date,priority,state,finished_at)VALUES($1,$2,$3,$4,public.work_today()+1,91,'review',clock_timestamp())`,[OA,rejectedPlan,employee,reviewTask]);
+await request(ADMIN,OA,`SELECT public.work_decide_review('${rejectedPlan}','rejected','Please correct the result')`);
+ok('rejected review returns execution to pending',(await db.query(`SELECT state,started_at,finished_at FROM public.work_day_plan WHERE organization_id=$1 AND id=$2`,[OA,rejectedPlan])).rows[0].state==='pending');
+ok('review decisions notify employee',(await db.query(`SELECT count(DISTINCT kind)::int n FROM public.work_notifications WHERE organization_id=$1 AND user_id=$2 AND kind IN('review_approved','review_rejected')`,[OA,employee])).rows[0].n===2);
+await denied('other organization cannot inspect review queue',BADMIN,OB,`SELECT public.work_decide_review('${reviewPlan}','approved','Foreign approval')`);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000500_task_review_approval.sql','utf8'));
+ok('review activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}

@@ -1,0 +1,8 @@
+import {useEffect,useState} from 'react'
+import {workRpc} from '@/lib/workflow'
+import {Button} from '@/components/ui/button'
+import {Card,CardContent} from '@/components/ui/card'
+import {ImportanceBadge} from '@/components/TaskImportance'
+import ReviewDecisionDialog from '@/components/planning/ReviewDecisionDialog'
+export default function ReviewQueue(){const[items,setItems]=useState(null),[selected,setSelected]=useState(null),[revision,setRevision]=useState(0),[error,setError]=useState('');useEffect(()=>{let live=true;setItems(null);setError('');workRpc('work_review_queue').then(data=>live&&setItems(data)).catch(e=>live&&setError(e.message));return()=>{live=false}},[revision]);return <div className="space-y-4">{selected&&<ReviewDecisionDialog item={selected} onClose={()=>setSelected(null)} onApplied={()=>{setSelected(null);setRevision(v=>v+1)}}/>}<div><h2 className="text-xl font-semibold">Trabajos pendientes de aprobación</h2><p className="text-sm text-gray-500">Comprueba el resultado y las evidencias antes de aprobar o devolver el trabajo.</p></div>{error&&<p role="alert" className="text-red-700">{error}</p>}{items===null&&!error&&<p role="status">Cargando revisiones…</p>}{items?.map(item=><Card key={item.id}><CardContent className="pt-6 flex flex-wrap items-center justify-between gap-4"><div><h3 className="font-semibold">{item.title}</h3><p className="text-sm text-gray-600">{item.employee} · {item.work_date}</p><div className="mt-2"><ImportanceBadge value={item.importance}/></div></div><Button onClick={()=>setSelected(item)}>Revisar trabajo</Button></CardContent></Card>)}{items?.length===0&&<p className="rounded-lg border bg-white p-6 text-center text-gray-500">No hay trabajos pendientes de revisión.</p>}</div>}
+

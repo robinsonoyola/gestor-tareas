@@ -638,6 +638,7 @@ export default function TaskDetailWithActions() {
         label: 'En Progreso'
       },
       blocked: {bg:'bg-amber-100',text:'text-amber-800',border:'border-amber-200',label:'Bloqueada por incidencia'},
+      review: {bg:'bg-violet-100',text:'text-violet-800',border:'border-violet-200',label:'En revisión'},
       completed: {
         bg: 'bg-green-100',
         text: 'text-green-800',
@@ -693,7 +694,7 @@ export default function TaskDetailWithActions() {
     )
   }
 
-  const statusBadge = getStatusBadge(incidentBlocked || queueItem?.state==='blocked' ? 'blocked' : activeCheckin ? 'in_progress' : ({active:'in_progress',completed:'completed',pending:'pending'}[queueItem?.state]||task.status))
+  const statusBadge = getStatusBadge(incidentBlocked || queueItem?.state==='blocked' ? 'blocked' : activeCheckin ? 'in_progress' : ({active:'in_progress',review:'review',completed:'completed',pending:'pending'}[queueItem?.state]||task.status))
 
   return (
     <Layout>

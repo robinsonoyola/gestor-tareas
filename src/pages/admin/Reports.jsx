@@ -10,7 +10,7 @@ import {workDate,workRpc} from '@/lib/workflow'
 import {csvTable,excelTable,saveReport} from '@/lib/reportExport'
 const definitions={
  checkins:{name:'Fichajes',columns:[['employee','Empleado'],['task','Tarea'],['start','Inicio (Madrid)'],['end','Fin (Madrid)'],['minutes','Minutos'],['method','Método'],['status','Estado']],states:{open:'En curso',closed:'Cerrado'}},
- tasks:{name:'Tareas',columns:[['employee','Empleado'],['task','Tarea'],['date','Fecha planificada'],['priority','Prioridad'],['status','Estado']],states:{pending:'Pendiente',active:'En curso',completed:'Completada',blocked:'Bloqueada',unplanned:'Sin planificación'}},
+ tasks:{name:'Tareas',columns:[['employee','Empleado'],['task','Tarea'],['date','Fecha planificada'],['priority','Prioridad'],['status','Estado']],states:{pending:'Pendiente',active:'En curso',review:'En revisión',completed:'Completada',blocked:'Bloqueada',unplanned:'Sin planificación'}},
  productivity:{name:'Productividad',columns:[['employee','Empleado'],['task','Tarea'],['date','Día'],['count','Fichajes terminados'],['minutes','Total (min)'],['average','Media (min)']]},
  incidents:{name:'Incidencias',columns:[['employee','Informante'],['task','Tarea'],['subject','Incidencia'],['responsible','Responsable / área'],['start','Creación (Madrid)'],['updated','Última actualización (Madrid)'],['status','Estado'],['blocked','Impide continuar'],['resolution','Solución']],states:{open:'Abierta',in_progress:'En atención',resolved:'Resuelta'}},
  closures:{name:'Cierres y bloqueos',columns:[['employee','Empleado'],['task','Tarea'],['actor','Registrado por'],['start','Fecha (Madrid)'],['type','Tipo'],['reason','Motivo']]}}

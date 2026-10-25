@@ -1280,6 +1280,51 @@
       "test": "time estimate activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "review-required completion is routed to review centrally",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "review queue exposes only pending review work",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee mobile queue keeps review item visible",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee cannot approve own work",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "administrator approval completes reviewed work",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "rejected review returns execution to pending",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "review decisions notify employee",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot inspect review queue",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "review activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }

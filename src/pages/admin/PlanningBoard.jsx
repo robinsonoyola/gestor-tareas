@@ -13,11 +13,12 @@ import {Badge} from '@/components/ui/badge'
 import {Card,CardContent} from '@/components/ui/card'
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog'
 import {workDate,workRpc} from '@/lib/workflow'
-const columns=[['pending','Pendientes'],['active','En curso'],['blocked','Bloqueadas'],['completed','Completadas']]
+const columns=[['pending','Pendientes'],['active','En curso'],['blocked','Bloqueadas'],['review','En revisión'],['completed','Completadas']]
 const palette={
  pending:{column:'border-amber-500 bg-amber-200',heading:'text-amber-950',badge:'border-amber-700 bg-amber-600 text-white',card:'border-l-4 border-l-amber-600'},
  active:{column:'border-blue-500 bg-blue-200',heading:'text-blue-950',badge:'border-blue-800 bg-blue-700 text-white',card:'border-l-4 border-l-blue-700'},
  blocked:{column:'border-red-500 bg-red-200',heading:'text-red-950',badge:'border-red-800 bg-red-700 text-white',card:'border-l-4 border-l-red-700'},
+ review:{column:'border-violet-500 bg-violet-200',heading:'text-violet-950',badge:'border-violet-800 bg-violet-700 text-white',card:'border-l-4 border-l-violet-700'},
  completed:{column:'border-green-500 bg-green-200',heading:'text-green-950',badge:'border-green-800 bg-green-700 text-white',card:'border-l-4 border-l-green-700'}
 }
 const states=Object.fromEntries(columns)
@@ -42,7 +43,7 @@ export default function PlanningBoard(){
  },[start,end,employee,state,search,revision])
  useEffect(()=>{interaction.current=!!moveRequest||!!dragging},[moveRequest,dragging])
  useEffect(()=>{setMoveRequest(null);setDragging(null);dragId.current=null;setNotice('')},[start,end,employee,state])
- const openMove=(item,target=null)=>{if(!isAdmin||busy||moveRequest||!Number.isFinite(item.version))return;if(target&&!boardTransitions[item.state]?.includes(target)){setNotice('Ese cambio necesita un fichaje activo o resolver primero el bloqueo.');return}interaction.current=true;setSelected(null);setMoveRequest({id:crypto.randomUUID(),item:{...item},target})}
+ const openMove=(item,target=null)=>{if(item.state==='review'){setNotice('Utiliza Tareas · Revisiones para aprobar o devolver este trabajo.');return}if(!isAdmin||busy||moveRequest||!Number.isFinite(item.version))return;if(target&&!boardTransitions[item.state]?.includes(target)){setNotice('Ese cambio necesita un fichaje activo o resolver primero el bloqueo.');return}interaction.current=true;setSelected(null);setMoveRequest({id:crypto.randomUUID(),item:{...item},target})}
  const dragStart=(event,item)=>{if(!isAdmin||busy||moveRequest||!Number.isFinite(item.version)){event.preventDefault();return}interaction.current=true;dragId.current=item.id;event.dataTransfer.setData('text/plain',item.id);event.dataTransfer.effectAllowed='move';setDragging(item.id)}
  const drop=(event,state)=>{event.preventDefault();const item=data?.items?.find(item=>item.id===dragId.current);dragId.current=null;setDragging(null);if(item&&item.state!==state)openMove(item,state)}
  const canDrop=state=>{const item=data?.items?.find(item=>item.id===dragging);return !!item&&boardTransitions[item.state]?.includes(state)}
