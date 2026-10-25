@@ -1165,6 +1165,56 @@
       "test": "share access activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "existing assignments receive exactly one primary per task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "catalog separates primary collaborators and followers",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "follower is not an execution assignment",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "follower can read task timeline",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee cannot manage task roles",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "role manager rejects overlapping roles",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "role manager protects employee with pending plan",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "follower receives assignment and importance notices",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "follower receives schedule notices without becoming executor",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "task roles activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }

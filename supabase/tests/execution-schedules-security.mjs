@@ -482,6 +482,24 @@ await denied('share access rejects empty responsible list',ADMIN,OA,`SELECT publ
 await denied('share access rejects unsupported expiry',ADMIN,OA,`SELECT public.work_share_task_access('${noticeTask}',ARRAY['${A}']::uuid[],2) v`);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000100_share_access_assignments.sql','utf8'));
 ok('share access activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000200_task_people_roles.sql','utf8'));
+ok('existing assignments receive exactly one primary per task',(await db.query("SELECT count(*)::int n FROM(SELECT organization_id,task_id,count(*)FILTER(WHERE responsibility_role='primary')p FROM public.task_assignments GROUP BY organization_id,task_id HAVING count(*)>0 AND count(*)FILTER(WHERE responsibility_role='primary')<>1)x")).rows[0].n===0);
+const roleTask=(await request(ADMIN,OA,`SELECT public.work_manage_task_roles('create','normal',NULL,'Role task','Roles','daily',NULL,'pending','${A}',ARRAY[]::uuid[],ARRAY['${employee}']::uuid[]) v`))[0].v;
+let roleCatalog=(await request(ADMIN,OA,'SELECT public.work_task_catalog() v'))[0].v.find(t=>t.id===roleTask);
+ok('catalog separates primary collaborators and followers',roleCatalog.assigned_users.length===1&&roleCatalog.assigned_users[0].id===A&&roleCatalog.assigned_users[0].role==='primary'&&roleCatalog.followers.length===1&&roleCatalog.followers[0].id===employee);
+ok('follower is not an execution assignment',(await db.query(`SELECT count(*)::int n FROM public.task_assignments WHERE organization_id=$1 AND task_id=$2 AND user_id=$3`,[OA,roleTask,employee])).rows[0].n===0);
+ok('follower can read task timeline',Array.isArray((await request(employee,OA,`SELECT public.work_task_timeline('${roleTask}') v`))[0].v));
+await denied('employee cannot manage task roles',A,OA,`SELECT public.work_manage_task_roles('edit','normal','${roleTask}','Role task','Roles','daily',NULL,'pending','${A}',ARRAY[]::uuid[],ARRAY['${employee}']::uuid[]) v`);
+await denied('role manager rejects overlapping roles',ADMIN,OA,`SELECT public.work_manage_task_roles('edit','normal','${roleTask}','Role task','Roles','daily',NULL,'pending','${A}',ARRAY['${employee}']::uuid[],ARRAY['${employee}']::uuid[]) v`);
+await request(ADMIN,OA,`SELECT public.work_save_plan('${A}',public.work_today()+4,ARRAY['${roleTask}']::uuid[])`);
+await denied('role manager protects employee with pending plan',ADMIN,OA,`SELECT public.work_manage_task_roles('edit','normal','${roleTask}','Role task','Roles','daily',NULL,'pending',NULL,ARRAY[]::uuid[],ARRAY['${employee}']::uuid[]) v`);
+await request(ADMIN,OA,`SELECT public.work_manage_task_roles('edit','urgent','${roleTask}','Role task','Roles','daily',NULL,'pending','${A}',ARRAY[]::uuid[],ARRAY['${employee}']::uuid[]) v`);
+ok('follower receives assignment and importance notices',(await db.query(`SELECT count(DISTINCT kind)::int n FROM public.work_notifications WHERE organization_id=$1 AND user_id=$2 AND kind IN('assignment','importance') AND message LIKE '%Role task%'`,[OA,employee])).rows[0].n===2);
+const rolePlan=(await db.query(`SELECT id FROM public.work_day_plan WHERE organization_id=$1 AND task_id=$2 AND user_id=$3`,[OA,roleTask,A])).rows[0].id;
+await request(ADMIN,OA,`SELECT public.work_set_execution_schedule('${rolePlan}','deadline',NULL,NULL,(public.work_today()+6)::timestamp AT TIME ZONE 'Europe/Madrid',NULL,false,NULL,'${id(9902)}')`);
+ok('follower receives schedule notices without becoming executor',(await db.query(`SELECT count(*)::int n FROM public.work_notifications WHERE organization_id=$1 AND user_id=$2 AND kind='schedule' AND message LIKE '%Role task%'`,[OA,employee])).rows[0].n===1);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000200_task_people_roles.sql','utf8'));
+ok('task roles activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') OR has_schema_privilege('ase_tenant_executor','ase_private','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}

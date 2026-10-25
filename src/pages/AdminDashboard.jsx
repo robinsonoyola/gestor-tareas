@@ -74,7 +74,9 @@ export default function AdminDashboard() {
     importance: 'normal',
     schedule_date: '',
     status: 'pending',
-    assigned_users: []
+    primary_user: '',
+    collaborators: [],
+    followers: []
   })
 
   useEffect(() => {
@@ -86,7 +88,7 @@ export default function AdminDashboard() {
     try {
       setLoading(true)
       const data = await workRpc('work_task_catalog')
-      const tasksWithUsers = data.map(task=>({...task,assigned_names:task.assigned_users.map(u=>u.full_name).join(', ') || 'Sin asignar'}))
+      const tasksWithUsers = data.map(task=>{const primary=task.assigned_users.find(u=>u.role==='primary'),collaborators=task.assigned_users.filter(u=>u.role!=='primary');return {...task,assigned_names:[primary&&`Responsable: ${primary.full_name}`,collaborators.length&&`Colaboran: ${collaborators.map(u=>u.full_name).join(', ')}`,task.followers?.length&&`Siguen: ${task.followers.map(u=>u.full_name).join(', ')}`].filter(Boolean).join(' · ')||'Sin asignar'}})
       setTasks(tasksWithUsers)
     } catch (error) {
       console.error('Error fetching tasks:', error)
@@ -109,7 +111,7 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      await workRpc('work_manage_task_importance',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_users:taskForm.assigned_users})
+      await workRpc('work_manage_task_roles',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers})
       toast.success('✅ Tarea creada correctamente')
       setIsCreateModalOpen(false)
       resetForm()
@@ -117,7 +119,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error creating task:', error)
       const message=String(error?.message||error||'')
-      toast.error(message.includes('work_manage_task_importance')?'Falta activar la importancia de tareas en Supabase.':message||'Error al crear la tarea')
+      toast.error(message.includes('work_manage_task_roles')?'Falta activar los roles de las tareas en Supabase.':message||'Error al crear la tarea')
     }
   }
 
@@ -125,7 +127,7 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      await workRpc('work_manage_task_importance',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_users:taskForm.assigned_users})
+      await workRpc('work_manage_task_roles',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers})
       toast.success('✅ Tarea actualizada correctamente')
       setIsEditModalOpen(false)
       setSelectedTask(null)
@@ -134,7 +136,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error updating task:', error)
       const message=String(error?.message||error||'')
-      toast.error(message.includes('work_manage_task_importance')?'Falta activar la importancia de tareas en Supabase.':message||'Error al actualizar la tarea')
+      toast.error(message.includes('work_manage_task_roles')?'Falta activar los roles de las tareas en Supabase.':message||'Error al actualizar la tarea')
     }
   }
 
@@ -160,7 +162,9 @@ export default function AdminDashboard() {
       importance: task.importance || 'normal',
       schedule_date: task.schedule_date || '',
       status: task.status,
-      assigned_users: task.assigned_users.map(u => u.id)
+      primary_user: task.assigned_users.find(u=>u.role==='primary')?.id || '',
+      collaborators: task.assigned_users.filter(u=>u.role!=='primary').map(u=>u.id),
+      followers: (task.followers||[]).map(u=>u.id)
     })
     setIsEditModalOpen(true)
   }
@@ -173,18 +177,15 @@ export default function AdminDashboard() {
       importance: 'normal',
       schedule_date: '',
       status: 'pending',
-      assigned_users: []
+      primary_user: '',
+      collaborators: [],
+      followers: []
     })
   }
 
-  const toggleUserAssignment = (userId) => {
-    setTaskForm(prev => ({
-      ...prev,
-      assigned_users: prev.assigned_users.includes(userId)
-        ? prev.assigned_users.filter(id => id !== userId)
-        : [...prev.assigned_users, userId]
-    }))
-  }
+  const setPrimaryUser = userId => setTaskForm(prev=>({...prev,primary_user:userId,collaborators:prev.collaborators.filter(id=>id!==userId),followers:prev.followers.filter(id=>id!==userId)}))
+  const togglePersonRole = (role,userId) => setTaskForm(prev=>{const selected=prev[role].includes(userId);return {...prev,[role]:selected?prev[role].filter(id=>id!==userId):[...prev[role],userId],primary_user:prev.primary_user===userId?'':prev.primary_user,[role==='collaborators'?'followers':'collaborators']:prev[role==='collaborators'?'followers':'collaborators'].filter(id=>id!==userId)}})
+  const peopleFields = prefix => <div className="space-y-4"><div className="space-y-2"><Label htmlFor={`${prefix}-primary`} className="text-gray-900 font-semibold">Responsable principal</Label><select id={`${prefix}-primary`} className="w-full border rounded-md bg-white p-2" value={taskForm.primary_user} onChange={e=>setPrimaryUser(e.target.value)}><option value="">Sin responsable principal</option>{employees.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}</select><p className="text-xs text-gray-500">Dirige la ejecución de la tarea.</p></div><div className="grid sm:grid-cols-2 gap-4"><div><Label className="text-gray-900 font-semibold">Colaboradores</Label><div className="border rounded-md p-3 mt-2 max-h-40 overflow-y-auto space-y-2">{employees.map(e=><label key={e.id} className="flex items-center gap-2 text-sm"><Checkbox checked={taskForm.collaborators.includes(e.id)} disabled={taskForm.primary_user===e.id} onCheckedChange={()=>togglePersonRole('collaborators',e.id)}/>{e.full_name}</label>)}</div><p className="text-xs text-gray-500 mt-1">Pueden ejecutar y fichar.</p></div><div><Label className="text-gray-900 font-semibold">Seguidores</Label><div className="border rounded-md p-3 mt-2 max-h-40 overflow-y-auto space-y-2">{employees.map(e=><label key={e.id} className="flex items-center gap-2 text-sm"><Checkbox checked={taskForm.followers.includes(e.id)} disabled={taskForm.primary_user===e.id} onCheckedChange={()=>togglePersonRole('followers',e.id)}/>{e.full_name}</label>)}</div><p className="text-xs text-gray-500 mt-1">Consultan y reciben avisos; no fichan.</p></div></div></div>
 
   const filteredTasks = tasks.filter(t=>(t.title+' '+(t.description||'')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')) && (!employeeFilter||t.assigned_users.some(u=>u.id===employeeFilter)) && (statusFilter==='all'||t.status===statusFilter) && (importanceFilter==='all'||(t.importance||'normal')===importanceFilter))
 
@@ -321,17 +322,7 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-gray-900 font-semibold">Asignar a empleados</Label>
-              <div className="border rounded-md p-4 max-h-48 overflow-y-auto space-y-2">
-                {employees.map((employee) => (
-                  <div key={employee.id} className="flex items-center space-x-2">
-                    <Checkbox id={`emp-${employee.id}`} checked={taskForm.assigned_users.includes(employee.id)} onCheckedChange={() => toggleUserAssignment(employee.id)} />
-                    <label htmlFor={`emp-${employee.id}`} className="text-sm text-gray-900 cursor-pointer">{employee.full_name}</label>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {peopleFields('create-task')}
 
             <Button type="submit" disabled={!can('tasks.create')} className="w-full">Crear Tarea</Button>
           </form>
@@ -371,17 +362,7 @@ export default function AdminDashboard() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-gray-900 font-semibold">Asignar a empleados</Label>
-              <div className="border rounded-md p-4 max-h-48 overflow-y-auto space-y-2">
-                {employees.map((employee) => (
-                  <div key={employee.id} className="flex items-center space-x-2">
-                    <Checkbox id={`edit-emp-${employee.id}`} checked={taskForm.assigned_users.includes(employee.id)} onCheckedChange={() => toggleUserAssignment(employee.id)} />
-                    <label htmlFor={`edit-emp-${employee.id}`} className="text-sm text-gray-900 cursor-pointer">{employee.full_name}</label>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {peopleFields('edit-task')}
 
             <Button type="submit" disabled={!can('tasks.edit')} className="w-full">Guardar Cambios</Button>
           </form>
