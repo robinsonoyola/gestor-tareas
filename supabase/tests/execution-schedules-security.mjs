@@ -639,6 +639,15 @@ await denied('related entity requires both type and reference',ADMIN,OA,`SELECT 
 await denied('other organization cannot edit task context',BADMIN,OB,`SELECT public.work_manage_task_context('edit','normal','${contextTask}','Foreign context','Invalid','daily',NULL,'pending',NULL,ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,NULL,false,NULL,ARRAY[]::text[],'Foreign location',NULL,NULL,NULL,NULL)`);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001300_task_context.sql','utf8'));
 ok('task context activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001400_execution_results.sql','utf8'));
+await request(employee,OA,`SELECT public.work_save_execution_result('${pausePlan}','Air filters replaced and equipment tested')`);
+ok('employee can save a result for the active execution',(await db.query(`SELECT result_summary,result_updated_by FROM public.work_day_plan WHERE organization_id=$1 AND id=$2`,[OA,pausePlan])).rows[0].result_updated_by===employee);
+await denied('execution result rejects text that is too short',employee,OA,`SELECT public.work_save_execution_result('${pausePlan}','x')`);
+await denied('other organization cannot change an execution result',BADMIN,OB,`SELECT public.work_save_execution_result('${pausePlan}','Foreign result')`);
+await request(ADMIN,OA,`SELECT public.work_save_execution_result('${pausePlan}','Result checked and clarified by administration')`);
+ok('administrator can clarify an execution result',(await db.query(`SELECT result_summary FROM public.work_day_plan WHERE organization_id=$1 AND id=$2`,[OA,pausePlan])).rows[0].result_summary.includes('administration'));
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001400_execution_results.sql','utf8'));
+ok('execution result activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}

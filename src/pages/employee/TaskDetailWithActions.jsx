@@ -78,6 +78,7 @@ export default function TaskDetailWithActions() {
   const [endingCheckin, setEndingCheckin] = useState(false)
   const [changingPause,setChangingPause] = useState(false)
   const [finishedNotice, setFinishedNotice] = useState(false)
+  const [executionResult,setExecutionResult] = useState('')
   const [activeCheckinStatus, setActiveCheckinStatus] = useState('loading')
   const [fichajeTime, setFichajeTime] = useState(null)
   const [queueItem,setQueueItem] = useState(null)
@@ -103,6 +104,7 @@ export default function TaskDetailWithActions() {
     setActiveCheckin(null)
     setActiveCheckinStatus('ready')
     setFichajeTime(null)
+    setExecutionResult('')
     toast.success('Fichaje detenido. Tarea bloqueada por incidencia, sin completarla.')
     navigate('/employee',{replace:true})
   }
@@ -493,6 +495,7 @@ export default function TaskDetailWithActions() {
     if (!activeCheckin?.id || endingCheckin) return
     setEndingCheckin(true)
     try {
+      if(executionResult.trim())await workRpc('work_save_execution_result',{p_plan:queueItem?.plan_id,p_result:executionResult.trim()})
       const { data, error } = await supabase.rpc('finish_manual_checkin', {
         p_checkin_id: activeCheckin.id
       })
@@ -819,8 +822,10 @@ export default function TaskDetailWithActions() {
 
                 <Button variant="outline" className="w-full" disabled={changingPause} onClick={()=>handlePauseResume('pause')}>{changingPause?'Guardando pausa…':'Pausar trabajo'}</Button>
 
+                <div className="space-y-2"><Label htmlFor="execution-result">Resultado del trabajo</Label><Textarea id="execution-result" value={executionResult} onChange={e=>setExecutionResult(e.target.value)} maxLength={4000} rows={4} placeholder="Resume qué se hizo y cuál fue el resultado"/><p className="text-xs text-gray-500">Se guarda en esta ejecución y no sustituye los comentarios ni las evidencias.</p></div>
+
                 {activeCheckin.checkin_method === 'nfc' && checkinConfig.nfc_enabled ? (
-                  <TaskNfcControl onFinished={returnToTasks} taskId={id} userId={userData?.id} activeCheckin={activeCheckin} checkinStatus={activeCheckinStatus} onChanged={async()=>{await checkActiveCheckin();await fetchCheckins()}} />
+                  <TaskNfcControl beforeFinish={async()=>{if(executionResult.trim())await workRpc('work_save_execution_result',{p_plan:queueItem?.plan_id,p_result:executionResult.trim()})}} onFinished={returnToTasks} taskId={id} userId={userData?.id} activeCheckin={activeCheckin} checkinStatus={activeCheckinStatus} onChanged={async()=>{await checkActiveCheckin();await fetchCheckins()}} />
                 ) : (
                   <Button
                     onClick={handleEndCheckin}

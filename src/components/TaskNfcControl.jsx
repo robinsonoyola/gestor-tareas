@@ -3,16 +3,16 @@ import {NfcIcon} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {supabase} from '@/lib/supabase'
 import {readTaskCardUid} from '@/lib/taskCardNfc'
-export default function TaskNfcControl({taskId,userId,activeCheckin,checkinStatus,onChanged,onFinished}) {
+export default function TaskNfcControl({taskId,userId,activeCheckin,checkinStatus,onChanged,onFinished,beforeFinish}) {
  const [stage,setStage]=useState('idle'),[error,setError]=useState('')
  const controller=useRef(null),generation=useRef(0),sending=useRef(false),timer=useRef(null)
  const cancel=()=>{generation.current++;clearTimeout(timer.current);controller.current?.abort();controller.current=null;setStage('idle');setError('')}
  useEffect(()=>{cancel();return()=>{generation.current++;clearTimeout(timer.current);controller.current?.abort()}},[taskId,userId,activeCheckin?.id])
  const scan=async()=>{
   if(sending.current||!taskId||!userId||checkinStatus!=='ready')return
-  cancel();const request=generation.current,abort=new AbortController();controller.current=abort;setStage('reading')
+  cancel();const request=generation.current,abort=new AbortController();controller.current=abort
   const action=activeCheckin?'checkout':'checkin',expected=activeCheckin?.id||null
-  try{await readTaskCardUid({signal:abort.signal,onRead:async uid=>{
+  try{if(action==='checkout')await beforeFinish?.();setStage('reading');await readTaskCardUid({signal:abort.signal,onRead:async uid=>{
    if(request!==generation.current||sending.current)return
    sending.current=true;setStage('saving')
    try{

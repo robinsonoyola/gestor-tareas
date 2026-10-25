@@ -1565,6 +1565,31 @@
       "test": "task context activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "employee can save a result for the active execution",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "execution result rejects text that is too short",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot change an execution result",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "administrator can clarify an execution result",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "execution result activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }
