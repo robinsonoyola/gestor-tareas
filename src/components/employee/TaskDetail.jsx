@@ -256,6 +256,7 @@ export default function TaskDetail({ task, open, onClose }) {
               <DialogDescription className="text-base text-gray-600">
                 {task.description || 'Sin descripción'}
               </DialogDescription>
+              {(task.location || task.source_module || task.related_entity_reference) && <div className="mt-3 space-y-1 text-sm text-gray-600">{task.location&&<p>📍 {task.location}</p>}{(task.source_module||task.related_entity_reference)&&<p>Origen: {[task.source_module,task.related_entity_type,task.related_entity_reference,task.related_entity_label].filter(Boolean).join(' · ')}</p>}</div>}
             </div>
 
             <Button

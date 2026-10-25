@@ -779,6 +779,15 @@ export default function TaskDetailWithActions() {
                 </div>
               </div>
             )}
+            {(task.source_module || task.related_entity_reference) && (
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg md:col-span-2">
+                <ExternalLink className="h-5 w-5 text-gray-500" />
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Origen relacionado</p>
+                  <p className="text-sm font-semibold text-gray-900">{[task.source_module,task.related_entity_type,task.related_entity_reference,task.related_entity_label].filter(Boolean).join(' · ')}</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
