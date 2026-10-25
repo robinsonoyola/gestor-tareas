@@ -57,6 +57,9 @@ export default function TaskAccessManager() {
   const qrContainer=useRef(null)
   const qrInstance=useRef(null)
   const [tasks, setTasks] = useState([])
+  const [employees, setEmployees] = useState([])
+  const [responsibleUsers, setResponsibleUsers] = useState([])
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false)
   const [accessCodes, setAccessCodes] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedTask, setSelectedTask] = useState(null)
@@ -68,7 +71,10 @@ export default function TaskAccessManager() {
   useEffect(() => {
     fetchTasks()
     fetchAccessCodes()
+    fetchEmployees()
   }, [])
+
+  useEffect(()=>{if(!selectedTask){setResponsibleUsers([]);return}let live=true;setAssignmentsLoading(true);supabase.from('task_assignments').select('user_id').eq('task_id',selectedTask).then(({data,error})=>{if(!live)return;if(error){toast.error('No se pudieron cargar los responsables');setResponsibleUsers([])}else setResponsibleUsers((data||[]).map(x=>x.user_id))}).finally(()=>{if(live)setAssignmentsLoading(false)});return()=>{live=false}},[selectedTask])
 
   const sharedTask=query.get('task')
   useEffect(()=>{
@@ -99,6 +105,12 @@ export default function TaskAccessManager() {
       console.error('Error fetching tasks:', error)
       toast.error('Error al cargar las tareas')
     }
+  }
+
+  const fetchEmployees = async () => {
+    const {data,error}=await supabase.rpc('work_employee_directory')
+    if(error){toast.error('Error al cargar los empleados');return}
+    setEmployees(data||[])
   }
 
   const fetchAccessCodes = async () => {
@@ -134,41 +146,24 @@ export default function TaskAccessManager() {
     }
 
     try {
-      // Calcular fecha de expiración
-      let expiresAt = null
-      if (expirationDays !== 'never') {
-        const days = parseInt(expirationDays)
-        expiresAt = new Date()
-        expiresAt.setDate(expiresAt.getDate() + days)
-      }
-
-      // Llamar a la función de base de datos
+      if (!responsibleUsers.length) { toast.error('Selecciona al menos un empleado responsable'); return }
       const { data: codeData, error: codeError } = await supabase
-        .rpc('generate_task_access_code', {
-          p_task_id: selectedTask
+        .rpc('work_share_task_access', {
+          p_task: selectedTask,
+          p_users: responsibleUsers,
+          p_expires_days: expirationDays==='never'?null:Number(expirationDays)
         })
 
       if (codeError) throw codeError
-
-      // Actualizar fecha de expiración si se especificó
-      if (expiresAt) {
-        const { error: updateError } = await supabase
-          .from('task_access_codes')
-          .update({ expires_at: expiresAt.toISOString() })
-          .eq('access_code', codeData)
-
-        if (updateError) throw updateError
-      }
-
-      setGeneratedCode(codeData)
-      toast.success('✅ Código generado correctamente')
+      setGeneratedCode(codeData.code)
+      toast.success('✅ Responsables asignados y acceso generado')
 
       // Recargar códigos
       await fetchAccessCodes()
 
     } catch (error) {
       console.error('Error generating code:', error)
-      toast.error('Error al generar el código de acceso')
+      toast.error(error?.message || 'Error al asignar responsables y generar el acceso')
     }
   }
 
@@ -510,6 +505,14 @@ export default function TaskAccessManager() {
               </div>
 
               <div className="space-y-2">
+                <Label className="text-gray-900 font-semibold">Empleados responsables *</Label>
+                <div className="rounded-md border p-3 space-y-2 max-h-48 overflow-y-auto">
+                  {assignmentsLoading?<p className="text-sm text-gray-500">Cargando responsables…</p>:employees.length?employees.map(employee=><label key={employee.id} className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={responsibleUsers.includes(employee.id)} onChange={e=>setResponsibleUsers(current=>e.target.checked?[...new Set([...current,employee.id])]:current.filter(id=>id!==employee.id))}/><span>{employee.full_name}</span></label>):<p className="text-sm text-gray-500">No hay empleados activos.</p>}
+                </div>
+                <p className="text-xs text-gray-500">Los empleados ya asignados aparecen marcados. No se puede retirar a quien tenga planificación pendiente, activa o bloqueada.</p>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="expiration" className="text-gray-900 font-semibold">
                   Expiración del Código
                 </Label>
@@ -529,11 +532,11 @@ export default function TaskAccessManager() {
 
               <Button
                 onClick={generateAccessCode}
-                disabled={!selectedTask}
+                disabled={!selectedTask || !responsibleUsers.length || assignmentsLoading}
                 className="w-full bg-green-500 hover:bg-green-600 text-white"
               >
                 <Key className="mr-2 h-4 w-4" />
-                Generar Código
+                Asignar y generar acceso
               </Button>
             </div>
           ) : (

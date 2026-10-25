@@ -1125,6 +1125,46 @@
       "test": "unified history activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "share access assigns selected employees and creates expiring code",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "share access cannot remove employee with pending plan",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "share access can remove employee after work is closed",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee cannot assign task through share access",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot share foreign task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "share access rejects empty responsible list",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "share access rejects unsupported expiry",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "share access activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }

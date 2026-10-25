@@ -469,6 +469,19 @@ await denied('other organization cannot read unified task timeline',BADMIN,OB,`S
 await denied('assignment history is append only',ADMIN,OA,`UPDATE public.work_task_assignment_events SET action='assigned' WHERE task_id='${noticeTask}'`);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261024001000_unified_task_history.sql','utf8'));
 ok('unified history activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false&&(await db.query("SELECT has_schema_privilege('ase_tenant_executor','ase_private','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000100_share_access_assignments.sql','utf8'));
+let shared=(await request(ADMIN,OA,`SELECT public.work_share_task_access('${noticeTask}',ARRAY['${employee}','${A}']::uuid[],7) v`))[0].v;
+ok('share access assigns selected employees and creates expiring code',shared.assigned===2&&shared.code.startsWith('TASK-')&&(await db.query(`SELECT count(*)::int n FROM public.task_assignments WHERE organization_id=$1 AND task_id=$2 AND user_id IN($3,$4)`,[OA,noticeTask,employee,A])).rows[0].n===2&&(await db.query(`SELECT expires_at>clock_timestamp()+interval '6 days' AND expires_at<clock_timestamp()+interval '8 days' v FROM public.task_access_codes WHERE access_code=$1`,[shared.code])).rows[0].v===true);
+await denied('share access cannot remove employee with pending plan',ADMIN,OA,`SELECT public.work_share_task_access('${noticeTask}',ARRAY['${A}']::uuid[],NULL) v`);
+await db.query(`UPDATE public.work_day_plan SET state='completed',finished_at=clock_timestamp() WHERE id=$1`,[noticePlan]);
+shared=(await request(ADMIN,OA,`SELECT public.work_share_task_access('${noticeTask}',ARRAY['${A}']::uuid[],NULL) v`))[0].v;
+ok('share access can remove employee after work is closed',shared.assigned===1&&(await db.query(`SELECT count(*)::int n FROM public.task_assignments WHERE organization_id=$1 AND task_id=$2 AND user_id=$3`,[OA,noticeTask,employee])).rows[0].n===0);
+await denied('employee cannot assign task through share access',A,OA,`SELECT public.work_share_task_access('${noticeTask}',ARRAY['${A}']::uuid[],NULL) v`);
+await denied('other organization cannot share foreign task',BADMIN,OB,`SELECT public.work_share_task_access('${noticeTask}',ARRAY['${B}']::uuid[],NULL) v`);
+await denied('share access rejects empty responsible list',ADMIN,OA,`SELECT public.work_share_task_access('${noticeTask}','{}'::uuid[],NULL) v`);
+await denied('share access rejects unsupported expiry',ADMIN,OA,`SELECT public.work_share_task_access('${noticeTask}',ARRAY['${A}']::uuid[],2) v`);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000100_share_access_assignments.sql','utf8'));
+ok('share access activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}
