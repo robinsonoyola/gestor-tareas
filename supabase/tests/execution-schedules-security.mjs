@@ -607,6 +607,15 @@ ok('comment notification does not expose the comment body',(await db.query(`SELE
 ok('other organization cannot read comment notifications',!(await request(BADMIN,OB,`SELECT public.work_incident_inbox() v`))[0].v.notifications.some(x=>x.kind==='comment'));
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001000_comment_notifications.sql','utf8'));
 ok('comment notification activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','ase_private','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001100_comment_mentions.sql','utf8'));
+ok('comment recipient directory lists task followers',(await request(employee,OA,`SELECT public.work_comment_recipients('${pauseTask}') v`))[0].v.some(x=>x.id===A&&x.role==='Seguidor'));
+const mentionedComment=(await request(employee,OA,`SELECT public.work_add_task_comment('${pauseTask}','Please review this progress',NULL,NULL,NULL,ARRAY['${A}']::uuid[]) id`))[0].id;
+ok('explicit mention is stored for the selected teammate',(await db.query(`SELECT count(*)::int n FROM public.work_comment_mentions WHERE organization_id=$1 AND comment_id=$2 AND user_id=$3`,[OA,mentionedComment,A])).rows[0].n===1);
+ok('mentioned teammate receives a highlighted private notice',(await db.query(`SELECT count(*)::int n FROM public.work_notifications WHERE organization_id=$1 AND user_id=$2 AND kind='mention' AND event_key=$3 AND message LIKE 'Te mencionaron en: Pause task%'`,[OA,A,`comment:${mentionedComment}:${A}`])).rows[0].n===1);
+ok('mention notification does not expose the comment body',(await db.query(`SELECT count(*)::int n FROM public.work_notifications WHERE organization_id=$1 AND event_key=$2 AND message LIKE '%Please review this progress%'`,[OA,`comment:${mentionedComment}:${A}`])).rows[0].n===0);
+await denied('employee cannot mention a person from another organization',employee,OA,`SELECT public.work_add_task_comment('${pauseTask}','Invalid foreign mention',NULL,NULL,NULL,ARRAY['${B}']::uuid[])`);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001100_comment_mentions.sql','utf8'));
+ok('comment mention activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}

@@ -120,6 +120,16 @@ export default function TaskDetailWithActions() {
     videoFile: null,
     file: null
   })
+  const [mentionOptions,setMentionOptions] = useState([])
+  const [mentions,setMentions] = useState([])
+
+  useEffect(()=>{
+    let live=true
+    setMentionOptions([]);setMentions([])
+    if(!id||!userData?.id)return()=>{live=false}
+    workRpc('work_comment_recipients',{p_task:id}).then(items=>{if(live)setMentionOptions(items||[])}).catch(()=>{})
+    return()=>{live=false}
+  },[id,userData?.id])
 
   const [imagePreview, setImagePreview] = useState(null)
   const [videoPreview, setVideoPreview] = useState(null)
@@ -609,23 +619,13 @@ export default function TaskDetailWithActions() {
         setUploadProgress(90)
       }
 
-      const { error } = await supabase
-        .from('task_comments')
-        .insert([{
-          task_id: id,
-          user_id: userData.id,
-          comment: commentForm.comment.trim(),
-          image_url: imageUrl,
-          video_url: videoUrl,
-          file_url: fileUrl
-        }])
-
-      if (error) throw error
+      await workRpc('work_add_task_comment',{p_task:id,p_comment:commentForm.comment.trim(),p_image:imageUrl,p_video:videoUrl,p_file:fileUrl,p_mentions:mentions})
 
       setUploadProgress(100)
       toast.success('✅ Comentario agregado')
 
       setCommentForm({ comment: '', imageFile: null, videoFile: null, file: null })
+      setMentions([])
       setImagePreview(null)
       setVideoPreview(null)
       setUploadProgress(0)
@@ -939,6 +939,8 @@ export default function TaskDetailWithActions() {
                   rows={3}
                 />
               </div>
+
+              {mentionOptions.length>0&&<fieldset className="rounded-lg border border-blue-200 bg-blue-50/60 p-3"><legend className="px-1 text-sm font-semibold text-blue-900">Mencionar a alguien · opcional</legend><p className="mb-3 text-xs text-blue-800">La persona recibirá un aviso destacado, sin mostrar el contenido del comentario.</p><div className="grid sm:grid-cols-2 gap-2">{mentionOptions.map(person=><label key={person.id} className="flex items-center gap-2 rounded-md border bg-white p-2 text-sm"><input type="checkbox" className="h-4 w-4 accent-blue-600" checked={mentions.includes(person.id)} onChange={e=>setMentions(current=>e.target.checked?[...current,person.id]:current.filter(id=>id!==person.id))}/><span>{person.name}<span className="block text-xs text-gray-500">{person.role}</span></span></label>)}</div></fieldset>}
 
               <div className="grid sm:grid-cols-3 gap-4">
                 <div className="flex-1 min-w-0">

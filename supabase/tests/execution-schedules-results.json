@@ -1480,6 +1480,36 @@
       "test": "comment notification activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "comment recipient directory lists task followers",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "explicit mention is stored for the selected teammate",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "mentioned teammate receives a highlighted private notice",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "mention notification does not expose the comment body",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee cannot mention a person from another organization",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "comment mention activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }
