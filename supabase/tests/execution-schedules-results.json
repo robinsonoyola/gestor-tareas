@@ -1510,6 +1510,31 @@
       "test": "comment mention activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "task labels are saved and exposed in the catalog",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "editing labels removes obsolete values",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "labels reject case-insensitive duplicates",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot edit labels of a foreign task",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "task label activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }

@@ -73,6 +73,7 @@ export default function AdminDashboard() {
   const [taskForm, setTaskForm] = useState({
     title: '',
     description: '',
+    labels_text: '',
     schedule_type: 'daily',
     importance: 'normal',
     schedule_date: '',
@@ -98,7 +99,7 @@ export default function AdminDashboard() {
   const fetchTasks = async () => {
     try {
       setLoading(true)
-      const data = await workRpc('work_task_catalog_team')
+      const data = await workRpc('work_task_catalog_labeled')
       const tasksWithUsers = data.map(task=>{const primary=task.assigned_users.find(u=>u.role==='primary'),collaborators=task.assigned_users.filter(u=>u.role!=='primary');return {...task,assigned_names:[task.area&&`Área: ${task.area.name}`,primary&&`Responsable: ${primary.full_name}`,collaborators.length&&`Colaboran: ${collaborators.map(u=>u.full_name).join(', ')}`,task.followers?.length&&`Siguen: ${task.followers.map(u=>u.full_name).join(', ')}`,task.area&&!task.assigned_users.length&&'Pendiente de asignar'].filter(Boolean).join(' · ')||'Sin asignar'}})
       setTasks(tasksWithUsers)
     } catch (error) {
@@ -131,7 +132,7 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      await workRpc('work_manage_task_team',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null})
+      await workRpc('work_manage_task_labeled',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null,p_labels:taskForm.labels_text.split(',').map(label=>label.trim()).filter(Boolean)})
       toast.success('✅ Tarea creada correctamente')
       setIsCreateModalOpen(false)
       resetForm()
@@ -139,7 +140,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error creating task:', error)
       const message=String(error?.message||error||'')
-      toast.error(message.includes('work_manage_task_team')?'Falta activar la asignación de tareas por área en Supabase.':message||'Error al crear la tarea')
+      toast.error(message.includes('work_manage_task_labeled')?'Falta activar las etiquetas de tareas en Supabase.':message||'Error al crear la tarea')
     }
   }
 
@@ -147,7 +148,7 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      await workRpc('work_manage_task_team',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null})
+      await workRpc('work_manage_task_labeled',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null,p_labels:taskForm.labels_text.split(',').map(label=>label.trim()).filter(Boolean)})
       toast.success('✅ Tarea actualizada correctamente')
       setIsEditModalOpen(false)
       setSelectedTask(null)
@@ -156,7 +157,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error updating task:', error)
       const message=String(error?.message||error||'')
-      toast.error(message.includes('work_manage_task_team')?'Falta activar la asignación de tareas por área en Supabase.':message||'Error al actualizar la tarea')
+      toast.error(message.includes('work_manage_task_labeled')?'Falta activar las etiquetas de tareas en Supabase.':message||'Error al actualizar la tarea')
     }
   }
 
@@ -178,6 +179,7 @@ export default function AdminDashboard() {
     setTaskForm({
       title: task.title,
       description: task.description || '',
+      labels_text: (task.labels||[]).join(', '),
       schedule_type: task.schedule_type,
       importance: task.importance || 'normal',
       schedule_date: task.schedule_date || '',
@@ -200,6 +202,7 @@ export default function AdminDashboard() {
     setTaskForm({
       title: '',
       description: '',
+      labels_text: '',
       schedule_type: 'daily',
       importance: 'normal',
       schedule_date: '',
@@ -225,8 +228,9 @@ export default function AdminDashboard() {
   const evidenceFields = prefix => <div className="space-y-2"><Label className="text-gray-900 font-semibold">Evidencias obligatorias para finalizar</Label><div className="grid sm:grid-cols-2 gap-2 border rounded-md p-3">{[['require_comment','Comentario'],['require_photo','Foto'],['require_video','Vídeo'],['require_file','Archivo']].map(([field,label])=><label key={field} className="flex items-center gap-2 text-sm"><Checkbox id={`${prefix}-${field}`} checked={taskForm[field]} onCheckedChange={checked=>setTaskForm(v=>({...v,[field]:checked===true}))}/>{label}</label>)}</div><p className="text-xs text-gray-500">El empleado deberá aportar lo marcado durante ese fichaje antes de poder finalizar.</p></div>
   const estimateField = prefix => <div className="space-y-2"><Label htmlFor={`${prefix}-estimate`} className="text-gray-900 font-semibold">Tiempo estimado (minutos)</Label><Input id={`${prefix}-estimate`} type="number" min="1" max="10080" value={taskForm.estimated_minutes} onChange={e=>setTaskForm(v=>({...v,estimated_minutes:e.target.value}))} placeholder="Sin estimación"/><p className="text-xs text-gray-500">Sirve para comparar la planificación con el tiempo real; no limita el fichaje.</p></div>
   const reviewField = prefix => <label className="flex items-start gap-3 rounded-md border p-3"><Checkbox id={`${prefix}-review`} checked={taskForm.requires_review} onCheckedChange={checked=>setTaskForm(v=>({...v,requires_review:checked===true}))}/><span><span className="font-semibold text-gray-900">Requiere aprobación del encargado</span><span className="block text-xs text-gray-500 mt-1">Al finalizar quedará En revisión hasta que se apruebe o se devuelva.</span></span></label>
+  const labelsField = prefix => <div className="space-y-2"><Label htmlFor={`${prefix}-labels`} className="text-gray-900 font-semibold">Etiquetas</Label><Input id={`${prefix}-labels`} value={taskForm.labels_text} onChange={e=>setTaskForm(v=>({...v,labels_text:e.target.value}))} placeholder="Ej.: Piscina, Cliente VIP, Preventivo"/><p className="text-xs text-gray-500">Separa las etiquetas con comas. Máximo 10; cada una puede tener hasta 40 caracteres.</p></div>
 
-  const filteredTasks = tasks.filter(t=>(t.title+' '+(t.description||'')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')) && (!employeeFilter||t.assigned_users.some(u=>u.id===employeeFilter)) && (statusFilter==='all'||t.status===statusFilter) && (importanceFilter==='all'||(t.importance||'normal')===importanceFilter))
+  const filteredTasks = tasks.filter(t=>(t.title+' '+(t.description||'')+' '+(t.labels||[]).join(' ')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')) && (!employeeFilter||t.assigned_users.some(u=>u.id===employeeFilter)) && (statusFilter==='all'||t.status===statusFilter) && (importanceFilter==='all'||(t.importance||'normal')===importanceFilter))
 
   const getStatusBadge = (status) => {
     const variants = {
@@ -288,7 +292,7 @@ export default function AdminDashboard() {
                   <TableBody>
                     {filteredTasks.map((task) => (
                       <TableRow key={task.id}>
-                        <TableCell className="font-medium text-gray-900"><p>{task.title}</p><div className="mt-2"><ImportanceBadge value={task.importance}/></div></TableCell>
+                        <TableCell className="font-medium text-gray-900"><p>{task.title}</p><div className="mt-2 flex flex-wrap gap-1"><ImportanceBadge value={task.importance}/>{(task.labels||[]).map(label=><Badge key={label} className="border border-cyan-200 bg-cyan-50 text-cyan-800">{label}</Badge>)}</div></TableCell>
                         <TableCell className="text-gray-900">
                           {task.schedule_type === 'daily' && '🔄 Diaria'}
                           {task.schedule_type === 'weekly' && '📅 Semanal'}
@@ -336,6 +340,7 @@ export default function AdminDashboard() {
               <Label htmlFor="description" className="text-gray-900 font-semibold">Descripción</Label>
               <Textarea id="description" value={taskForm.description} onChange={(e) => setTaskForm(prev => ({ ...prev, description: e.target.value }))} rows={3} className="text-gray-900" />
             </div>
+            {labelsField('create-task')}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -389,6 +394,7 @@ export default function AdminDashboard() {
               <Label htmlFor="edit-description" className="text-gray-900 font-semibold">Descripción</Label>
               <Textarea id="edit-description" value={taskForm.description} onChange={(e) => setTaskForm(prev => ({ ...prev, description: e.target.value }))} rows={3} className="text-gray-900" />
             </div>
+            {labelsField('edit-task')}
 
             <div className="space-y-2">
               <Label htmlFor="edit-status" className="text-gray-900 font-semibold">Estado *</Label>

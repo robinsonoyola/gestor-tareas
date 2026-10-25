@@ -616,6 +616,17 @@ ok('mention notification does not expose the comment body',(await db.query(`SELE
 await denied('employee cannot mention a person from another organization',employee,OA,`SELECT public.work_add_task_comment('${pauseTask}','Invalid foreign mention',NULL,NULL,NULL,ARRAY['${B}']::uuid[])`);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001100_comment_mentions.sql','utf8'));
 ok('comment mention activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001200_task_labels.sql','utf8'));
+const labeledTask=(await request(ADMIN,OA,`SELECT public.work_manage_task_labeled('create','normal',NULL,'Labeled task','Flexible classification','daily',NULL,'pending','${employee}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,15,false,NULL,ARRAY['Piscina','Cliente VIP']::text[]) v`))[0].v;
+let labeledCatalog=(await request(ADMIN,OA,'SELECT public.work_task_catalog_labeled() v'))[0].v.find(t=>t.id===labeledTask);
+ok('task labels are saved and exposed in the catalog',labeledCatalog.labels.includes('Piscina')&&labeledCatalog.labels.includes('Cliente VIP'));
+await request(ADMIN,OA,`SELECT public.work_manage_task_labeled('edit','normal','${labeledTask}','Labeled task','Flexible classification','daily',NULL,'pending','${employee}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,15,false,NULL,ARRAY['Preventivo']::text[])`);
+labeledCatalog=(await request(ADMIN,OA,'SELECT public.work_task_catalog_labeled() v'))[0].v.find(t=>t.id===labeledTask);
+ok('editing labels removes obsolete values',labeledCatalog.labels.length===1&&labeledCatalog.labels[0]==='Preventivo');
+await denied('labels reject case-insensitive duplicates',ADMIN,OA,`SELECT public.work_manage_task_labeled('edit','normal','${labeledTask}','Labeled task','Flexible classification','daily',NULL,'pending','${employee}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,15,false,NULL,ARRAY['VIP','vip']::text[])`);
+await denied('other organization cannot edit labels of a foreign task',BADMIN,OB,`SELECT public.work_manage_task_labeled('edit','normal','${labeledTask}','Foreign edit','Invalid','daily',NULL,'pending',NULL,ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,NULL,false,NULL,ARRAY['Foreign']::text[])`);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001200_task_labels.sql','utf8'));
+ok('task label activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}
