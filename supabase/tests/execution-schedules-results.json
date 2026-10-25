@@ -1640,6 +1640,36 @@
       "test": "assignment workload activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "duplicated activity keeps configuration and labels",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "duplicated activity keeps assigned roles",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "duplicated activity copies checklist template",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "duplicated activity starts without executions or history",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot duplicate a foreign activity",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "duplicate activity activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }

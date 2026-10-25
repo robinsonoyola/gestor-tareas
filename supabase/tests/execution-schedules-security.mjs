@@ -668,6 +668,17 @@ await denied('assignment workload rejects excessive periods',ADMIN,OA,`SELECT pu
 ok('other organization workload does not expose company A',!(await request(BADMIN,OB,'SELECT public.work_assignment_workload(NULL,NULL) v'))[0].v.employees.some(x=>x.id===A));
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001600_assignment_workload.sql','utf8'));
 ok('assignment workload activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001700_duplicate_task.sql','utf8'));
+const duplicateStep=id(9981);await request(ADMIN,OA,`SELECT public.work_save_checklist('${labeledTask}',jsonb_build_array(jsonb_build_object('id','${duplicateStep}','title','Verify copied step','required',true)),'[]'::jsonb)`);
+const duplicatedTask=(await request(ADMIN,OA,`SELECT public.work_duplicate_task('${labeledTask}','Reusable activity copy') v`))[0].v;
+const duplicatedCatalog=(await request(ADMIN,OA,'SELECT public.work_task_catalog_labeled() v'))[0].v.find(t=>t.id===duplicatedTask);
+ok('duplicated activity keeps configuration and labels',duplicatedCatalog.title==='Reusable activity copy'&&duplicatedCatalog.labels.includes('Preventivo')&&duplicatedCatalog.estimated_minutes===15);
+ok('duplicated activity keeps assigned roles',duplicatedCatalog.assigned_users.some(x=>x.id===employee&&x.role==='primary'));
+ok('duplicated activity copies checklist template',(await db.query(`SELECT steps->0->>'title' title FROM public.work_checklist_templates WHERE organization_id=$1 AND task_id=$2`,[OA,duplicatedTask])).rows[0].title==='Verify copied step');
+ok('duplicated activity starts without executions or history',(await db.query(`SELECT count(*)::int n FROM public.work_day_plan WHERE organization_id=$1 AND task_id=$2`,[OA,duplicatedTask])).rows[0].n===0);
+await denied('other organization cannot duplicate a foreign activity',BADMIN,OB,`SELECT public.work_duplicate_task('${labeledTask}','Foreign copy')`);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001700_duplicate_task.sql','utf8'));
+ok('duplicate activity activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}
