@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
 
-const canonicalPath = /^tasks\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(?:png|jpg|jpeg|gif|webp|mp4|webm|mov)$/
+const canonicalPath = /^tasks\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(?:png|jpg|jpeg|gif|webp|mp4|webm|mov|pdf|doc|docx|xls|xlsx|csv|txt)$/
 const legacyPath = /^(?:images|videos)\/[0-9a-f-]{36}-[0-9]+\.[a-z0-9]+$/
 
 export function taskAttachmentPath(reference, baseUrl = import.meta.env.VITE_SUPABASE_URL) {
@@ -29,8 +29,9 @@ export async function signedTaskAttachment(reference) {
 export function taskAttachmentExtension(file, type) {
   const images = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' }
   const videos = { 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov' }
-  const extension = (type === 'image' ? images : type === 'video' ? videos : {})[file?.type]
-  if (!extension) throw new Error('Formato no permitido. Usa PNG, JPG, GIF, WebP, MP4, WebM o MOV.')
+  const files = { 'application/pdf':'pdf','application/msword':'doc','application/vnd.openxmlformats-officedocument.wordprocessingml.document':'docx','application/vnd.ms-excel':'xls','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'xlsx','text/csv':'csv','text/plain':'txt' }
+  const extension = (type === 'image' ? images : type === 'video' ? videos : type === 'file' ? files : {})[file?.type]
+  if (!extension) throw new Error('Formato no permitido. Usa imágenes, vídeos, PDF, Word, Excel, CSV o TXT.')
   const maxSize = (type === 'image' ? 5 : 50) * 1024 * 1024
   if (!Number.isFinite(file.size) || file.size <= 0 || file.size > maxSize) {
     throw new Error(`El archivo debe tener contenido y no superar ${type === 'image' ? 5 : 50} MB.`)

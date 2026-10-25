@@ -500,6 +500,23 @@ await request(ADMIN,OA,`SELECT public.work_set_execution_schedule('${rolePlan}',
 ok('follower receives schedule notices without becoming executor',(await db.query(`SELECT count(*)::int n FROM public.work_notifications WHERE organization_id=$1 AND user_id=$2 AND kind='schedule' AND message LIKE '%Role task%'`,[OA,employee])).rows[0].n===1);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000200_task_people_roles.sql','utf8'));
 ok('task roles activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') OR has_schema_privilege('ase_tenant_executor','ase_private','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000300_required_evidence.sql','utf8'));
+await request(ADMIN,OA,`SELECT public.work_manage_task_roles_evidence('edit','urgent','${roleTask}','Role task','Roles','daily',NULL,'pending','${A}',ARRAY[]::uuid[],ARRAY['${employee}']::uuid[],true,true,false,false)`);
+roleCatalog=(await request(ADMIN,OA,'SELECT public.work_task_catalog() v'))[0].v.find(t=>t.id===roleTask);
+ok('task catalog exposes configurable evidence requirements',roleCatalog.require_comment===true&&roleCatalog.require_photo===true&&roleCatalog.require_video===false&&roleCatalog.require_file===false);
+const evidenceCheckin=id(9960);
+await db.query(`INSERT INTO public.checkins(organization_id,id,task_id,user_id,checkin_method,checkin_time)VALUES($1,$2,$3,$4,'manual',clock_timestamp())`,[OA,evidenceCheckin,roleTask,A]);
+let evidenceBlocked=false;try{await db.query(`UPDATE public.checkins SET checkout_time=clock_timestamp() WHERE organization_id=$1 AND id=$2`,[OA,evidenceCheckin])}catch(error){evidenceBlocked=String(error.message).includes('comentario')&&String(error.message).includes('foto')}ok('server blocks completion while required evidence is missing',evidenceBlocked);
+await db.query(`INSERT INTO public.task_comments(organization_id,id,task_id,user_id,comment,created_at)VALUES($1,$2,$3,$4,'Trabajo revisado',clock_timestamp())`,[OA,id(9961),roleTask,A]);
+evidenceBlocked=false;try{await db.query(`UPDATE public.checkins SET checkout_time=clock_timestamp() WHERE organization_id=$1 AND id=$2`,[OA,evidenceCheckin])}catch(error){evidenceBlocked=String(error.message).includes('foto')&&!String(error.message).includes('comentario')}ok('comment alone does not satisfy required photo',evidenceBlocked);
+await db.query(`UPDATE public.task_comments SET image_url=$1 WHERE organization_id=$2 AND id=$3`,[`tasks/${roleTask}/${A}/${id(9962)}.jpg`,OA,id(9961)]);
+const evidence=(await request(A,OA,`SELECT public.work_checkin_evidence('${evidenceCheckin}') v`))[0].v;
+ok('employee can see evidence supplied during current checkin',evidence.provided.comment===true&&evidence.provided.photo===true&&evidence.required.photo===true);
+await db.query(`UPDATE public.checkins SET checkout_time=clock_timestamp() WHERE organization_id=$1 AND id=$2`,[OA,evidenceCheckin]);
+ok('completion succeeds after all required evidence exists',(await db.query(`SELECT checkout_time IS NOT NULL v FROM public.checkins WHERE organization_id=$1 AND id=$2`,[OA,evidenceCheckin])).rows[0].v===true);
+await denied('other organization cannot inspect evidence',BADMIN,OB,`SELECT public.work_checkin_evidence('${evidenceCheckin}') v`);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000300_required_evidence.sql','utf8'));
+ok('required evidence activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}

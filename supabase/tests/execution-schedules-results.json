@@ -1215,6 +1215,41 @@
       "test": "task roles activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "task catalog exposes configurable evidence requirements",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "server blocks completion while required evidence is missing",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "comment alone does not satisfy required photo",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee can see evidence supplied during current checkin",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "completion succeeds after all required evidence exists",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot inspect evidence",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "required evidence activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }

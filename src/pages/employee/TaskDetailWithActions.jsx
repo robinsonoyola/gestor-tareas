@@ -32,6 +32,7 @@ import {
   Upload,
   Image as ImageIcon,
   Video,
+  FileText,
   X,
   Activity,
   Timer,
@@ -66,6 +67,7 @@ export default function TaskDetailWithActions() {
   const incidentReporter = useRef(null)
   const imagePicker = useRef(null)
   const videoPicker = useRef(null)
+  const filePicker = useRef(null)
   const incidentSection = useRef(null)
   const openIncident = () => {
     if (!canAct) return
@@ -112,7 +114,8 @@ export default function TaskDetailWithActions() {
   const [commentForm, setCommentForm] = useState({
     comment: '',
     imageFile: null,
-    videoFile: null
+    videoFile: null,
+    file: null
   })
 
   const [imagePreview, setImagePreview] = useState(null)
@@ -343,16 +346,18 @@ export default function TaskDetailWithActions() {
       if (error) throw error
       const actorNames = await fetchTaskActorNames()
       const visibleComments = await Promise.all((data || []).map(async comment => {
-        const [image, video] = await Promise.allSettled([
+        const [image, video, file] = await Promise.allSettled([
           comment.image_url ? signedTaskAttachment(comment.image_url) : Promise.resolve(null),
-          comment.video_url ? signedTaskAttachment(comment.video_url) : Promise.resolve(null)
+          comment.video_url ? signedTaskAttachment(comment.video_url) : Promise.resolve(null),
+          comment.file_url ? signedTaskAttachment(comment.file_url) : Promise.resolve(null)
         ])
         return {
           ...comment,
           users: actorNames.get(comment.user_id) || comment.users,
           image_display_url: image.status === 'fulfilled' ? image.value : null,
           video_display_url: video.status === 'fulfilled' ? video.value : null,
-          attachmentError: image.status === 'rejected' || video.status === 'rejected'
+          file_display_url: file.status === 'fulfilled' ? file.value : null,
+          attachmentError: image.status === 'rejected' || video.status === 'rejected' || file.status === 'rejected'
         }
       }))
       setComments(visibleComments)
@@ -529,6 +534,14 @@ export default function TaskDetailWithActions() {
     setVideoPreview(null)
   }
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      try { taskAttachmentExtension(file, 'file'); setCommentForm(prev=>({...prev,file})) }
+      catch (error) { toast.error(error.message) }
+    }
+  }
+
   const uploadFile = async (file, type) => {
     if (!id || !userData?.id) throw new Error('No hay sesión o tarea disponible')
     const extension = taskAttachmentExtension(file, type)
@@ -554,11 +567,13 @@ export default function TaskDetailWithActions() {
       // Validate both files before uploading either one.
       if (commentForm.imageFile) taskAttachmentExtension(commentForm.imageFile, 'image')
       if (commentForm.videoFile) taskAttachmentExtension(commentForm.videoFile, 'video')
+      if (commentForm.file) taskAttachmentExtension(commentForm.file, 'file')
       setSubmitting(true)
       setUploadProgress(10)
 
       let imageUrl = null
       let videoUrl = null
+      let fileUrl = null
 
       if (commentForm.imageFile) {
         setUploadProgress(30)
@@ -572,6 +587,12 @@ export default function TaskDetailWithActions() {
         setUploadProgress(80)
       }
 
+      if (commentForm.file) {
+        setUploadProgress(85)
+        fileUrl = await uploadFile(commentForm.file, 'file')
+        setUploadProgress(90)
+      }
+
       const { error } = await supabase
         .from('task_comments')
         .insert([{
@@ -579,7 +600,8 @@ export default function TaskDetailWithActions() {
           user_id: userData.id,
           comment: commentForm.comment.trim(),
           image_url: imageUrl,
-          video_url: videoUrl
+          video_url: videoUrl,
+          file_url: fileUrl
         }])
 
       if (error) throw error
@@ -587,7 +609,7 @@ export default function TaskDetailWithActions() {
       setUploadProgress(100)
       toast.success('✅ Comentario agregado')
 
-      setCommentForm({ comment: '', imageFile: null, videoFile: null })
+      setCommentForm({ comment: '', imageFile: null, videoFile: null, file: null })
       setImagePreview(null)
       setVideoPreview(null)
       setUploadProgress(0)
@@ -882,6 +904,7 @@ export default function TaskDetailWithActions() {
             <CardTitle>Comentarios y Archivos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {(task?.require_comment||task?.require_photo||task?.require_video||task?.require_file)&&<Alert><Info className="h-4 w-4"/><AlertDescription><strong>Para finalizar esta tarea debes aportar:</strong> {[task.require_comment&&'comentario',task.require_photo&&'foto',task.require_video&&'vídeo',task.require_file&&'archivo'].filter(Boolean).join(', ')} durante este fichaje.</AlertDescription></Alert>}
             {canAct ? <form onSubmit={handleAddComment} className="space-y-4">
               <div>
                 <Label htmlFor="comment">Agregar comentario</Label>
@@ -894,7 +917,7 @@ export default function TaskDetailWithActions() {
                 />
               </div>
 
-              <div className="flex gap-4">
+              <div className="grid sm:grid-cols-3 gap-4">
                 <div className="flex-1 min-w-0">
                   <Label htmlFor="image">
                     <div className="flex items-center gap-2 cursor-pointer">
@@ -931,6 +954,12 @@ export default function TaskDetailWithActions() {
                     tabIndex={-1}
                   />
                   <Button type="button" variant="outline" className="mt-1 w-full min-w-0 h-auto min-h-10 whitespace-normal px-2 py-2" aria-label="Seleccionar archivos de vídeo" onClick={()=>videoPicker.current?.click()}>Seleccionar archivos</Button>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <Label htmlFor="evidence-file"><div className="flex items-center gap-2 cursor-pointer"><FileText className="h-4 w-4"/>Archivo (máx 50MB)</div></Label>
+                  <Input id="evidence-file" ref={filePicker} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" onChange={handleFileChange} className="hidden" tabIndex={-1}/>
+                  <Button type="button" variant="outline" className="mt-1 w-full min-w-0 h-auto min-h-10 whitespace-normal px-2 py-2" onClick={()=>filePicker.current?.click()}>Seleccionar archivo</Button>
+                  {commentForm.file&&<p className="mt-1 text-xs break-all">{commentForm.file.name} · <button type="button" className="underline" onClick={()=>setCommentForm(v=>({...v,file:null}))}>Quitar</button></p>}
                 </div>
               </div>
 
@@ -997,6 +1026,7 @@ export default function TaskDetailWithActions() {
                   {comment.video_display_url && (
                     <video src={comment.video_display_url} controls className="w-full max-w-md rounded-lg" />
                   )}
+                  {comment.file_display_url && <a className="inline-flex items-center gap-2 text-blue-700 underline" href={comment.file_display_url} target="_blank" rel="noreferrer"><FileText className="h-4 w-4"/>Abrir archivo adjunto</a>}
                   {comment.attachmentError && (
                     <div role="status" className="text-sm text-amber-800">
                       No se pudo obtener acceso al adjunto.{' '}
