@@ -62,6 +62,7 @@ export default function AdminDashboard() {
   const { can, isAdmin } = useAuth()
   const [tasks, setTasks] = useState([])
   const [employees, setEmployees] = useState([])
+  const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -78,6 +79,7 @@ export default function AdminDashboard() {
     primary_user: '',
     collaborators: [],
     followers: [],
+    area_id: '',
     require_comment: false,
     require_photo: false,
     require_video: false,
@@ -89,13 +91,14 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchTasks()
     fetchEmployees()
+    fetchAreas()
   }, [])
 
   const fetchTasks = async () => {
     try {
       setLoading(true)
-      const data = await workRpc('work_task_catalog')
-      const tasksWithUsers = data.map(task=>{const primary=task.assigned_users.find(u=>u.role==='primary'),collaborators=task.assigned_users.filter(u=>u.role!=='primary');return {...task,assigned_names:[primary&&`Responsable: ${primary.full_name}`,collaborators.length&&`Colaboran: ${collaborators.map(u=>u.full_name).join(', ')}`,task.followers?.length&&`Siguen: ${task.followers.map(u=>u.full_name).join(', ')}`].filter(Boolean).join(' · ')||'Sin asignar'}})
+      const data = await workRpc('work_task_catalog_team')
+      const tasksWithUsers = data.map(task=>{const primary=task.assigned_users.find(u=>u.role==='primary'),collaborators=task.assigned_users.filter(u=>u.role!=='primary');return {...task,assigned_names:[task.area&&`Área: ${task.area.name}`,primary&&`Responsable: ${primary.full_name}`,collaborators.length&&`Colaboran: ${collaborators.map(u=>u.full_name).join(', ')}`,task.followers?.length&&`Siguen: ${task.followers.map(u=>u.full_name).join(', ')}`,task.area&&!task.assigned_users.length&&'Pendiente de asignar'].filter(Boolean).join(' · ')||'Sin asignar'}})
       setTasks(tasksWithUsers)
     } catch (error) {
       console.error('Error fetching tasks:', error)
@@ -114,11 +117,20 @@ export default function AdminDashboard() {
     }
   }
 
+  const fetchAreas = async () => {
+    try {
+      const data = await workRpc('work_area_directory')
+      setAreas(data?.areas || [])
+    } catch (error) {
+      console.error('Error fetching areas:', error)
+    }
+  }
+
   const handleCreateTask = async (e) => {
     e.preventDefault()
 
     try {
-      await workRpc('work_manage_task_review',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review})
+      await workRpc('work_manage_task_team',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null})
       toast.success('✅ Tarea creada correctamente')
       setIsCreateModalOpen(false)
       resetForm()
@@ -126,7 +138,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error creating task:', error)
       const message=String(error?.message||error||'')
-      toast.error(message.includes('work_manage_task_review')?'Falta activar la revisión y aprobación en Supabase.':message||'Error al crear la tarea')
+      toast.error(message.includes('work_manage_task_team')?'Falta activar la asignación de tareas por área en Supabase.':message||'Error al crear la tarea')
     }
   }
 
@@ -134,7 +146,7 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      await workRpc('work_manage_task_review',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review})
+      await workRpc('work_manage_task_team',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null})
       toast.success('✅ Tarea actualizada correctamente')
       setIsEditModalOpen(false)
       setSelectedTask(null)
@@ -143,7 +155,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error updating task:', error)
       const message=String(error?.message||error||'')
-      toast.error(message.includes('work_manage_task_review')?'Falta activar la revisión y aprobación en Supabase.':message||'Error al actualizar la tarea')
+      toast.error(message.includes('work_manage_task_team')?'Falta activar la asignación de tareas por área en Supabase.':message||'Error al actualizar la tarea')
     }
   }
 
@@ -172,6 +184,7 @@ export default function AdminDashboard() {
       primary_user: task.assigned_users.find(u=>u.role==='primary')?.id || '',
       collaborators: task.assigned_users.filter(u=>u.role!=='primary').map(u=>u.id),
       followers: (task.followers||[]).map(u=>u.id),
+      area_id: task.area?.id || '',
       require_comment: Boolean(task.require_comment),
       require_photo: Boolean(task.require_photo),
       require_video: Boolean(task.require_video),
@@ -193,6 +206,7 @@ export default function AdminDashboard() {
       primary_user: '',
       collaborators: [],
       followers: [],
+      area_id: '',
       require_comment: false,
       require_photo: false,
       require_video: false,
@@ -204,7 +218,9 @@ export default function AdminDashboard() {
 
   const setPrimaryUser = userId => setTaskForm(prev=>({...prev,primary_user:userId,collaborators:prev.collaborators.filter(id=>id!==userId),followers:prev.followers.filter(id=>id!==userId)}))
   const togglePersonRole = (role,userId) => setTaskForm(prev=>{const selected=prev[role].includes(userId);return {...prev,[role]:selected?prev[role].filter(id=>id!==userId):[...prev[role],userId],primary_user:prev.primary_user===userId?'':prev.primary_user,[role==='collaborators'?'followers':'collaborators']:prev[role==='collaborators'?'followers':'collaborators'].filter(id=>id!==userId)}})
-  const peopleFields = prefix => <div className="space-y-4"><div className="space-y-2"><Label htmlFor={`${prefix}-primary`} className="text-gray-900 font-semibold">Responsable principal</Label><select id={`${prefix}-primary`} className="w-full border rounded-md bg-white p-2" value={taskForm.primary_user} onChange={e=>setPrimaryUser(e.target.value)}><option value="">Sin responsable principal</option>{employees.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}</select><p className="text-xs text-gray-500">Dirige la ejecución de la tarea.</p></div><div className="grid sm:grid-cols-2 gap-4"><div><Label className="text-gray-900 font-semibold">Colaboradores</Label><div className="border rounded-md p-3 mt-2 max-h-40 overflow-y-auto space-y-2">{employees.map(e=><label key={e.id} className="flex items-center gap-2 text-sm"><Checkbox checked={taskForm.collaborators.includes(e.id)} disabled={taskForm.primary_user===e.id} onCheckedChange={()=>togglePersonRole('collaborators',e.id)}/>{e.full_name}</label>)}</div><p className="text-xs text-gray-500 mt-1">Pueden ejecutar y fichar.</p></div><div><Label className="text-gray-900 font-semibold">Seguidores</Label><div className="border rounded-md p-3 mt-2 max-h-40 overflow-y-auto space-y-2">{employees.map(e=><label key={e.id} className="flex items-center gap-2 text-sm"><Checkbox checked={taskForm.followers.includes(e.id)} disabled={taskForm.primary_user===e.id} onCheckedChange={()=>togglePersonRole('followers',e.id)}/>{e.full_name}</label>)}</div><p className="text-xs text-gray-500 mt-1">Consultan y reciben avisos; no fichan.</p></div></div></div>
+  const executorEmployees = taskForm.area_id ? employees.filter(e=>areas.find(a=>a.id===taskForm.area_id)?.members.includes(e.id)) : employees
+  const setTaskArea = areaId => setTaskForm(prev=>{const members=areas.find(a=>a.id===areaId)?.members||[];return {...prev,area_id:areaId,primary_user:areaId&& !members.includes(prev.primary_user)?'':prev.primary_user,collaborators:areaId?prev.collaborators.filter(id=>members.includes(id)):prev.collaborators}})
+  const peopleFields = prefix => <div className="space-y-4"><div className="space-y-2"><Label htmlFor={`${prefix}-area`} className="text-gray-900 font-semibold">Área responsable</Label><select id={`${prefix}-area`} className="w-full border rounded-md bg-white p-2" value={taskForm.area_id} onChange={e=>setTaskArea(e.target.value)}><option value="">Sin área concreta</option>{areas.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select><p className="text-xs text-gray-500">Puedes dejar la tarea pendiente en el área y elegir la persona más adelante.</p></div><div className="space-y-2"><Label htmlFor={`${prefix}-primary`} className="text-gray-900 font-semibold">Responsable principal</Label><select id={`${prefix}-primary`} className="w-full border rounded-md bg-white p-2" value={taskForm.primary_user} onChange={e=>setPrimaryUser(e.target.value)}><option value="">Sin responsable principal</option>{executorEmployees.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}</select><p className="text-xs text-gray-500">Dirige la ejecución de la tarea.</p></div><div className="grid sm:grid-cols-2 gap-4"><div><Label className="text-gray-900 font-semibold">Colaboradores</Label><div className="border rounded-md p-3 mt-2 max-h-40 overflow-y-auto space-y-2">{executorEmployees.map(e=><label key={e.id} className="flex items-center gap-2 text-sm"><Checkbox checked={taskForm.collaborators.includes(e.id)} disabled={taskForm.primary_user===e.id} onCheckedChange={()=>togglePersonRole('collaborators',e.id)}/>{e.full_name}</label>)}</div><p className="text-xs text-gray-500 mt-1">Pueden ejecutar y fichar.</p></div><div><Label className="text-gray-900 font-semibold">Seguidores</Label><div className="border rounded-md p-3 mt-2 max-h-40 overflow-y-auto space-y-2">{employees.map(e=><label key={e.id} className="flex items-center gap-2 text-sm"><Checkbox checked={taskForm.followers.includes(e.id)} disabled={taskForm.primary_user===e.id} onCheckedChange={()=>togglePersonRole('followers',e.id)}/>{e.full_name}</label>)}</div><p className="text-xs text-gray-500 mt-1">Consultan y reciben avisos; no fichan.</p></div></div></div>
   const evidenceFields = prefix => <div className="space-y-2"><Label className="text-gray-900 font-semibold">Evidencias obligatorias para finalizar</Label><div className="grid sm:grid-cols-2 gap-2 border rounded-md p-3">{[['require_comment','Comentario'],['require_photo','Foto'],['require_video','Vídeo'],['require_file','Archivo']].map(([field,label])=><label key={field} className="flex items-center gap-2 text-sm"><Checkbox id={`${prefix}-${field}`} checked={taskForm[field]} onCheckedChange={checked=>setTaskForm(v=>({...v,[field]:checked===true}))}/>{label}</label>)}</div><p className="text-xs text-gray-500">El empleado deberá aportar lo marcado durante ese fichaje antes de poder finalizar.</p></div>
   const estimateField = prefix => <div className="space-y-2"><Label htmlFor={`${prefix}-estimate`} className="text-gray-900 font-semibold">Tiempo estimado (minutos)</Label><Input id={`${prefix}-estimate`} type="number" min="1" max="10080" value={taskForm.estimated_minutes} onChange={e=>setTaskForm(v=>({...v,estimated_minutes:e.target.value}))} placeholder="Sin estimación"/><p className="text-xs text-gray-500">Sirve para comparar la planificación con el tiempo real; no limita el fichaje.</p></div>
   const reviewField = prefix => <label className="flex items-start gap-3 rounded-md border p-3"><Checkbox id={`${prefix}-review`} checked={taskForm.requires_review} onCheckedChange={checked=>setTaskForm(v=>({...v,requires_review:checked===true}))}/><span><span className="font-semibold text-gray-900">Requiere aprobación del encargado</span><span className="block text-xs text-gray-500 mt-1">Al finalizar quedará En revisión hasta que se apruebe o se devuelva.</span></span></label>

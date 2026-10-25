@@ -1365,6 +1365,41 @@
       "test": "cancellation activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "task can stay assigned to an area without a person",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "area-only task is not exposed as employee work",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee cannot change area assignment",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot use a foreign area",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "area member can become the primary responsible",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "area assignment notifies the selected responsible",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "task area activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }

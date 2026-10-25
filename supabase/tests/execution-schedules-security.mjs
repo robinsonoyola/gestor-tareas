@@ -559,6 +559,20 @@ await request(ADMIN,OA,`SELECT public.work_change_cancellation('${cancelledPlan}
 ok('administrator can reopen a cancelled execution as pending',(await db.query(`SELECT state FROM public.work_day_plan WHERE organization_id=$1 AND id=$2`,[OA,cancelledPlan])).rows[0].state==='pending');
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000600_task_cancellation.sql','utf8'));
 ok('cancellation activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000700_task_area_assignment.sql','utf8'));
+const taskArea=id(9975);await db.query(`INSERT INTO public.work_areas(organization_id,id,name,active)VALUES($1,$2,'Operations',true)`,[OA,taskArea]);await db.query(`INSERT INTO public.work_area_members(organization_id,area_id,user_id)VALUES($1,$2,$3)`,[OA,taskArea,A]);
+const areaTask=(await request(ADMIN,OA,`SELECT public.work_manage_task_team('create','normal',NULL,'Area task','Waiting for an owner','daily',NULL,'pending',NULL,ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,25,false,'${taskArea}') v`))[0].v;
+let areaCatalog=(await request(ADMIN,OA,'SELECT public.work_task_catalog_team() v'))[0].v.find(t=>t.id===areaTask);
+ok('task can stay assigned to an area without a person',areaCatalog.area.id===taskArea&&areaCatalog.assigned_users.length===0);
+ok('area-only task is not exposed as employee work',(await request(A,OA,'SELECT public.work_mobile_queue() v'))[0].v.items.every(x=>x.task_id!==areaTask));
+await denied('employee cannot change area assignment',A,OA,`SELECT public.work_manage_task_team('edit','normal','${areaTask}','Area task','Waiting for an owner','daily',NULL,'pending','${A}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,25,false,'${taskArea}')`);
+await denied('other organization cannot use a foreign area',BADMIN,OB,`SELECT public.work_manage_task_team('create','normal',NULL,'Foreign area task','Invalid','daily',NULL,'pending',NULL,ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,NULL,false,'${taskArea}')`);
+await request(ADMIN,OA,`SELECT public.work_manage_task_team('edit','normal','${areaTask}','Area task','Owner selected','daily',NULL,'pending','${A}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,25,false,'${taskArea}')`);
+areaCatalog=(await request(ADMIN,OA,'SELECT public.work_task_catalog_team() v'))[0].v.find(t=>t.id===areaTask);
+ok('area member can become the primary responsible',areaCatalog.area.id===taskArea&&areaCatalog.assigned_users.some(x=>x.id===A&&x.role==='primary'));
+ok('area assignment notifies the selected responsible',(await db.query(`SELECT count(*)::int n FROM public.work_notifications WHERE organization_id=$1 AND user_id=$2 AND kind='assignment' AND message LIKE 'Nueva tarea asignada:%'`,[OA,A])).rows[0].n>0);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000700_task_area_assignment.sql','utf8'));
+ok('task area activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}
