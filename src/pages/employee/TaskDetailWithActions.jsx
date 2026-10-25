@@ -728,6 +728,7 @@ export default function TaskDetailWithActions() {
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2 p-3 bg-gray-50 rounded-lg"><p className="text-xs text-gray-500 font-medium">Cuándo debe hacerse</p><ScheduleText item={queueItem}/></div>
+            {task.estimated_minutes&&<div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"><Timer className="h-5 w-5 text-gray-500"/><div><p className="text-xs text-gray-500 font-medium">Tiempo estimado</p><p className="text-sm font-semibold text-gray-900">{Number(task.estimated_minutes).toLocaleString('es-ES')} min</p></div></div>}
             {task.due_date && (
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <Calendar className="h-5 w-5 text-gray-500" />

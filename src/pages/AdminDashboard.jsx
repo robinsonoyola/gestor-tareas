@@ -80,7 +80,8 @@ export default function AdminDashboard() {
     require_comment: false,
     require_photo: false,
     require_video: false,
-    require_file: false
+    require_file: false,
+    estimated_minutes: ''
   })
 
   useEffect(() => {
@@ -115,7 +116,7 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      await workRpc('work_manage_task_roles_evidence',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file})
+      await workRpc('work_manage_task_operational',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null})
       toast.success('✅ Tarea creada correctamente')
       setIsCreateModalOpen(false)
       resetForm()
@@ -123,7 +124,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error creating task:', error)
       const message=String(error?.message||error||'')
-      toast.error(message.includes('work_manage_task_roles_evidence')?'Falta activar las evidencias obligatorias en Supabase.':message||'Error al crear la tarea')
+      toast.error(message.includes('work_manage_task_operational')?'Falta activar el tiempo estimado en Supabase.':message||'Error al crear la tarea')
     }
   }
 
@@ -131,7 +132,7 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      await workRpc('work_manage_task_roles_evidence',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file})
+      await workRpc('work_manage_task_operational',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null})
       toast.success('✅ Tarea actualizada correctamente')
       setIsEditModalOpen(false)
       setSelectedTask(null)
@@ -140,7 +141,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error updating task:', error)
       const message=String(error?.message||error||'')
-      toast.error(message.includes('work_manage_task_roles_evidence')?'Falta activar las evidencias obligatorias en Supabase.':message||'Error al actualizar la tarea')
+      toast.error(message.includes('work_manage_task_operational')?'Falta activar el tiempo estimado en Supabase.':message||'Error al actualizar la tarea')
     }
   }
 
@@ -173,6 +174,7 @@ export default function AdminDashboard() {
       require_photo: Boolean(task.require_photo),
       require_video: Boolean(task.require_video),
       require_file: Boolean(task.require_file)
+      ,estimated_minutes: task.estimated_minutes || ''
     })
     setIsEditModalOpen(true)
   }
@@ -192,6 +194,7 @@ export default function AdminDashboard() {
       require_photo: false,
       require_video: false,
       require_file: false
+      ,estimated_minutes: ''
     })
   }
 
@@ -199,6 +202,7 @@ export default function AdminDashboard() {
   const togglePersonRole = (role,userId) => setTaskForm(prev=>{const selected=prev[role].includes(userId);return {...prev,[role]:selected?prev[role].filter(id=>id!==userId):[...prev[role],userId],primary_user:prev.primary_user===userId?'':prev.primary_user,[role==='collaborators'?'followers':'collaborators']:prev[role==='collaborators'?'followers':'collaborators'].filter(id=>id!==userId)}})
   const peopleFields = prefix => <div className="space-y-4"><div className="space-y-2"><Label htmlFor={`${prefix}-primary`} className="text-gray-900 font-semibold">Responsable principal</Label><select id={`${prefix}-primary`} className="w-full border rounded-md bg-white p-2" value={taskForm.primary_user} onChange={e=>setPrimaryUser(e.target.value)}><option value="">Sin responsable principal</option>{employees.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}</select><p className="text-xs text-gray-500">Dirige la ejecución de la tarea.</p></div><div className="grid sm:grid-cols-2 gap-4"><div><Label className="text-gray-900 font-semibold">Colaboradores</Label><div className="border rounded-md p-3 mt-2 max-h-40 overflow-y-auto space-y-2">{employees.map(e=><label key={e.id} className="flex items-center gap-2 text-sm"><Checkbox checked={taskForm.collaborators.includes(e.id)} disabled={taskForm.primary_user===e.id} onCheckedChange={()=>togglePersonRole('collaborators',e.id)}/>{e.full_name}</label>)}</div><p className="text-xs text-gray-500 mt-1">Pueden ejecutar y fichar.</p></div><div><Label className="text-gray-900 font-semibold">Seguidores</Label><div className="border rounded-md p-3 mt-2 max-h-40 overflow-y-auto space-y-2">{employees.map(e=><label key={e.id} className="flex items-center gap-2 text-sm"><Checkbox checked={taskForm.followers.includes(e.id)} disabled={taskForm.primary_user===e.id} onCheckedChange={()=>togglePersonRole('followers',e.id)}/>{e.full_name}</label>)}</div><p className="text-xs text-gray-500 mt-1">Consultan y reciben avisos; no fichan.</p></div></div></div>
   const evidenceFields = prefix => <div className="space-y-2"><Label className="text-gray-900 font-semibold">Evidencias obligatorias para finalizar</Label><div className="grid sm:grid-cols-2 gap-2 border rounded-md p-3">{[['require_comment','Comentario'],['require_photo','Foto'],['require_video','Vídeo'],['require_file','Archivo']].map(([field,label])=><label key={field} className="flex items-center gap-2 text-sm"><Checkbox id={`${prefix}-${field}`} checked={taskForm[field]} onCheckedChange={checked=>setTaskForm(v=>({...v,[field]:checked===true}))}/>{label}</label>)}</div><p className="text-xs text-gray-500">El empleado deberá aportar lo marcado durante ese fichaje antes de poder finalizar.</p></div>
+  const estimateField = prefix => <div className="space-y-2"><Label htmlFor={`${prefix}-estimate`} className="text-gray-900 font-semibold">Tiempo estimado (minutos)</Label><Input id={`${prefix}-estimate`} type="number" min="1" max="10080" value={taskForm.estimated_minutes} onChange={e=>setTaskForm(v=>({...v,estimated_minutes:e.target.value}))} placeholder="Sin estimación"/><p className="text-xs text-gray-500">Sirve para comparar la planificación con el tiempo real; no limita el fichaje.</p></div>
 
   const filteredTasks = tasks.filter(t=>(t.title+' '+(t.description||'')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')) && (!employeeFilter||t.assigned_users.some(u=>u.id===employeeFilter)) && (statusFilter==='all'||t.status===statusFilter) && (importanceFilter==='all'||(t.importance||'normal')===importanceFilter))
 
@@ -337,6 +341,7 @@ export default function AdminDashboard() {
 
             {peopleFields('create-task')}
             {evidenceFields('create-task')}
+            {estimateField('create-task')}
 
             <Button type="submit" disabled={!can('tasks.create')} className="w-full">Crear Tarea</Button>
           </form>
@@ -378,6 +383,7 @@ export default function AdminDashboard() {
 
             {peopleFields('edit-task')}
             {evidenceFields('edit-task')}
+            {estimateField('edit-task')}
 
             <Button type="submit" disabled={!can('tasks.edit')} className="w-full">Guardar Cambios</Button>
           </form>

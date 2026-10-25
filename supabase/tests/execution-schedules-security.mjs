@@ -517,6 +517,16 @@ ok('completion succeeds after all required evidence exists',(await db.query(`SEL
 await denied('other organization cannot inspect evidence',BADMIN,OB,`SELECT public.work_checkin_evidence('${evidenceCheckin}') v`);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000300_required_evidence.sql','utf8'));
 ok('required evidence activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000400_task_time_estimates.sql','utf8'));
+await request(ADMIN,OA,`SELECT public.work_manage_task_operational('edit','urgent','${roleTask}','Role task','Roles','daily',NULL,'pending','${A}',ARRAY[]::uuid[],ARRAY['${employee}']::uuid[],true,true,false,false,45)`);
+roleCatalog=(await request(ADMIN,OA,'SELECT public.work_task_catalog() v'))[0].v.find(t=>t.id===roleTask);
+ok('task stores estimated minutes without changing importance or evidence',roleCatalog.estimated_minutes===45&&roleCatalog.importance==='urgent'&&roleCatalog.require_photo===true);
+ok('report task options expose estimate for real-time comparison',(await request(ADMIN,OA,'SELECT public.work_task_options() v'))[0].v.find(t=>t.id===roleTask)?.estimated_minutes===45);
+await denied('employee cannot change task estimate',A,OA,`SELECT public.work_manage_task_operational('edit','urgent','${roleTask}','Role task','Roles','daily',NULL,'pending','${A}',ARRAY[]::uuid[],ARRAY['${employee}']::uuid[],true,true,false,false,30)`);
+await denied('estimate rejects zero and excessive values',ADMIN,OA,`SELECT public.work_manage_task_operational('edit','urgent','${roleTask}','Role task','Roles','daily',NULL,'pending','${A}',ARRAY[]::uuid[],ARRAY['${employee}']::uuid[],true,true,false,false,0)`);
+await denied('other organization cannot change task estimate',BADMIN,OB,`SELECT public.work_manage_task_operational('edit','urgent','${roleTask}','Role task','Roles','daily',NULL,'pending',NULL,ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,30)`);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000400_task_time_estimates.sql','utf8'));
+ok('time estimate activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}

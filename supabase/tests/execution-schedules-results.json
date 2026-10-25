@@ -1250,6 +1250,36 @@
       "test": "required evidence activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "task stores estimated minutes without changing importance or evidence",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "report task options expose estimate for real-time comparison",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee cannot change task estimate",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "estimate rejects zero and excessive values",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot change task estimate",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "time estimate activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }
