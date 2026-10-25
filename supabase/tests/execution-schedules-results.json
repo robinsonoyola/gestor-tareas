@@ -1610,6 +1610,36 @@
       "test": "required result activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "assignment workload lists active employees with operational counts",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "assignment workload includes estimated minutes without changing order",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "employee without task editing cannot inspect team workload",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "assignment workload rejects excessive periods",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization workload does not expose company A",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "assignment workload activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }

@@ -659,6 +659,15 @@ ok('execution completes after required result is saved',(await db.query(`SELECT 
 ok('task catalog exposes required result setting',(await request(ADMIN,OA,'SELECT public.work_task_catalog_labeled() v'))[0].v.find(t=>t.id===requiredResultTask)?.require_result===true);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001500_required_execution_results.sql','utf8'));
 ok('required result activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001600_assignment_workload.sql','utf8'));
+const assignmentLoad=(await request(ADMIN,OA,'SELECT public.work_assignment_workload(NULL,NULL) v'))[0].v;
+ok('assignment workload lists active employees with operational counts',assignmentLoad.employees.some(x=>x.id===A&&Number.isInteger(x.open_count)));
+ok('assignment workload includes estimated minutes without changing order',assignmentLoad.employees.some(x=>Number.isInteger(x.estimated_minutes)));
+await denied('employee without task editing cannot inspect team workload',A,OA,'SELECT public.work_assignment_workload(NULL,NULL) v');
+await denied('assignment workload rejects excessive periods',ADMIN,OA,`SELECT public.work_assignment_workload(public.work_today(),public.work_today()+40) v`);
+ok('other organization workload does not expose company A',!(await request(BADMIN,OB,'SELECT public.work_assignment_workload(NULL,NULL) v'))[0].v.employees.some(x=>x.id===A));
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001600_assignment_workload.sql','utf8'));
+ok('assignment workload activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}
