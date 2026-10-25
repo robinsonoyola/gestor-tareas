@@ -544,6 +544,21 @@ ok('review decisions notify employee',(await db.query(`SELECT count(DISTINCT kin
 await denied('other organization cannot inspect review queue',BADMIN,OB,`SELECT public.work_decide_review('${reviewPlan}','approved','Foreign approval')`);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000500_task_review_approval.sql','utf8'));
 ok('review activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000600_task_cancellation.sql','utf8'));
+const cancelledPlan=id(9972),cancelRequest=id(9973),reopenRequest=id(9974);
+await db.query(`INSERT INTO public.work_day_plan(organization_id,id,user_id,task_id,work_date,priority,state)VALUES($1,$2,$3,$4,public.work_today()+10,92,'pending')`,[OA,cancelledPlan,employee,reviewTask]);
+await denied('employee cannot cancel a planned execution',employee,OA,`SELECT public.work_change_cancellation('${cancelledPlan}','cancel',0,'No longer required','${cancelRequest}')`);
+await denied('other organization cannot cancel a planned execution',BADMIN,OB,`SELECT public.work_change_cancellation('${cancelledPlan}','cancel',0,'Foreign cancellation','${cancelRequest}')`);
+await request(ADMIN,OA,`SELECT public.work_change_cancellation('${cancelledPlan}','cancel',0,'Work is no longer required','${cancelRequest}')`);
+ok('administrator cancellation keeps execution out of completed state',(await db.query(`SELECT state FROM public.work_day_plan WHERE organization_id=$1 AND id=$2`,[OA,cancelledPlan])).rows[0].state==='cancelled');
+ok('cancelled execution remains visible but cannot be started',(await request(employee,OA,'SELECT public.work_mobile_queue() v'))[0].v.items.some(x=>x.plan_id===cancelledPlan&&x.state==='cancelled'&&!x.can_start&&!x.can_finish));
+ok('cancellation reason is included in board history',(await request(ADMIN,OA,`SELECT public.work_board_history('${cancelledPlan}') v`))[0].v.some(x=>x.to_state==='cancelled'&&x.reason==='Work is no longer required'));
+ok('cancellation notifies the assigned employee',(await db.query(`SELECT count(*)::int n FROM public.work_notifications WHERE organization_id=$1 AND user_id=$2 AND kind='task_cancelled'`,[OA,employee])).rows[0].n===1);
+const cancelledVersion=(await db.query(`SELECT board_version FROM public.work_day_plan WHERE organization_id=$1 AND id=$2`,[OA,cancelledPlan])).rows[0].board_version;
+await request(ADMIN,OA,`SELECT public.work_change_cancellation('${cancelledPlan}','reopen',${cancelledVersion},'Cancellation entered by mistake','${reopenRequest}')`);
+ok('administrator can reopen a cancelled execution as pending',(await db.query(`SELECT state FROM public.work_day_plan WHERE organization_id=$1 AND id=$2`,[OA,cancelledPlan])).rows[0].state==='pending');
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000600_task_cancellation.sql','utf8'));
+ok('cancellation activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}

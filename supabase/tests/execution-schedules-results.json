@@ -1325,6 +1325,46 @@
       "test": "review activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "employee cannot cancel a planned execution",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot cancel a planned execution",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "administrator cancellation keeps execution out of completed state",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "cancelled execution remains visible but cannot be started",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "cancellation reason is included in board history",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "cancellation notifies the assigned employee",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "administrator can reopen a cancelled execution as pending",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "cancellation activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }

@@ -13,13 +13,14 @@ import {Badge} from '@/components/ui/badge'
 import {Card,CardContent} from '@/components/ui/card'
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog'
 import {workDate,workRpc} from '@/lib/workflow'
-const columns=[['pending','Pendientes'],['active','En curso'],['blocked','Bloqueadas'],['review','En revisión'],['completed','Completadas']]
+const columns=[['pending','Pendientes'],['active','En curso'],['blocked','Bloqueadas'],['review','En revisión'],['completed','Completadas'],['cancelled','Canceladas']]
 const palette={
  pending:{column:'border-amber-500 bg-amber-200',heading:'text-amber-950',badge:'border-amber-700 bg-amber-600 text-white',card:'border-l-4 border-l-amber-600'},
  active:{column:'border-blue-500 bg-blue-200',heading:'text-blue-950',badge:'border-blue-800 bg-blue-700 text-white',card:'border-l-4 border-l-blue-700'},
  blocked:{column:'border-red-500 bg-red-200',heading:'text-red-950',badge:'border-red-800 bg-red-700 text-white',card:'border-l-4 border-l-red-700'},
  review:{column:'border-violet-500 bg-violet-200',heading:'text-violet-950',badge:'border-violet-800 bg-violet-700 text-white',card:'border-l-4 border-l-violet-700'},
- completed:{column:'border-green-500 bg-green-200',heading:'text-green-950',badge:'border-green-800 bg-green-700 text-white',card:'border-l-4 border-l-green-700'}
+ completed:{column:'border-green-500 bg-green-200',heading:'text-green-950',badge:'border-green-800 bg-green-700 text-white',card:'border-l-4 border-l-green-700'},
+ cancelled:{column:'border-slate-500 bg-slate-200',heading:'text-slate-950',badge:'border-slate-700 bg-slate-700 text-white',card:'border-l-4 border-l-slate-600'}
 }
 const states=Object.fromEntries(columns)
 const stamp=value=>value?new Date(value).toLocaleString('es-ES',{timeZone:'Europe/Madrid'}):'—'
