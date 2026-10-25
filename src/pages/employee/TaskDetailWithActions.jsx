@@ -495,6 +495,7 @@ export default function TaskDetailWithActions() {
     if (!activeCheckin?.id || endingCheckin) return
     setEndingCheckin(true)
     try {
+      if(task.require_result&&executionResult.trim().length<3)throw Error('Escribe el resultado del trabajo antes de finalizar')
       if(executionResult.trim())await workRpc('work_save_execution_result',{p_plan:queueItem?.plan_id,p_result:executionResult.trim()})
       const { data, error } = await supabase.rpc('finish_manual_checkin', {
         p_checkin_id: activeCheckin.id
@@ -822,14 +823,14 @@ export default function TaskDetailWithActions() {
 
                 <Button variant="outline" className="w-full" disabled={changingPause} onClick={()=>handlePauseResume('pause')}>{changingPause?'Guardando pausa…':'Pausar trabajo'}</Button>
 
-                <div className="space-y-2"><Label htmlFor="execution-result">Resultado del trabajo</Label><Textarea id="execution-result" value={executionResult} onChange={e=>setExecutionResult(e.target.value)} maxLength={4000} rows={4} placeholder="Resume qué se hizo y cuál fue el resultado"/><p className="text-xs text-gray-500">Se guarda en esta ejecución y no sustituye los comentarios ni las evidencias.</p></div>
+                <div className="space-y-2"><Label htmlFor="execution-result">Resultado del trabajo{task.require_result?' *':''}</Label><Textarea id="execution-result" value={executionResult} onChange={e=>setExecutionResult(e.target.value)} maxLength={4000} rows={4} placeholder="Resume qué se hizo y cuál fue el resultado"/><p className="text-xs text-gray-500">{task.require_result?'Es obligatorio para finalizar. ':''}Se guarda en esta ejecución y no sustituye los comentarios ni las evidencias.</p></div>
 
                 {activeCheckin.checkin_method === 'nfc' && checkinConfig.nfc_enabled ? (
-                  <TaskNfcControl beforeFinish={async()=>{if(executionResult.trim())await workRpc('work_save_execution_result',{p_plan:queueItem?.plan_id,p_result:executionResult.trim()})}} onFinished={returnToTasks} taskId={id} userId={userData?.id} activeCheckin={activeCheckin} checkinStatus={activeCheckinStatus} onChanged={async()=>{await checkActiveCheckin();await fetchCheckins()}} />
+                  <TaskNfcControl beforeFinish={async()=>{if(task.require_result&&executionResult.trim().length<3)throw Error('Escribe el resultado del trabajo antes de finalizar');if(executionResult.trim())await workRpc('work_save_execution_result',{p_plan:queueItem?.plan_id,p_result:executionResult.trim()})}} onFinished={returnToTasks} taskId={id} userId={userData?.id} activeCheckin={activeCheckin} checkinStatus={activeCheckinStatus} onChanged={async()=>{await checkActiveCheckin();await fetchCheckins()}} />
                 ) : (
                   <Button
                     onClick={handleEndCheckin}
-                    disabled={endingCheckin || activeCheckin.checkin_method !== 'manual'}
+                    disabled={endingCheckin || activeCheckin.checkin_method !== 'manual' || (task.require_result&&executionResult.trim().length<3)}
                     className="w-full bg-red-600 hover:bg-red-700"
                     size="lg"
                   >

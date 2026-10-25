@@ -79,6 +79,7 @@ export default function AdminDashboard() {
     related_entity_type: '',
     related_entity_reference: '',
     related_entity_label: '',
+    require_result: false,
     schedule_type: 'daily',
     importance: 'normal',
     schedule_date: '',
@@ -137,7 +138,7 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      await workRpc('work_manage_task_context',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null,p_labels:taskForm.labels_text.split(',').map(label=>label.trim()).filter(Boolean),p_location:taskForm.location||null,p_source_module:taskForm.source_module||null,p_entity_type:taskForm.related_entity_type||null,p_entity_reference:taskForm.related_entity_reference||null,p_entity_label:taskForm.related_entity_label||null})
+      await workRpc('work_manage_task_outcome',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null,p_labels:taskForm.labels_text.split(',').map(label=>label.trim()).filter(Boolean),p_location:taskForm.location||null,p_source_module:taskForm.source_module||null,p_entity_type:taskForm.related_entity_type||null,p_entity_reference:taskForm.related_entity_reference||null,p_entity_label:taskForm.related_entity_label||null,p_require_result:taskForm.require_result})
       toast.success('✅ Tarea creada correctamente')
       setIsCreateModalOpen(false)
       resetForm()
@@ -145,7 +146,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error creating task:', error)
       const message=String(error?.message||error||'')
-      toast.error(message.includes('work_manage_task_context')?'Falta activar el contexto operativo de las tareas en Supabase.':message||'Error al crear la tarea')
+      toast.error(message.includes('work_manage_task_outcome')?'Falta activar el resultado obligatorio en Supabase.':message||'Error al crear la tarea')
     }
   }
 
@@ -153,7 +154,7 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      await workRpc('work_manage_task_context',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null,p_labels:taskForm.labels_text.split(',').map(label=>label.trim()).filter(Boolean),p_location:taskForm.location||null,p_source_module:taskForm.source_module||null,p_entity_type:taskForm.related_entity_type||null,p_entity_reference:taskForm.related_entity_reference||null,p_entity_label:taskForm.related_entity_label||null})
+      await workRpc('work_manage_task_outcome',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null,p_labels:taskForm.labels_text.split(',').map(label=>label.trim()).filter(Boolean),p_location:taskForm.location||null,p_source_module:taskForm.source_module||null,p_entity_type:taskForm.related_entity_type||null,p_entity_reference:taskForm.related_entity_reference||null,p_entity_label:taskForm.related_entity_label||null,p_require_result:taskForm.require_result})
       toast.success('✅ Tarea actualizada correctamente')
       setIsEditModalOpen(false)
       setSelectedTask(null)
@@ -162,7 +163,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error updating task:', error)
       const message=String(error?.message||error||'')
-      toast.error(message.includes('work_manage_task_context')?'Falta activar el contexto operativo de las tareas en Supabase.':message||'Error al actualizar la tarea')
+      toast.error(message.includes('work_manage_task_outcome')?'Falta activar el resultado obligatorio en Supabase.':message||'Error al actualizar la tarea')
     }
   }
 
@@ -190,6 +191,7 @@ export default function AdminDashboard() {
       related_entity_type: task.related_entity_type || '',
       related_entity_reference: task.related_entity_reference || '',
       related_entity_label: task.related_entity_label || '',
+      require_result: Boolean(task.require_result),
       schedule_type: task.schedule_type,
       importance: task.importance || 'normal',
       schedule_date: task.schedule_date || '',
@@ -218,6 +220,7 @@ export default function AdminDashboard() {
       related_entity_type: '',
       related_entity_reference: '',
       related_entity_label: '',
+      require_result: false,
       schedule_type: 'daily',
       importance: 'normal',
       schedule_date: '',
@@ -243,6 +246,7 @@ export default function AdminDashboard() {
   const evidenceFields = prefix => <div className="space-y-2"><Label className="text-gray-900 font-semibold">Evidencias obligatorias para finalizar</Label><div className="grid sm:grid-cols-2 gap-2 border rounded-md p-3">{[['require_comment','Comentario'],['require_photo','Foto'],['require_video','Vídeo'],['require_file','Archivo']].map(([field,label])=><label key={field} className="flex items-center gap-2 text-sm"><Checkbox id={`${prefix}-${field}`} checked={taskForm[field]} onCheckedChange={checked=>setTaskForm(v=>({...v,[field]:checked===true}))}/>{label}</label>)}</div><p className="text-xs text-gray-500">El empleado deberá aportar lo marcado durante ese fichaje antes de poder finalizar.</p></div>
   const estimateField = prefix => <div className="space-y-2"><Label htmlFor={`${prefix}-estimate`} className="text-gray-900 font-semibold">Tiempo estimado (minutos)</Label><Input id={`${prefix}-estimate`} type="number" min="1" max="10080" value={taskForm.estimated_minutes} onChange={e=>setTaskForm(v=>({...v,estimated_minutes:e.target.value}))} placeholder="Sin estimación"/><p className="text-xs text-gray-500">Sirve para comparar la planificación con el tiempo real; no limita el fichaje.</p></div>
   const reviewField = prefix => <label className="flex items-start gap-3 rounded-md border p-3"><Checkbox id={`${prefix}-review`} checked={taskForm.requires_review} onCheckedChange={checked=>setTaskForm(v=>({...v,requires_review:checked===true}))}/><span><span className="font-semibold text-gray-900">Requiere aprobación del encargado</span><span className="block text-xs text-gray-500 mt-1">Al finalizar quedará En revisión hasta que se apruebe o se devuelva.</span></span></label>
+  const resultField = prefix => <label className="flex items-start gap-3 rounded-md border p-3"><Checkbox id={`${prefix}-result`} checked={taskForm.require_result} onCheckedChange={checked=>setTaskForm(v=>({...v,require_result:checked===true}))}/><span><span className="font-semibold text-gray-900">Exigir resultado al finalizar</span><span className="block text-xs text-gray-500 mt-1">El empleado deberá resumir qué hizo antes de cerrar la ejecución.</span></span></label>
   const labelsField = prefix => <div className="space-y-2"><Label htmlFor={`${prefix}-labels`} className="text-gray-900 font-semibold">Etiquetas</Label><Input id={`${prefix}-labels`} value={taskForm.labels_text} onChange={e=>setTaskForm(v=>({...v,labels_text:e.target.value}))} placeholder="Ej.: Piscina, Cliente VIP, Preventivo"/><p className="text-xs text-gray-500">Separa las etiquetas con comas. Máximo 10; cada una puede tener hasta 40 caracteres.</p></div>
   const contextFields = prefix => <details className="rounded-md border p-3"><summary className="cursor-pointer font-semibold text-gray-900">Ubicación y origen relacionado</summary><div className="mt-4 space-y-4"><div className="space-y-2"><Label htmlFor={`${prefix}-location`}>Ubicación del trabajo</Label><Input id={`${prefix}-location`} value={taskForm.location} onChange={e=>setTaskForm(v=>({...v,location:e.target.value}))} maxLength={200} placeholder="Ej.: Planta 2 · Habitación 204"/></div><div className="grid sm:grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor={`${prefix}-source`}>Módulo de origen</Label><Input id={`${prefix}-source`} value={taskForm.source_module} onChange={e=>setTaskForm(v=>({...v,source_module:e.target.value}))} maxLength={60} placeholder="Ej.: Mantenimiento"/></div><div className="space-y-2"><Label htmlFor={`${prefix}-entity-type`}>Tipo de entidad</Label><Input id={`${prefix}-entity-type`} value={taskForm.related_entity_type} onChange={e=>setTaskForm(v=>({...v,related_entity_type:e.target.value}))} maxLength={60} placeholder="Ej.: Activo"/></div><div className="space-y-2"><Label htmlFor={`${prefix}-entity-reference`}>Referencia</Label><Input id={`${prefix}-entity-reference`} value={taskForm.related_entity_reference} onChange={e=>setTaskForm(v=>({...v,related_entity_reference:e.target.value}))} maxLength={120} placeholder="Ej.: AC-204"/></div><div className="space-y-2"><Label htmlFor={`${prefix}-entity-label`}>Nombre visible</Label><Input id={`${prefix}-entity-label`} value={taskForm.related_entity_label} onChange={e=>setTaskForm(v=>({...v,related_entity_label:e.target.value}))} maxLength={160} placeholder="Ej.: Aire acondicionado salón"/></div></div><p className="text-xs text-gray-500">El tipo y la referencia se completan juntos. Estos datos preparan la conexión con otros módulos sin cambiar la ejecución.</p></div></details>
 
@@ -387,6 +391,7 @@ export default function AdminDashboard() {
             {evidenceFields('create-task')}
             {estimateField('create-task')}
             {reviewField('create-task')}
+            {resultField('create-task')}
 
             <Button type="submit" disabled={!can('tasks.create')} className="w-full">Crear Tarea</Button>
           </form>
@@ -432,6 +437,7 @@ export default function AdminDashboard() {
             {evidenceFields('edit-task')}
             {estimateField('edit-task')}
             {reviewField('edit-task')}
+            {resultField('edit-task')}
 
             <Button type="submit" disabled={!can('tasks.edit')} className="w-full">Guardar Cambios</Button>
           </form>

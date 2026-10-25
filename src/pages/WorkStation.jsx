@@ -5,6 +5,7 @@ import {startPersonalCardReader} from '@/lib/personalCardNfc'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { CreditCard, CheckCircle, LockKeyhole } from 'lucide-react'
@@ -27,6 +28,7 @@ export default function WorkStation() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [confirmFinish, setConfirmFinish] = useState(false)
+  const [executionResult,setExecutionResult] = useState('')
   const [remaining, setRemaining] = useState(10)
   const [nfcStatus, setNfcStatus] = useState('')
   const nfcController = useRef(null)
@@ -45,7 +47,7 @@ export default function WorkStation() {
   }, [])
 
   useEffect(()=>{let live=true;usabilityReady().then(v=>{if(live)setExtras(v)}).catch(()=>{});return()=>{live=false}},[])
-  const reset = () => { generation.current++; lastTicket.current = null; setDay(null); setDayError(''); setDayLoading(false); setShowDay(false); setPerson(null); setCard(''); setError(''); setSuccess(''); setConfirmFinish(false); setRemaining(10); input.current?.focus() }
+  const reset = () => { generation.current++; lastTicket.current = null; setDay(null); setDayError(''); setDayLoading(false); setShowDay(false); setPerson(null); setCard(''); setError(''); setSuccess(''); setConfirmFinish(false); setExecutionResult(''); setRemaining(10); input.current?.focus() }
   useEffect(() => {
     if (!person && !success && !error) return
     const interval = setInterval(() => setRemaining(n => n - 1), 1000)
@@ -74,7 +76,7 @@ export default function WorkStation() {
     inFlight.current = true; setBusy(true); setError('')
     const request = ++generation.current
     try {
-      const data = await stationRpc(extras?'work_station_identify_v2':'work_station_identify', extras ? {p_station:station,p_card:code,p_method:method,p_user:null} : {p_station:station,p_card:code})
+      const data = await stationRpc(extras?'work_station_identify_result':'work_station_identify', extras ? {p_station:station,p_card:code,p_method:method,p_user:null} : {p_station:station,p_card:code})
       if (data.error) throw new Error(data.error)
       if (request !== generation.current) return
       setPerson(data); lastTicket.current = data.ticket; setDay(null); setDayError(''); setShowDay(data.action === 'none'); setCard(''); setSuccess(''); setConfirmFinish(false); setRemaining(10); if (data.action === 'none') loadDay(data.ticket)
@@ -115,6 +117,8 @@ export default function WorkStation() {
     if (inFlight.current || !person?.ticket) return
     inFlight.current = true; setBusy(true); setError('')
     try {
+      if(action==='finish'&&person.require_result&&executionResult.trim().length<3)throw Error('Escribe el resultado del trabajo antes de finalizar')
+      if(action==='finish'&&executionResult.trim())await stationRpc('work_station_save_result',{p_station:station,p_ticket:person.ticket,p_result:executionResult.trim()})
       const result = await stationRpc(extras?'work_station_confirm_v2':'work_station_confirm', { p_station: station, p_ticket: person.ticket, p_action: action })
       if (!result?.success || result.action !== action) throw new Error('No se confirmó el fichaje. Vuelve a intentarlo.')
       setSuccess(action === 'start' ? 'Tarea comenzada. Ya puedes abrirla en tu móvil.' : 'Tarea finalizada. Tu siguiente tarea estará disponible al identificarte de nuevo.')
@@ -150,6 +154,7 @@ export default function WorkStation() {
         {person.title ? <div className="border rounded-xl p-5 space-y-3"><p className="text-sm text-gray-500">{person.action === 'finish' ? 'Tu tarea en curso' : 'Tu siguiente tarea'}</p><h3 className="text-2xl font-semibold">{person.title}</h3><p className="text-gray-600 whitespace-pre-wrap">{person.description || 'Sin instrucciones adicionales'}</p>{person.started_at && <p className="font-mono text-3xl text-blue-700">{elapsedSince(person.started_at)}</p>}</div> : <p>No tienes más tareas pendientes para hoy.</p>}
         {person.action === 'start' && <Button disabled={busy} className="w-full h-16 text-xl" onClick={() => confirm('start')}>{busy ? 'Guardando…' : 'Comenzar tarea'}</Button>}
         {extras&&person.action==='finish'&&<StationChecklist key={person.ticket} station={station} ticket={person.ticket} onInteract={()=>setRemaining(60)}/>}
+        {person.action==='finish'&&<div className="space-y-2"><Label htmlFor="station-result">Resultado del trabajo{person.require_result?' *':''}</Label><Textarea id="station-result" value={executionResult} onChange={e=>{setExecutionResult(e.target.value);setRemaining(60)}} maxLength={4000} rows={4} placeholder="Resume qué se hizo y cuál fue el resultado"/><p className="text-xs text-gray-500">{person.require_result?'Obligatorio para finalizar. ':''}Quedará guardado en esta ejecución.</p></div>}
         {person.action === 'finish' && (!confirmFinish ? <Button disabled={busy} className="w-full h-16 text-xl" onClick={() => setConfirmFinish(true)}>Finalizar tarea</Button> : <div className="border border-red-200 bg-red-50 rounded-lg p-4 space-y-4"><p>¿Confirmas que has terminado esta tarea?</p><div className="flex flex-col sm:flex-row gap-3"><Button disabled={busy} variant="destructive" onClick={() => confirm('finish')}>{busy ? 'Guardando…' : 'Sí, finalizar tarea'}</Button><Button variant="outline" disabled={busy} onClick={() => setConfirmFinish(false)}>Seguir consultando</Button></div></div>)}
         {!showDay && <Button variant="outline" disabled={busy} className="w-full" onClick={()=>{setShowDay(true); setRemaining(n=>Math.min(n,10)); loadDay(lastTicket.current)}}>Ver mis tareas del día</Button>}
         {daySummary}

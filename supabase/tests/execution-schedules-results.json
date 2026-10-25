@@ -1590,6 +1590,26 @@
       "test": "execution result activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "required result prevents completion without a summary",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "execution completes after required result is saved",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "task catalog exposes required result setting",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "required result activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }

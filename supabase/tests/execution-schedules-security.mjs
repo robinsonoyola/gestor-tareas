@@ -648,6 +648,17 @@ await request(ADMIN,OA,`SELECT public.work_save_execution_result('${pausePlan}',
 ok('administrator can clarify an execution result',(await db.query(`SELECT result_summary FROM public.work_day_plan WHERE organization_id=$1 AND id=$2`,[OA,pausePlan])).rows[0].result_summary.includes('administration'));
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001400_execution_results.sql','utf8'));
 ok('execution result activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001500_required_execution_results.sql','utf8'));
+const requiredResultTask=(await request(ADMIN,OA,`SELECT public.work_manage_task_outcome('create','normal',NULL,'Required result task','Must explain outcome','daily',NULL,'pending','${A}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,10,false,NULL,ARRAY[]::text[],NULL,NULL,NULL,NULL,NULL,true) v`))[0].v,requiredResultPlan=id(9980);
+await db.query(`UPDATE public.work_day_plan SET state='completed',finished_at=clock_timestamp()WHERE organization_id=$1 AND user_id=$2 AND state='active'`,[OA,A]);
+await db.query(`INSERT INTO public.work_day_plan(organization_id,id,user_id,task_id,work_date,priority,state,started_at)VALUES($1,$2,$3,$4,public.work_today(),99,'active',clock_timestamp())`,[OA,requiredResultPlan,A,requiredResultTask]);
+let requiredBlocked=false;try{await db.query(`UPDATE public.work_day_plan SET state='completed',finished_at=clock_timestamp()WHERE organization_id=$1 AND id=$2`,[OA,requiredResultPlan])}catch(e){requiredBlocked=e.message.includes('resultado del trabajo')}ok('required result prevents completion without a summary',requiredBlocked);
+await request(A,OA,`SELECT public.work_save_execution_result('${requiredResultPlan}','Preventive inspection completed without findings')`);
+await db.query(`UPDATE public.work_day_plan SET state='completed',finished_at=clock_timestamp()WHERE organization_id=$1 AND id=$2`,[OA,requiredResultPlan]);
+ok('execution completes after required result is saved',(await db.query(`SELECT state FROM public.work_day_plan WHERE organization_id=$1 AND id=$2`,[OA,requiredResultPlan])).rows[0].state==='completed');
+ok('task catalog exposes required result setting',(await request(ADMIN,OA,'SELECT public.work_task_catalog_labeled() v'))[0].v.find(t=>t.id===requiredResultTask)?.require_result===true);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001500_required_execution_results.sql','utf8'));
+ok('required result activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}
