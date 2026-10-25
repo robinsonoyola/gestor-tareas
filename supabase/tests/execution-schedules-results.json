@@ -1400,6 +1400,21 @@
       "test": "task area activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "task report labels review executions correctly",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "task report labels cancelled executions correctly",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "state reporting activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }

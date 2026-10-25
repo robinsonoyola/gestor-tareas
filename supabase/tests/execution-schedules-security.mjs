@@ -573,6 +573,13 @@ ok('area member can become the primary responsible',areaCatalog.area.id===taskAr
 ok('area assignment notifies the selected responsible',(await db.query(`SELECT count(*)::int n FROM public.work_notifications WHERE organization_id=$1 AND user_id=$2 AND kind='assignment' AND message LIKE 'Nueva tarea asignada:%'`,[OA,A])).rows[0].n>0);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000700_task_area_assignment.sql','utf8'));
 ok('task area activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261024000700_report_area_filter.sql','utf8'));await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000800_state_reporting_consistency.sql','utf8'));
+await db.query(`UPDATE public.work_day_plan SET state='review' WHERE organization_id=$1 AND id=$2`,[OA,rejectedPlan]);await db.query(`UPDATE public.work_day_plan SET state='cancelled' WHERE organization_id=$1 AND id=$2`,[OA,cancelledPlan]);
+const stateReport=(await request(ADMIN,OA,`SELECT public.work_report_table_scope('tasks',public.work_today()-1,public.work_today()+10,NULL,NULL,NULL,NULL,NULL) v`))[0].v;
+ok('task report labels review executions correctly',stateReport.items.some(x=>x.task==='Review task'&&x.status==='En revisión'));
+ok('task report labels cancelled executions correctly',stateReport.items.some(x=>x.task==='Review task'&&x.status==='Cancelada'));
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261025000800_state_reporting_consistency.sql','utf8'));
+ok('state reporting activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}
