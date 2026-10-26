@@ -24,6 +24,7 @@ import EmployeeAbsences from './pages/EmployeeAbsences'
 import RoleManager from './pages/admin/RoleManager'
 import Productivity from './pages/admin/Productivity'
 import WorkdayManager from './pages/admin/WorkdayManager'
+import TeamCalendar from './pages/admin/TeamCalendar'
 import WorkStation from './pages/WorkStation'
 import EmployeeSettings from './pages/EmployeeSettings'
 import TaskAccessLogin from './pages/employee/TaskAccessLogin'
@@ -60,6 +61,7 @@ function App() {
         <Route path="/admin/tasks" element={<ProtectedRoute requirePermission="tasks.view"><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/planning/recurrences" element={<ProtectedRoute requirePermission="planning.view"><RecurringWork /></ProtectedRoute>} />
         <Route path="/admin/planning/board" element={<ProtectedRoute requirePermission="planning.view"><PlanningBoard /></ProtectedRoute>} />
+        <Route path="/admin/planning/team-calendar" element={<ProtectedRoute requirePermission="planning.view"><TeamCalendar /></ProtectedRoute>} />
         <Route path="/admin/planning" element={<ProtectedRoute requirePermission="planning.view"><WorkdayManager key="planning" /></ProtectedRoute>} />
         <Route path="/admin/checkins" element={<ProtectedRoute requirePermission="checkins.view"><CheckinHistory /></ProtectedRoute>} />
         <Route path="/admin/checkins/points" element={<ProtectedRoute requireAdmin><WorkdayManager key="points" section="points" /></ProtectedRoute>} />

@@ -17,14 +17,19 @@ try{
  await db.exec(`INSERT INTO auth.users(id,email,raw_user_meta_data) VALUES('${ADMIN}','admin@example.test','{"full_name":"Admin"}'),('${WORKER}','worker@example.test','{"full_name":"Worker"}');UPDATE public.users SET is_admin=true WHERE id='${ADMIN}';INSERT INTO public.work_settings VALUES(true,false);INSERT INTO public.tasks(id,title,status,schedule_type) VALUES('${TASK}','Tarea','pending','daily');INSERT INTO public.task_assignments(task_id,user_id) VALUES('${TASK}','${WORKER}');`)
  await db.exec(fs.readFileSync(root+'supabase/migrations/20261022000100_core_multitenancy_a1.sql','utf8'))
  const org=(await db.query(`SELECT organization_id id FROM public.organization_memberships WHERE user_id='${ADMIN}'`)).rows[0].id
+ await db.exec(`CREATE TABLE public.work_areas(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL,name text NOT NULL,active boolean NOT NULL DEFAULT true);CREATE TABLE public.work_area_members(organization_id uuid NOT NULL,area_id uuid NOT NULL,user_id uuid NOT NULL,PRIMARY KEY(organization_id,area_id,user_id));GRANT SELECT ON public.work_areas,public.work_area_members TO ase_tenant_executor;`)
  await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000300_employee_absences.sql','utf8'))
  await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000400_employee_own_absences.sql','utf8'))
+ await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000500_team_calendar.sql','utf8'))
  const future=(await request(ADMIN,org,`SELECT public.work_save_absence(NULL,'${WORKER}','vacation',public.work_today()+1,public.work_today()+3,'Vacaciones aprobadas') v`))[0].v
  ok('admin creates employee absence',!!future)
  const directory=(await request(ADMIN,org,`SELECT public.work_absence_directory(public.work_today(),public.work_today()+10) v`))[0].v
  ok('directory returns people and absence',directory.people.length===1&&directory.absences.length===1&&directory.absences[0].employee==='Worker')
  const personal=(await request(WORKER,org,`SELECT public.work_my_absences(NULL,NULL) v`))[0].v
  ok('employee sees own absence only',personal.items.length===1&&personal.items[0].id===future)
+ const team=(await request(ADMIN,org,`SELECT public.work_team_calendar(public.work_today(),public.work_today()+6,NULL) v`))[0].v
+ ok('team calendar returns employees and seven days',team.employees.length===1&&team.employees[0].days.length===7)
+ await denied('employee cannot open team calendar',WORKER,org,`SELECT public.work_team_calendar(public.work_today(),public.work_today()+6,NULL)`)
  await denied('employee cannot create absence',WORKER,org,`SELECT public.work_save_absence(NULL,'${WORKER}','leave',public.work_today()+5,public.work_today()+5,NULL)`)
  await denied('overlapping absence is rejected',ADMIN,org,`SELECT public.work_save_absence(NULL,'${WORKER}','leave',public.work_today()+3,public.work_today()+4,NULL)`)
  await denied('planning during absence is rejected',ADMIN,org,`SELECT public.work_save_plan('${WORKER}',public.work_today()+2,ARRAY['${TASK}']::uuid[])`)
