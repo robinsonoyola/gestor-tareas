@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ArrowLeft, Check, ShieldCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { requestPasswordReset } from '@/lib/passwordRecovery'
 
@@ -78,85 +78,90 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-100 via-white to-slate-200">
-      <Card className="w-full max-w-md mx-4">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto w-28 h-28 flex items-center justify-center mb-3">
-            <img src="/ase-icon.svg" alt="Logo ASE" width="112" height="112" className="w-28 h-28 object-contain" />
-          </div>
-          <CardTitle className="text-3xl font-bold text-gray-900">{resetMode ? 'Recuperar contraseña' : 'ASE Work'}</CardTitle>
-          <CardDescription className="text-gray-600 text-base">
-            {resetMode ? 'Introduce tu email para solicitar un enlace de recuperación.' : 'Gestión de equipos y tareas'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={resetMode ? handleResetRequest : handleLogin} className="space-y-4">
+    <main className="ase-login-shell">
+      <div className="ase-login-grid" aria-hidden="true" />
+      <div className="ase-login-orb ase-login-orb-one" aria-hidden="true" />
+      <div className="ase-login-orb ase-login-orb-two" aria-hidden="true" />
+
+      <section className="ase-login-intro">
+        <div className="ase-login-brand">
+          <span className="ase-login-logo"><img src="/ase-icon.svg" alt="" width="58" height="58" /></span>
+          <span><strong>ASE Work</strong><small>Gestión operativa</small></span>
+        </div>
+        <div className="ase-login-copy">
+          <span className="ase-login-eyebrow">El trabajo, bajo control</span>
+          <h1>Tu equipo sabe qué hacer. Tú sabes cómo avanza.</h1>
+          <p>Planifica, coordina y supervisa la operación diaria desde un único espacio.</p>
+          <ul>
+            <li><Check size={16} /> Tareas, tiempos e incidencias en tiempo real</li>
+            <li><Check size={16} /> Responsabilidades y prioridades bien definidas</li>
+            <li><Check size={16} /> Acceso seguro desde ordenador, tablet o móvil</li>
+          </ul>
+        </div>
+        <p className="ase-login-intro-foot"><ShieldCheck size={15} /> Entorno protegido para tu empresa</p>
+      </section>
+
+      <section className="ase-login-access" aria-label={resetMode ? 'Recuperar contraseña' : 'Iniciar sesión'}>
+        <div className="ase-login-card">
+          <header className="ase-login-card-head">
+            <div className="ase-login-card-icon"><img src="/ase-icon.svg" alt="ASE Work" width="44" height="44" /></div>
+            <span className="ase-login-secure"><span /> Acceso seguro</span>
+            <h2>{resetMode ? 'Recupera tu acceso' : 'Bienvenido a ASE Work'}</h2>
+            <p>{resetMode ? 'Te enviaremos un enlace para elegir una contraseña nueva.' : 'Introduce tus datos para entrar en tu espacio de trabajo.'}</p>
+          </header>
+
+          <form onSubmit={resetMode ? handleResetRequest : handleLogin} className="ase-login-form">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-900 font-semibold">
-                Email
-              </Label>
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input
                 id="email"
                 type="email"
                 value={credentials.email}
                 onChange={(e) => setCredentials(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="usuario@hotel.com"
+                placeholder="nombre@empresa.com"
                 required
-                className="h-12 text-base"
                 autoComplete="email"
+                autoFocus
               />
             </div>
 
-            {!resetMode && (
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-900 font-semibold">
-                Contraseña
-              </Label>
+            {!resetMode && <div className="space-y-2">
+              <div className="ase-login-label-row">
+                <Label htmlFor="password">Contraseña</Label>
+                <button type="button" onClick={toggleRecovery} disabled={loading}>¿La has olvidado?</button>
+              </div>
               <Input
                 id="password"
                 type="password"
                 value={credentials.password}
                 onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="••••••••"
+                placeholder="Introduce tu contraseña"
                 required
-                className="h-12 text-base"
                 autoComplete="current-password"
               />
-            </div>
+            </div>}
 
-            )}
+            {!resetMode&&loginError&&<p role="alert" className="ase-login-message ase-login-message-error">{loginError}</p>}
+            {!resetMode&&loginStalled&&<Button type="button" variant="outline" className="w-full" onClick={()=>window.location.reload()}>Recargar acceso</Button>}
+            {resetMessage && <p role="status" className="ase-login-message ase-login-message-success">{resetMessage}</p>}
+            {resetError && <p role="alert" className="ase-login-message ase-login-message-error">{resetError}</p>}
 
-            {!resetMode&&loginError&&<p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800">{loginError}</p>}
-          {!resetMode&&loginStalled&&<Button type="button" variant="outline" className="w-full" onClick={()=>window.location.reload()}>Recargar acceso</Button>}
-          {resetMessage && <p role="status" className="rounded-md bg-green-50 p-3 text-sm text-green-800">{resetMessage}</p>}
-            {resetError && <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800">{resetError}</p>}
-
-            <Button
-              type="submit"
-              disabled={loading || (!resetMode && loginStalled) || (resetMode && resetCooldown > 0)}
-              className="w-full h-12 text-base  bg-blue-600 hover:bg-blue-700 cursor-pointer text-white font-semibold"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  {resetMode ? 'Solicitando enlace…' : 'Iniciando sesión…'}
-                </>
-              ) : (
-                resetMode ? (resetCooldown > 0 ? `Puedes volver a solicitarlo en ${resetCooldown}s` : 'Enviar enlace de recuperación') : '🔓 Iniciar Sesión'
-              )}
+            <Button type="submit" disabled={loading || (!resetMode && loginStalled) || (resetMode && resetCooldown > 0)} className="ase-login-submit">
+              {loading ? <><span className="ase-login-spinner" />{resetMode ? 'Solicitando enlace…' : 'Iniciando sesión…'}</> :
+                resetMode ? (resetCooldown > 0 ? `Puedes volver a solicitarlo en ${resetCooldown}s` : 'Enviar enlace de recuperación') : 'Entrar en ASE Work'}
             </Button>
           </form>
 
-          <div className="mt-4 text-center">
-            <button type="button" onClick={toggleRecovery} disabled={loading}
-              className="text-sm font-medium text-blue-700 underline hover:text-blue-900 disabled:opacity-50">
-              {resetMode ? 'Volver a iniciar sesión' : '¿Olvidaste tu contraseña?'}
-            </button>
-          </div>
+          {resetMode && <button type="button" onClick={toggleRecovery} disabled={loading} className="ase-login-back">
+            <ArrowLeft size={15} /> Volver a iniciar sesión
+          </button>}
 
-
-        </CardContent>
-      </Card>
-    </div>
+          <footer className="ase-login-card-foot">
+            <ShieldCheck size={15} /> Tus datos viajan cifrados y protegidos
+          </footer>
+        </div>
+        <p className="ase-login-device-note">ASE Work · Gestión clara para equipos que avanzan</p>
+      </section>
+    </main>
   )
 }

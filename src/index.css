@@ -1,6 +1,9 @@
 
 @import "tailwindcss";
 
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body, #root { width: 100%; max-width: 100%; overflow-x: hidden; }
+
 /* ASE Work corporate palette: neutral surfaces, blue actions, semantic states. */
 @theme {
   --color-blue-50: #EFF4FF;
@@ -255,6 +258,82 @@ html, body, #root { min-width: 0; width: 100%; }
   [data-slot="dialog-footer"] > [data-slot="button"] { width: 100%; }
 }
 
+/* Public access — intentionally independent from the authenticated workspace. */
+.ase-login-shell {
+  position: relative; isolation: isolate; min-height: 100vh; overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(28rem, .88fr);
+  color: #e8effa;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(66, 89, 228, .30), transparent 28rem),
+    radial-gradient(circle at 76% 78%, rgba(8, 145, 178, .18), transparent 27rem),
+    linear-gradient(135deg, #060d1b 0%, #0b1528 48%, #07111f 100%);
+}
+.ase-login-grid {
+  position: absolute; z-index: -2; inset: 0; opacity: .22;
+  background-image: linear-gradient(rgba(148,163,184,.12) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.12) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(circle at center, black, transparent 78%); mask-image: radial-gradient(circle at center, black, transparent 78%);
+}
+.ase-login-orb { position: absolute; z-index: -1; border-radius: 999px; filter: blur(4px); }
+.ase-login-orb-one { width: 24rem; height: 24rem; top: -13rem; right: 30%; background: rgba(77,92,232,.23); box-shadow: 0 0 100px rgba(79,70,229,.27); }
+.ase-login-orb-two { width: 16rem; height: 16rem; right: -7rem; bottom: -6rem; background: rgba(14,165,233,.17); box-shadow: 0 0 100px rgba(14,165,233,.22); }
+.ase-login-intro { min-height: 100vh; padding: clamp(2rem,5vw,5rem); display: flex; flex-direction: column; }
+.ase-login-brand { display: flex; align-items: center; gap: .85rem; }
+.ase-login-logo { width: 3.35rem; height: 3.35rem; display: grid; place-items: center; overflow: hidden; border-radius: 1rem; background: linear-gradient(145deg,#fff,#dbeafe); box-shadow: 0 12px 36px rgba(47,107,255,.28); }
+.ase-login-logo img { width: 3.05rem; height: 3.05rem; object-fit: contain; }
+.ase-login-brand strong,.ase-login-brand small { display: block; }
+.ase-login-brand strong { color: #fff; font-size: 1.25rem; letter-spacing: -.02em; }
+.ase-login-brand small { margin-top: .1rem; color: #8395af; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+.ase-login-copy { max-width: 42rem; margin: auto 0; padding: 4rem 0; }
+.ase-login-eyebrow { display: inline-flex; padding: .42rem .72rem; border: 1px solid rgba(96,144,255,.34); border-radius: 999px; color: #8db5ff; background: rgba(47,107,255,.10); font-size: .72rem; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; }
+.ase-login-copy h1 { max-width: 40rem; margin: 1.35rem 0 1rem; color: #f8fbff; font-size: clamp(2.6rem,5vw,5.35rem); font-weight: 760; line-height: .99; letter-spacing: -.055em; }
+.ase-login-copy > p { max-width: 35rem; color: #a5b5cb; font-size: clamp(1rem,1.35vw,1.25rem); line-height: 1.65; }
+.ase-login-copy ul { display: grid; gap: .8rem; margin-top: 2rem; color: #cbd7e7; font-size: .9rem; }
+.ase-login-copy li { display: flex; align-items: center; gap: .7rem; }
+.ase-login-copy li svg { flex: 0 0 auto; padding: 2px; border-radius: 999px; color: white; background: linear-gradient(135deg,#2f6bff,#06b6d4); }
+.ase-login-intro-foot { display: flex; align-items: center; gap: .5rem; color: #71839d; font-size: .75rem; }
+.ase-login-access { min-height: 100vh; padding: 2rem clamp(2rem,6vw,7rem); display: flex; flex-direction: column; align-items: center; justify-content: center; border-left: 1px solid rgba(148,163,184,.10); background: rgba(5,12,24,.31); backdrop-filter: blur(14px); }
+.ase-login-card { width: min(100%,29rem); padding: clamp(1.5rem,3vw,2.25rem); border: 1px solid rgba(128,151,184,.23); border-radius: 1.5rem; background: linear-gradient(155deg,rgba(25,39,62,.94),rgba(11,23,42,.96)); box-shadow: 0 35px 90px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.055); }
+.ase-login-card-head { position: relative; padding-bottom: 1.6rem; }
+.ase-login-card-icon { width: 3.2rem; height: 3.2rem; display: grid; place-items: center; margin-bottom: 1.5rem; overflow: hidden; border-radius: .95rem; background: linear-gradient(145deg,#fff,#dbeafe); box-shadow: 0 12px 28px rgba(47,107,255,.3); }
+.ase-login-card-icon img { width: 2.9rem; height: 2.9rem; object-fit: contain; }
+.ase-login-secure { position: absolute; top: .15rem; right: 0; display: flex; align-items: center; gap: .4rem; color: #8fa2ba; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
+.ase-login-secure span { width: .42rem; height: .42rem; border-radius: 999px; background: #34d399; box-shadow: 0 0 12px #34d399; }
+.ase-login-card h2 { color: #f8fafc; font-size: clamp(1.65rem,3vw,2rem); font-weight: 740; letter-spacing: -.035em; }
+.ase-login-card-head p { margin-top: .45rem; color: #96a8bf; font-size: .9rem; line-height: 1.55; }
+.ase-login-form { display: grid; gap: 1.15rem; }
+.ase-login-form label { color: #dbe6f4; font-size: .79rem; font-weight: 650; }
+.ase-login-form input { height: 3.25rem; padding-inline: 1rem; color: #eff6ff; background: #081426 !important; border-color: #30425e; border-radius: .72rem; }
+.ase-login-form input::placeholder { color: #60728b; }
+.ase-login-form input:focus { border-color: #6090ff; box-shadow: 0 0 0 3px rgba(96,144,255,.16); }
+.ase-login-label-row { display: flex; align-items: center; justify-content: space-between; }
+.ase-login-label-row button,.ase-login-back { color: #8db5ff; font-size: .76rem; font-weight: 650; }
+.ase-login-label-row button:hover,.ase-login-back:hover { color: #bdd3ff; }
+.ase-login-submit { width: 100%; height: 3.25rem; margin-top: .2rem; border: 0; border-radius: .72rem; color: white; font-weight: 700; background: linear-gradient(135deg,#2f6bff,#6558e8) !important; box-shadow: 0 12px 30px rgba(47,107,255,.27); }
+.ase-login-submit:hover { transform: translateY(-1px); background: linear-gradient(135deg,#4078ff,#7669f2) !important; box-shadow: 0 16px 34px rgba(47,107,255,.35); }
+.ase-login-spinner { width: 1.1rem; height: 1.1rem; margin-right: .5rem; border: 2px solid rgba(255,255,255,.35); border-top-color: white; border-radius: 999px; animation: spin 1s linear infinite; }
+.ase-login-message { padding: .75rem .85rem; border: 1px solid; border-radius: .65rem; font-size: .78rem; line-height: 1.45; }
+.ase-login-message-error { color: #fecaca; background: rgba(127,29,29,.24); border-color: rgba(248,113,113,.32); }
+.ase-login-message-success { color: #bbf7d0; background: rgba(20,83,45,.25); border-color: rgba(74,222,128,.3); }
+.ase-login-back { display: flex; align-items: center; justify-content: center; gap: .4rem; width: 100%; margin-top: 1rem; }
+.ase-login-card-foot { display: flex; align-items: center; justify-content: center; gap: .45rem; margin-top: 1.65rem; padding-top: 1rem; border-top: 1px solid rgba(148,163,184,.13); color: #6f829b; font-size: .69rem; }
+.ase-login-device-note { margin-top: 1.2rem; color: #63758e; font-size: .7rem; letter-spacing: .02em; text-align: center; }
+
+@media (max-width: 900px) {
+  .ase-login-shell { grid-template-columns: 1fr; }
+  .ase-login-intro { display: none; }
+  .ase-login-access { min-height: 100vh; min-height: 100dvh; padding: 1rem; border-left: 0; background: transparent; }
+  .ase-login-card { width: min(100%,31rem); min-height: min(40rem,calc(100dvh - 4.5rem)); display: flex; flex-direction: column; justify-content: center; }
+  .ase-login-device-note { margin-top: .75rem; }
+}
+@media (max-width: 420px) {
+  .ase-login-brand small { display: none; }
+  .ase-login-logo { width: 2.8rem; height: 2.8rem; border-radius: .8rem; }
+  .ase-login-logo img { width: 2.55rem; height: 2.55rem; }
+  .ase-login-card { padding: 1.35rem; border-radius: 1.2rem; }
+  .ase-login-card-icon { width: 2.8rem; height: 2.8rem; margin-bottom: 1.2rem; }
+}
+
 /* Tables retain readable column widths; mobile records use full-width cards. */
 [data-slot="table-cell"] { overflow-wrap: normal; word-break: normal; }
 [data-slot="table-cell"]:first-child { min-width: 12rem; max-width: 24rem; white-space: normal; overflow-wrap: break-word; }
@@ -316,6 +395,7 @@ html, body, #root { min-width: 0; width: 100%; }
 }
 
 .ase-layout .ase-content :where(h1,h2,h3,[data-slot="card-title"]) { color: #f8fafc; }
+.ase-layout .ase-content :where(h1,h2,h3,p,label,span,a,summary) { max-width: 100%; overflow-wrap: anywhere; }
 .ase-layout .ase-content :where(.text-gray-900,.text-gray-800,.text-gray-700) { color: #e5edf8 !important; }
 .ase-layout .ase-content :where(.text-gray-600,.text-gray-500) { color: #9fb0c7 !important; }
 .ase-layout .ase-content .bg-white,
@@ -408,9 +488,150 @@ html, body, #root { min-width: 0; width: 100%; }
 .table-container::-webkit-scrollbar-track { background: #0b1628; }
 .table-container::-webkit-scrollbar-thumb { background: #425675; }
 
+/* Per-device light theme. The sidebar stays navy to preserve navigation contrast. */
+.ase-layout.ase-light { color: #182230; background: #eef3f9; }
+.ase-layout.ase-light main { background: linear-gradient(180deg,#f7f9fc,#eef3f9); }
+.ase-layout.ase-light .ase-topbar { color: #182230; background: rgba(255,255,255,.94); border-color: #dce3ed; box-shadow: 0 8px 24px rgba(15,23,42,.08); }
+.ase-layout.ase-light .ase-topbar .text-gray-900 { color: #0b1324 !important; }
+.ase-layout.ase-light .ase-topbar .text-gray-500 { color: #667085 !important; }
+.ase-layout.ase-light .ase-topbar button:hover { color: #1f5ae0; background: #eff4ff; }
+.ase-layout.ase-light .ase-content :where(h1,h2,h3,[data-slot="card-title"]) { color: #0b1324; }
+.ase-layout.ase-light .ase-content :where(.text-gray-900,.text-gray-800,.text-gray-700) { color: #1f2937 !important; }
+.ase-layout.ase-light .ase-content :where(.text-gray-600,.text-gray-500) { color: #667085 !important; }
+.ase-layout.ase-light .ase-content .bg-white,
+.ase-layout.ase-light [data-slot="card"] { color: #182230; background: #fff !important; border-color: #dfe5ee !important; box-shadow: 0 10px 30px rgba(15,23,42,.07); }
+.ase-layout.ase-light :where(input,textarea,select,[data-slot="input"],[data-slot="textarea"]) { color: #182230; background: #fff !important; border-color: #cbd5e1 !important; box-shadow: inset 0 1px 2px rgba(15,23,42,.04); }
+.ase-layout.ase-light select option { color: #182230; background: #fff; }
+.ase-layout.ase-light input::placeholder,.ase-layout.ase-light textarea::placeholder { color: #98a2b3; }
+.ase-layout.ase-light [data-slot="button"][data-variant="outline"] { color: #1f2937; background: #fff; border-color: #cbd5e1; }
+.ase-layout.ase-light [data-slot="button"][data-variant="outline"]:hover { color: #1f5ae0; background: #eff4ff; border-color: #93b4ff; }
+.ase-layout.ase-light [data-slot="button"][data-variant="ghost"] { color: #475467; }
+.ase-layout.ase-light .ase-section-tabs { background: #fff; border-color: #dbe3ef; box-shadow: 0 8px 22px rgba(15,23,42,.06); }
+.ase-layout.ase-light table { color: #1f2937; }
+.ase-layout.ase-light :where(thead,[data-slot="table-header"]) { background: #edf2f8; }
+.ase-layout.ase-light :where(th,[data-slot="table-head"]) { color: #344054; }
+.ase-layout.ase-light :where(tr,[data-slot="table-row"]) { border-color: #e2e8f0; }
+.ase-layout.ase-light tbody tr:hover { background: #f5f8fc; }
+.ase-layout.ase-light tfoot { color: #182230; background: #f1f5f9 !important; }
+html[data-ase-theme="light"] [data-slot="dialog-overlay"] { background: rgba(15,23,42,.45); }
+html[data-ase-theme="light"] :where([data-slot="dialog-content"],[data-slot="dropdown-menu-content"]) { color: #182230; background: #fff !important; border-color: #d9e1ec !important; box-shadow: 0 24px 70px rgba(15,23,42,.22); }
+html[data-ase-theme="light"] [data-slot="dialog-content"] :where(h1,h2,h3,[data-slot="dialog-title"]) { color: #0b1324; }
+html[data-ase-theme="light"] [data-slot="dialog-content"] :where(input,textarea,select) { color: #182230; background: #fff !important; border-color: #cbd5e1; }
+html[data-ase-theme="light"] [data-slot="dialog-description"] { color: #667085; }
+
+/* The planning summary is a real data table: scroll it instead of crushing words. */
+.ase-layout [data-slot="card"]:has(#planning-person-search) table { min-width: 42rem; table-layout: auto; }
+.ase-layout [data-slot="card"]:has(#planning-person-search) th { white-space: nowrap; overflow-wrap: normal; }
+.ase-layout [data-slot="card"]:has(#planning-person-search) td:first-child { min-width: 9rem; overflow-wrap: normal; word-break: normal; }
+.ase-layout [data-slot="card"]:has(#planning-person-search) td:last-child [data-slot="button"] { min-width: 8.5rem; white-space: normal; }
+
 @media (max-width: 639px) {
   .ase-layout .ase-content { padding: 1rem; }
   .ase-layout [data-slot="card"] { border-radius: 1rem; }
   .ase-topbar { background: rgba(8,17,32,.94); }
   .ase-review-card [data-slot="button"] { width: 100%; }
+  .ase-layout .ase-content h1 { font-size: clamp(1.65rem,8vw,2rem); line-height: 1.15; }
+  .ase-layout .ase-content h2 { font-size: clamp(1.15rem,6vw,1.4rem); line-height: 1.25; }
+
+  /* Compatibility fallback for mobile browsers without relational selectors. */
+  .ase-layout .ase-content table { min-width: 42rem; }
+  .ase-layout .ase-content table th { white-space: nowrap; overflow-wrap: normal; word-break: normal; }
+  .ase-layout .ase-content table td:first-child { min-width: 9rem; overflow-wrap: normal; word-break: normal; }
+  .ase-layout .ase-content table td:last-child [data-slot="button"] { min-width: 8.5rem; white-space: normal; }
+
+  .ase-section-tabs {
+    display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; gap: .5rem;
+  }
+  .ase-section-tabs > * { width: 100%; min-width: 0; height: auto; min-height: 2.65rem; padding: .55rem .65rem; line-height: 1.2; }
+  .ase-section-tabs > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+  /* Toolbars become vertical on phones: fields must never compete with long actions. */
+  .ase-layout .ase-content div.flex.flex-wrap:has(#recurrence-search) {
+    display: grid; grid-template-columns: minmax(0,1fr); align-items: stretch; gap: .75rem; width: 100%;
+  }
+  .ase-layout .ase-content div.flex.flex-wrap:has(#recurrence-search) > div {
+    width: 100%; min-width: 0;
+  }
+  .ase-layout .ase-content div.flex.flex-wrap:has(#recurrence-search) > [data-slot="button"] {
+    width: 100%; min-height: 2.75rem; height: auto; padding-block: .65rem; white-space: normal; line-height: 1.25;
+  }
+
+  /* Access-point cards keep a stable two-column rhythm on narrow screens. */
+  .ase-layout [data-slot="card-content"]:has(#station-name) > div.flex.flex-wrap {
+    display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: stretch; gap: .65rem; padding: .85rem;
+  }
+  .ase-layout [data-slot="card-content"]:has(#station-name) > div.flex.flex-wrap > span {
+    grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere; font-weight: 650; line-height: 1.4;
+  }
+  .ase-layout [data-slot="card-content"]:has(#station-name) > div.flex.flex-wrap > [data-slot="button"] {
+    width: 100%; min-width: 0; height: auto; min-height: 2.75rem; padding: .6rem .7rem; white-space: normal; line-height: 1.2;
+  }
+  .ase-layout [data-slot="card-content"]:has(#station-name) > div.flex.flex-wrap > [data-slot="button"]:last-child {
+    grid-column: 1 / -1;
+  }
+  .ase-layout [data-slot="card-content"]:has(#station-name) > a {
+    overflow-wrap: anywhere;
+  }
+  .ase-layout [data-slot="card-content"]:has(#station-name) > [data-slot="button"] {
+    width: 100%; min-height: 2.75rem;
+  }
+
+  /* Reusable action rows: balanced cards instead of uneven wrapped buttons. */
+  .ase-layout .ase-content [data-slot="card-content"] > div.flex.flex-wrap:has(> [data-slot="button"] + [data-slot="button"]) {
+    display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: stretch; width: 100%; gap: .65rem;
+  }
+  .ase-layout .ase-content [data-slot="card-content"] > div.flex.flex-wrap:has(> [data-slot="button"] + [data-slot="button"]) > :not([data-slot="button"]) {
+    grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere;
+  }
+  .ase-layout .ase-content [data-slot="card-content"] > div.flex.flex-wrap:has(> [data-slot="button"] + [data-slot="button"]) > [data-slot="button"] {
+    width: 100%; min-width: 0; height: auto; min-height: 2.75rem; padding: .6rem .7rem; white-space: normal;
+  }
+  .ase-layout .ase-content [data-slot="card-content"] > div.flex.flex-wrap:has(> [data-slot="button"] + [data-slot="button"]) > [data-slot="button"]:last-child:nth-child(even) {
+    grid-column: 1 / -1;
+  }
+
+  /* Input/action pairs stack predictably instead of squeezing their labels. */
+  .ase-layout .ase-content div.flex:not(.flex-wrap):has(> [data-slot="input"]):has(> [data-slot="button"]),
+  .ase-layout .ase-content div.flex:not(.flex-wrap):has(> select):has(> [data-slot="button"]) {
+    display: grid; grid-template-columns: minmax(0,1fr); width: 100%; gap: .65rem;
+  }
+  .ase-layout .ase-content div.flex:not(.flex-wrap):has(> [data-slot="input"]):has(> [data-slot="button"]) > [data-slot="button"],
+  .ase-layout .ase-content div.flex:not(.flex-wrap):has(> select):has(> [data-slot="button"]) > [data-slot="button"] {
+    width: 100%;
+  }
+  .ase-layout #incident-filter { display: block; width: 100%; margin: .45rem 0 0; }
+
+  .ase-layout .ase-content :where(input,textarea,select,[data-slot="input"],[data-slot="select-trigger"]) {
+    width: 100%; max-width: 100%; min-width: 0;
+  }
+  .ase-layout .ase-content :where(.overflow-x-auto,[data-slot="table-container"]) {
+    width: 100%; max-width: calc(100vw - 2rem); overflow-x: auto; overscroll-behavior-inline: contain;
+  }
+
+  /* Planning overview becomes readable employee cards on phones. */
+  .ase-layout [data-slot="card"]:has(#planning-person-search) .overflow-x-auto { max-width: 100%; overflow: visible; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) table,
+  .ase-layout [data-slot="card"]:has(#planning-person-search) tbody,
+  .ase-layout [data-slot="card"]:has(#planning-person-search) tr,
+  .ase-layout [data-slot="card"]:has(#planning-person-search) td { display: block; width: 100%; min-width: 0; max-width: none; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) table { min-width: 0; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) thead { display: none; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) tbody { display: grid; gap: .8rem; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) tbody tr {
+    display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .55rem; padding: .9rem; border: 1px solid rgba(100,116,139,.32); border-radius: .85rem; background: rgba(21,34,55,.72);
+  }
+  .ase-layout.ase-light [data-slot="card"]:has(#planning-person-search) tbody tr { background: #f8fafc; border-color: #dbe3ed; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) td { padding: .65rem; border: 1px solid rgba(100,116,139,.24); border-radius: .65rem; text-align: center; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) td:first-child,
+  .ase-layout [data-slot="card"]:has(#planning-person-search) td:last-child { grid-column: 1 / -1; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) td:first-child { text-align: left; font-size: 1rem; font-weight: 700; overflow-wrap: normal; word-break: normal; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) td:not(:first-child):not(:last-child)::before { display: block; margin-bottom: .25rem; color: #9fb0c7; font-size: .7rem; line-height: 1.2; }
+  .ase-layout.ase-light [data-slot="card"]:has(#planning-person-search) td:not(:first-child):not(:last-child)::before { color: #667085; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) td:nth-child(2)::before { content: "Pendientes"; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) td:nth-child(3)::before { content: "En curso"; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) td:nth-child(4)::before { content: "Bloqueadas"; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) td:nth-child(5)::before { content: "Completadas"; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) td[colspan] { grid-column: 1 / -1; text-align: left; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) td[colspan]::before { display: none !important; }
+  .ase-layout [data-slot="card"]:has(#planning-person-search) td:last-child [data-slot="button"] { width: 100%; min-width: 0; min-height: 2.75rem; }
 }

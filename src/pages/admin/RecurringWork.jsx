@@ -3,6 +3,7 @@ import {Link} from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import {useAuth} from '@/hooks/useAuth'
 import {workDate,workRpc} from '@/lib/workflow'
+import {randomId} from '@/lib/randomId'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
@@ -10,14 +11,14 @@ import {Card,CardContent,CardHeader,CardTitle} from '@/components/ui/card'
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog'
 const names={daily:'días',weekly:'semanas',monthly:'meses',yearly:'años'}
 const stamp=value=>value?new Date(value+'T12:00:00Z').toLocaleDateString('es-ES',{timeZone:'UTC'}):'Al finalizar la ejecución actual'
-const initial=()=>({id:crypto.randomUUID(),task:'',user:'',area:'',target:'employee',start:workDate(),frequency:'yearly',every:1,basis:'fixed',notice:15})
+const initial=()=>({id:randomId(),task:'',user:'',area:'',target:'employee',start:workDate(),frequency:'yearly',every:1,basis:'fixed',notice:15})
 async function call(name,args){const controller=new AbortController();let timer;try{return await Promise.race([workRpc(name,args,{signal:controller.signal}),new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(new Error('La consulta está tardando demasiado. Actualiza para comprobar el resultado antes de repetirla.'))},15000)})])}finally{clearTimeout(timer)}}
 export default function RecurringWork(){
  const {can}=useAuth(),edit=can('planning.edit')
  const [items,setItems]=useState([]),[employees,setEmployees]=useState([]),[tasks,setTasks]=useState([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[open,setOpen]=useState(false),[form,setForm]=useState(initial),[filter,setFilter]=useState(''),[message,setMessage]=useState('')
  const [automated,setAutomated]=useState(false),[areas,setAreas]=useState([]),[catalog,setCatalog]=useState([]),[assignees,setAssignees]=useState({})
  const serial=useRef(0)
- const load=async()=>{const n=++serial.current;setLoading(true);setError('');try{const [data,people]=await Promise.all([call('work_recurrence_list'),call('work_employee_directory')]);if(n===serial.current){setAreas(data.areas||[]);setCatalog(data.tasks||[]);setAutomated(data.automation_ready===true);setItems(data.items||[]);setEmployees(people||[])}}catch(e){if(n===serial.current)setError(e.message.includes('work_recurrence')?'Falta activar las repeticiones en Supabase.':e.message)}finally{if(n===serial.current)setLoading(false)}}
+ const load=async()=>{const n=++serial.current;setLoading(true);setError('');try{const [data,people]=await Promise.all([call('work_recurrence_list'),call('work_employee_directory')]);if(n===serial.current){setAreas(Array.isArray(data?.areas)?data.areas:[]);setCatalog(Array.isArray(data?.tasks)?data.tasks:[]);setAutomated(data?.automation_ready===true);setItems(Array.isArray(data?.items)?data.items:[]);setEmployees(Array.isArray(people)?people:[])}}catch(e){if(n===serial.current)setError(e.message.includes('work_recurrence')?'Falta activar las repeticiones en Supabase.':e.message)}finally{if(n===serial.current)setLoading(false)}}
  useEffect(()=>{load();return()=>{serial.current++}},[])
  useEffect(()=>{let live=true;setTasks([]);if(form.user&&open)call('work_planning_assignments',{p_user:form.user}).then(rows=>{if(live)setTasks(rows||[])}).catch(e=>{if(live)setError(e.message)});return()=>{live=false}},[form.user,open])
  const update=(key,value)=>setForm(previous=>({...previous,[key]:value,...(['user','target'].includes(key)?{task:''}:{})}))

@@ -1,5 +1,5 @@
 import IncidentNotifications from '@/components/IncidentNotifications'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,8 @@ import {
   Menu,
   X,
   ChevronDown
+  ,Moon
+  ,Sun
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -31,6 +33,15 @@ export default function Layout({ children }) {
   const { userData, signOut } = useAuth()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem('ase-work-theme') === 'light' ? 'light' : 'dark' } catch { return 'dark' }
+  })
+
+  useEffect(() => {
+    document.documentElement.dataset.aseTheme = theme
+    try { localStorage.setItem('ase-work-theme', theme) } catch { /* The theme still works for this session. */ }
+    return () => { delete document.documentElement.dataset.aseTheme }
+  }, [theme])
 
   const handleLogout = async () => {
     await signOut()
@@ -48,7 +59,7 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="ase-layout dark min-h-dvh">
+    <div className={`ase-layout ${theme === 'dark' ? 'ase-dark dark' : 'ase-light'} min-h-dvh`}>
       <div className="flex h-dvh overflow-hidden">
         {/* Sidebar - Desktop */}
         <div className="hidden lg:block shrink-0">
@@ -112,6 +123,16 @@ export default function Layout({ children }) {
               {/* Right Section */}
               <div className="flex items-center gap-2 md:gap-4">
                 <OrganizationSelector />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTheme(value => value === 'dark' ? 'light' : 'dark')}
+                  aria-label={theme === 'dark' ? 'Cambiar a pantalla clara' : 'Cambiar a pantalla oscura'}
+                  title={theme === 'dark' ? 'Pantalla clara' : 'Pantalla oscura'}
+                >
+                  {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                </Button>
                 <IncidentNotifications/>
                 {/* User Info - Desktop */}
                 <div className="hidden md:block min-w-0 max-w-56 text-right">
