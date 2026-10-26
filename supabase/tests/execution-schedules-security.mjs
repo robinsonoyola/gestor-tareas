@@ -679,6 +679,17 @@ ok('duplicated activity starts without executions or history',(await db.query(`S
 await denied('other organization cannot duplicate a foreign activity',BADMIN,OB,`SELECT public.work_duplicate_task('${labeledTask}','Foreign copy')`);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261025001700_duplicate_task.sql','utf8'));
 ok('duplicate activity activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000100_execution_result_visibility.sql','utf8'));
+ok('existing execution results are added to the audit history',(await db.query(`SELECT count(*)::int n FROM public.work_execution_result_events WHERE organization_id=$1 AND plan_id=$2`,[OA,pausePlan])).rows[0].n===1);
+await request(employee,OA,`SELECT public.work_save_execution_result('${pausePlan}','Final result visible to the reviewer and reports')`);
+ok('changing an execution result keeps both audited versions',(await db.query(`SELECT count(*)::int n FROM public.work_execution_result_events WHERE organization_id=$1 AND plan_id=$2`,[OA,pausePlan])).rows[0].n===2);
+const resultTimeline=(await request(ADMIN,OA,`SELECT public.work_task_timeline('${pauseTask}') v`))[0].v;
+ok('task timeline shows the execution result and its author',resultTimeline.some(x=>x.kind==='execution_result'&&x.detail.includes('visible to the reviewer')&&x.actor_name));
+const resultReport=(await request(ADMIN,OA,`SELECT public.work_report_table_scope('tasks',public.work_today()-1,public.work_today()+1,NULL,NULL,NULL,NULL,NULL) v`))[0].v;
+ok('task report includes the result of each execution',resultReport.items.some(x=>x.task==='Pause task'&&x.result.includes('visible to the reviewer')));
+await denied('other organization cannot consult foreign result history',BADMIN,OB,`SELECT public.work_task_timeline('${pauseTask}') v`);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000100_execution_result_visibility.sql','utf8'));
+ok('result visibility activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false&&(await db.query(`SELECT count(*)::int n FROM public.work_execution_result_events WHERE organization_id=$1 AND plan_id=$2`,[OA,pausePlan])).rows[0].n===2);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}

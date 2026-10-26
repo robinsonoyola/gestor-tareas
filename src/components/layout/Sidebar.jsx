@@ -74,12 +74,12 @@ export default function Sidebar({ onClose }) {
   const menuItems = userData?.is_admin ? adminMenuItems : [...adminMenuItems.filter(item=>(item.permission && can(item.permission)) || item.any?.some(can)),...employeeMenuItems]
 
   return (
-    <aside className="ase-sidebar w-64 bg-[#0F172A] text-[#F8FAFC] border-r border-white/10 flex flex-col h-full">
+    <aside className="ase-sidebar w-64 text-[#F8FAFC] border-r border-white/10 flex flex-col h-full">
       {/* Header con Logo */}
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 shrink-0 bg-white rounded-lg shadow-sm">
+            <div className="ase-brand-tile flex items-center justify-center w-10 h-10 shrink-0 rounded-xl shadow-sm">
               <img src="/ase-icon.svg" alt="" aria-hidden="true" className="w-10 h-10 rounded-lg" />
             </div>
             <div>
@@ -152,7 +152,7 @@ export default function Sidebar({ onClose }) {
       </nav>
 
       {/* Footer - User Info */}
-      <div className="p-4 border-t border-white/10 bg-[#132238]">
+      <div className="ase-sidebar-footer p-4 border-t border-white/10">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-9 h-9 bg-blue-600 rounded-full text-white text-sm font-semibold">
             {userData?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'}

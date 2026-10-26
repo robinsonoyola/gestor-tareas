@@ -1670,6 +1670,36 @@
       "test": "duplicate activity activation is idempotent and revokes schema CREATE",
       "expected": "PASS",
       "actual": "PASS"
+    },
+    {
+      "test": "existing execution results are added to the audit history",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "changing an execution result keeps both audited versions",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "task timeline shows the execution result and its author",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "task report includes the result of each execution",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "other organization cannot consult foreign result history",
+      "expected": "PASS",
+      "actual": "PASS"
+    },
+    {
+      "test": "result visibility activation is idempotent and revokes schema CREATE",
+      "expected": "PASS",
+      "actual": "PASS"
     }
   ]
 }

@@ -48,7 +48,7 @@ export default function Layout({ children }) {
   }
 
   return (
-    <div className="ase-layout min-h-dvh bg-gray-50">
+    <div className="ase-layout dark min-h-dvh">
       <div className="flex h-dvh overflow-hidden">
         {/* Sidebar - Desktop */}
         <div className="hidden lg:block shrink-0">
@@ -73,7 +73,7 @@ export default function Layout({ children }) {
         {/* Main Content */}
         <main className="min-w-0 flex-1 overflow-auto">
           {/* Header */}
-          <header className="sticky top-0 z-30 bg-white border-b shadow-sm">
+          <header className="ase-topbar sticky top-0 z-30 border-b shadow-sm">
             <div className="flex min-w-0 items-center justify-between gap-2 px-3 py-3 sm:px-4 md:px-6 md:py-4">
               {/* Left Section */}
               <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -89,7 +89,7 @@ export default function Layout({ children }) {
 
                 {/* Logo */}
                 <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                  <div className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-white rounded-lg shadow-sm">
+                  <div className="ase-brand-tile flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-xl shadow-sm">
                     <img src="/ase-icon.svg" alt="" aria-hidden="true" className="w-9 h-9 md:w-10 md:h-10 rounded-lg" />
                   </div>
                   <div className="hidden sm:block">

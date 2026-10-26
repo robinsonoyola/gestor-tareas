@@ -1,14 +1,13 @@
 import { cn } from '@/lib/utils'
 
-export const sectionTabsClass = 'flex flex-wrap gap-2 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 via-indigo-50 to-sky-50 p-2 shadow-sm'
+export const sectionTabsClass = 'ase-section-tabs flex flex-wrap gap-2 rounded-xl border p-2 shadow-sm'
 
 export function sectionTabClass(active, className = '') {
   return cn(
     'border px-4 py-2 font-semibold transition-all',
     active
-      ? '!border-blue-700 !bg-gradient-to-r !from-blue-600 !to-indigo-600 !text-white shadow-md ring-2 ring-blue-200'
-      : '!border-blue-200 !bg-white/90 !text-blue-800 shadow-sm hover:!border-blue-400 hover:!bg-blue-100 hover:!text-blue-950',
+      ? '!border-blue-400 !bg-gradient-to-r !from-blue-600 !to-indigo-500 !text-white shadow-lg ring-2 ring-blue-400/25'
+      : '!border-slate-600 !bg-slate-900/70 !text-slate-200 shadow-sm hover:!border-blue-400 hover:!bg-blue-950/70 hover:!text-white',
     className,
   )
 }
-
