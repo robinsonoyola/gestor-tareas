@@ -13,6 +13,7 @@ import {Badge} from '@/components/ui/badge'
 import {Card,CardContent} from '@/components/ui/card'
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog'
 import {workDate,workRpc} from '@/lib/workflow'
+import {randomId} from '@/lib/randomId'
 const columns=[['pending','Pendientes'],['active','En curso'],['paused','Pausadas'],['blocked','Bloqueadas'],['review','En revisión'],['completed','Completadas'],['cancelled','Canceladas']]
 const palette={
  pending:{column:'border-amber-500 bg-amber-200',heading:'text-amber-950',badge:'border-amber-700 bg-amber-600 text-white',card:'border-l-4 border-l-amber-600'},
@@ -45,7 +46,7 @@ export default function PlanningBoard(){
  },[start,end,employee,state,search,revision])
  useEffect(()=>{interaction.current=!!moveRequest||!!dragging},[moveRequest,dragging])
  useEffect(()=>{setMoveRequest(null);setDragging(null);dragId.current=null;setNotice('')},[start,end,employee,state])
- const openMove=(item,target=null)=>{if(item.state==='review'){setNotice('Utiliza Tareas · Revisiones para aprobar o devolver este trabajo.');return}if(item.state==='paused'){setNotice('La ejecución está pausada. El empleado debe reanudarla desde su tarea.');return}if(!isAdmin||busy||moveRequest||!Number.isFinite(item.version))return;if(target&&!boardTransitions[item.state]?.includes(target)){setNotice('Ese cambio necesita un fichaje activo o resolver primero el bloqueo.');return}interaction.current=true;setSelected(null);setMoveRequest({id:crypto.randomUUID(),item:{...item},target})}
+ const openMove=(item,target=null)=>{if(item.state==='review'){setNotice('Utiliza Tareas · Revisiones para aprobar o devolver este trabajo.');return}if(item.state==='paused'){setNotice('La ejecución está pausada. El empleado debe reanudarla desde su tarea.');return}if(!isAdmin||busy||moveRequest||!Number.isFinite(item.version))return;if(target&&!boardTransitions[item.state]?.includes(target)){setNotice('Ese cambio necesita un fichaje activo o resolver primero el bloqueo.');return}interaction.current=true;setSelected(null);setMoveRequest({id:randomId(),item:{...item},target})}
  const dragStart=(event,item)=>{if(!isAdmin||busy||moveRequest||!Number.isFinite(item.version)){event.preventDefault();return}interaction.current=true;dragId.current=item.id;event.dataTransfer.setData('text/plain',item.id);event.dataTransfer.effectAllowed='move';setDragging(item.id)}
  const drop=(event,state)=>{event.preventDefault();const item=data?.items?.find(item=>item.id===dragId.current);dragId.current=null;setDragging(null);if(item&&item.state!==state)openMove(item,state)}
  const canDrop=state=>{const item=data?.items?.find(item=>item.id===dragging);return !!item&&boardTransitions[item.state]?.includes(state)}
