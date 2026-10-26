@@ -409,11 +409,18 @@ html, body, #root { min-width: 0; width: 100%; }
 
 /* Some operational panels deliberately remain light inside the dark theme.
    Their content must keep dark ink instead of inheriting the surrounding theme. */
-.ase-layout:not(.ase-light) .ase-content :where(.bg-gray-50,.bg-gray-100) {
+.ase-layout:not(.ase-light) .ase-content :where(.bg-gray-50,.bg-gray-100,.bg-gray-200,.bg-slate-50,.bg-slate-100,.bg-slate-200) {
   color: #05070a !important;
 }
-.ase-layout:not(.ase-light) .ase-content :where(.bg-gray-50,.bg-gray-100) :where(h1,h2,h3,p,span,label,dt,dd,summary,a) {
+.ase-layout:not(.ase-light) .ase-content :where(.bg-gray-50,.bg-gray-100,.bg-gray-200,.bg-slate-50,.bg-slate-100,.bg-slate-200) :where(
+  h1,h2,h3,p,label,dt,dd,summary,th,td,[data-slot="table-head"],
+  .text-gray-900,.text-gray-800,.text-gray-700,.text-gray-600,.text-gray-500,
+  .text-slate-900,.text-slate-800,.text-slate-700,.text-slate-600,.text-slate-500
+) {
   color: #05070a !important;
+}
+.ase-layout:not(.ase-light) .ase-content :where(.bg-gray-50,.bg-gray-100,.bg-gray-200,.bg-slate-50,.bg-slate-100,.bg-slate-200) a:not([class*="text-"]) {
+  color: #1f5ae0 !important;
 }
 
 .ase-layout :where(input,textarea,select,[data-slot="input"],[data-slot="textarea"]) {
