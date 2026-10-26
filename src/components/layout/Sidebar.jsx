@@ -35,7 +35,8 @@ export default function Sidebar({ onClose }) {
     if (path==='/admin/reports' && location.pathname==='/admin/productivity') return true
     const [pathname,query] = path.split('?')
     if (query) return location.pathname===pathname && new URLSearchParams(location.search).get('status')===new URLSearchParams(query).get('status')
-    if (pathname==='/employee') return location.pathname===pathname && !['pending','in_progress','completed'].includes(new URLSearchParams(location.search).get('status'))
+    if (pathname==='/employee') return location.pathname===pathname
+    if (pathname==='/employee/tasks') return location.pathname===pathname && !query
     return location.pathname === pathname || (pathname !== '/admin' && location.pathname.startsWith(pathname+'/'))
   }
 
@@ -52,15 +53,16 @@ export default function Sidebar({ onClose }) {
   ]
 
   const employeeMenuItems = [
+    {icon:BriefcaseBusiness,label:'Trabajo actual',path:'/employee',badge:null},
     {
       icon: LayoutDashboard,
-      label: 'Mis Tareas',
-      path: '/employee',
+      label: 'Mis tareas',
+      path: '/employee/tasks',
       badge: null
     },
-    {icon:ListTodo,label:'Pendientes',path:'/employee?status=pending',badge:null},
-    {icon:Clock,label:'En progreso',path:'/employee?status=in_progress',badge:null},
-    {icon:ListTodo,label:'Completadas',path:'/employee?status=completed',badge:null},
+    {icon:ListTodo,label:'Pendientes',path:'/employee/tasks?status=pending',badge:null},
+    {icon:Clock,label:'En progreso',path:'/employee/tasks?status=in_progress',badge:null},
+    {icon:ListTodo,label:'Completadas',path:'/employee/tasks?status=completed',badge:null},
     {icon:Clock,label:'Incidencias',path:'/incidents',badge:null},
     {icon:Clock,label:'Mi historial',path:'/employee/history',badge:null},
     {

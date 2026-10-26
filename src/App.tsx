@@ -18,6 +18,7 @@ import GPSLocations from './pages/admin/GPSLocations'
 import TaskAccessManager from './pages/admin/TaskAccessManager'
 import EmployeeManager from './pages/admin/EmployeeManager'
 import EmployeeWorkHome from './pages/EmployeeWorkHome'
+import EmployeeCurrentWork from './pages/EmployeeCurrentWork'
 import RoleManager from './pages/admin/RoleManager'
 import Productivity from './pages/admin/Productivity'
 import WorkdayManager from './pages/admin/WorkdayManager'
@@ -97,10 +98,12 @@ function App() {
           path="/employee"
           element={
             <ProtectedRoute>
-              <EmployeeWorkHome />
+              <EmployeeCurrentWork />
             </ProtectedRoute>
           }
         />
+
+        <Route path="/employee/tasks" element={<ProtectedRoute><EmployeeWorkHome /></ProtectedRoute>} />
 
         <Route
           path="/employee/settings"
