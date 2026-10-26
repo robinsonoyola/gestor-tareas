@@ -92,6 +92,7 @@ const definitions = {
 };
 const managementIndicators = {
   productivity: { name: "Productividad", kind: "productivity" },
+  estimate: { name: "Tiempo estimado frente a real", kind: "productivity" },
   hours: { name: "Horas trabajadas", kind: "checkins" },
   compliance: { name: "Cumplimiento de tareas", kind: "tasks" },
   overdue: { name: "Tareas atrasadas", kind: "tasks" },
@@ -660,6 +661,7 @@ export default function Reports() {
           <ReportCharts
             kind={kind}
             indicator={indicator}
+            scope={scope}
             rows={rows}
             start={start}
             end={end}
