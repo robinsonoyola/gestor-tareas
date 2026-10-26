@@ -38,6 +38,7 @@ import {
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { createEmployeeAccount } from '@/lib/createEmployee'
 import { requestEmployeePasswordReset } from '@/lib/passwordRecovery'
@@ -275,6 +276,10 @@ export default function EmployeeManager() {
             <p className="text-gray-900 mt-1">Administra tu equipo de trabajo</p>
           </div>
           <div className="flex flex-wrap gap-2">
+
+            <Button variant="outline" asChild><Link to="/admin/team/roles">Roles</Link></Button>
+            <Button variant="outline" asChild><Link to="/admin/team/areas">Áreas</Link></Button>
+            <Button variant="outline" asChild><Link to="/admin/team/absences">Ausencias</Link></Button>
 
             <Button
               onClick={() => setIsCreateModalOpen(true)}

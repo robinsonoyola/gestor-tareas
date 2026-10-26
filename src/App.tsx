@@ -17,6 +17,7 @@ import AdminDashboard from './pages/AdminDashboard'
 import GPSLocations from './pages/admin/GPSLocations'
 import TaskAccessManager from './pages/admin/TaskAccessManager'
 import EmployeeManager from './pages/admin/EmployeeManager'
+import EmployeeAbsences from './pages/admin/EmployeeAbsences'
 import EmployeeWorkHome from './pages/EmployeeWorkHome'
 import EmployeeCurrentWork from './pages/EmployeeCurrentWork'
 import RoleManager from './pages/admin/RoleManager'
@@ -65,6 +66,7 @@ function App() {
         <Route path="/admin/productivity" element={<ProtectedRoute requirePermission="reports.view"><Productivity /></ProtectedRoute>} />
         <Route path="/admin/team" element={<ProtectedRoute requireAdmin><EmployeeManager /></ProtectedRoute>} />
         <Route path="/admin/team/roles" element={<ProtectedRoute requireAdmin><RoleManager /></ProtectedRoute>} />
+        <Route path="/admin/team/absences" element={<ProtectedRoute requireAdmin><EmployeeAbsences /></ProtectedRoute>} />
         <Route path="/admin/access" element={<ProtectedRoute requireAdmin><TaskAccessManager /></ProtectedRoute>} />
         <Route path="/admin/access/qr" element={<LegacyRedirect to="/admin/access" />} />
         <Route path="/admin/access/cards" element={<ProtectedRoute requireAdmin><WorkdayManager key="cards" section="cards" /></ProtectedRoute>} />
