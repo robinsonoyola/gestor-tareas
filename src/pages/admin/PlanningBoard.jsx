@@ -133,6 +133,7 @@ export default function PlanningBoard() {
     [busy, setBusy] = useState(true),
     [error, setError] = useState(""),
     [revision, setRevision] = useState(0),
+    [pages, setPages] = useState(1),
     [selected, setSelected] = useState(null);
   const [quick, setQuick] = useState("all");
   const setPreset = (kind) => {
@@ -188,10 +189,13 @@ export default function PlanningBoard() {
     };
   }, [revision]);
   useEffect(() => {
+    setPages(1);
+  }, [start, end, employee, area, state, search]);
+  useEffect(() => {
     let live = true,
       running = false,
       controller = null;
-    setData(null);
+    if (pages === 1) setData(null);
     setSelected(null);
     setError("");
     const load = async () => {
@@ -210,25 +214,33 @@ export default function PlanningBoard() {
                 "No se pudo cargar el tablero a tiempo. Vuelve a intentar.",
               ),
             );
-          }, 15000);
+          }, Math.min(60000, 15000 * pages));
         });
-        const result = await Promise.race([
-          workRpc(
-            "work_planning_board_range",
-            {
-              p_start: start,
-              p_end: end,
-              p_user: employee || null,
-              p_area: area || null,
-              p_state: state || null,
-              p_query: search.trim() || null,
-              p_limit: 200,
-              p_offset: 0,
-            },
-            { signal: controller.signal },
-          ),
-          deadline,
-        ]);
+        let result = null;
+        const items = [];
+        for (let page = 0; page < pages; page += 1) {
+          const part = await Promise.race([
+            workRpc(
+              "work_planning_board_range",
+              {
+                p_start: start,
+                p_end: end,
+                p_user: employee || null,
+                p_area: area || null,
+                p_state: state || null,
+                p_query: search.trim() || null,
+                p_limit: 200,
+                p_offset: page * 200,
+              },
+              { signal: controller.signal },
+            ),
+            deadline,
+          ]);
+          if (!result) result = part;
+          items.push(...(part.items || []));
+          result = { ...result, as_of: part.as_of, items };
+          if (items.length >= Number(part.total || 0)) break;
+        }
         if (live) {
           setData(result);
           setError("");
@@ -258,7 +270,7 @@ export default function PlanningBoard() {
       window.removeEventListener("focus", onFocus);
       controller?.abort();
     };
-  }, [start, end, employee, area, state, search, revision]);
+  }, [start, end, employee, area, state, search, revision, pages]);
   useEffect(() => {
     interaction.current = !!moveRequest || !!dragging;
   }, [moveRequest, dragging]);
@@ -520,17 +532,27 @@ export default function PlanningBoard() {
         <p className="text-sm text-gray-500">
           Consulta automática cada 30 segundos con esta pestaña visible.
           {data
-            ? ` Última consulta: ${stamp(data.as_of)} · ${rows.length} de ${data.total} tareas.`
+            ? ` Última consulta: ${stamp(data.as_of)} · ${rows.length} visibles de ${data.items.length} cargadas · ${data.total} tareas en total.`
             : ""}
         </p>
-      <BoardQuickFilters
-        value={quick}
-        onChange={setQuick}
-        items={allRows}
-        today={workDate()}
-      />
-      <BoardSavedViews
-        value={{ period, start, end, employee, area, state, search, quick }}
+        {data && data.items.length < data.total && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={() => setPages((value) => value + 1)}
+          >
+            Cargar 200 tareas más
+          </Button>
+        )}
+        <BoardQuickFilters
+          value={quick}
+          onChange={setQuick}
+          items={allRows}
+          today={workDate()}
+        />
+        <BoardSavedViews
+          value={{ period, start, end, employee, area, state, search, quick }}
           onApply={applySavedView}
         />
         {data?.labels?.length > 0 && (
