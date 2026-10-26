@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import TaskFollowup from './admin/TaskFollowup'
 import ReviewQueue from './admin/ReviewQueue'
 import TaskTemplates from './admin/TaskTemplates'
+import TaskSubtasks from './admin/TaskSubtasks'
 import { useSearchParams } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -71,6 +72,7 @@ export default function AdminDashboard() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [checklistTask,setChecklistTask]=useState(null)
+  const [subtaskTask,setSubtaskTask]=useState(null)
   const [selectedTask, setSelectedTask] = useState(null)
   
   const [taskForm, setTaskForm] = useState({
@@ -281,6 +283,7 @@ export default function AdminDashboard() {
   return (
     <Layout>
       {checklistTask&&<ChecklistEditor key={checklistTask.id} task={checklistTask} onClose={()=>setChecklistTask(null)}/>}
+      {subtaskTask&&<TaskSubtasks key={subtaskTask.id} task={subtaskTask} tasks={tasks} onClose={()=>setSubtaskTask(null)}/>}
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -312,7 +315,7 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <>
-              <MobileTasks items={filteredTasks} statusBadge={getStatusBadge} can={can} isAdmin={isAdmin} onShare={task=>navigate('/admin/access?task='+task.id)} onPlan={task=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))} onChecklist={setChecklistTask} onDuplicate={handleDuplicateTask} onEdit={openEditModal} onDelete={handleDeleteTask}/>
+              <MobileTasks items={filteredTasks} statusBadge={getStatusBadge} can={can} isAdmin={isAdmin} onShare={task=>navigate('/admin/access?task='+task.id)} onPlan={task=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))} onChecklist={setChecklistTask} onSubtasks={setSubtaskTask} onDuplicate={handleDuplicateTask} onEdit={openEditModal} onDelete={handleDeleteTask}/>
               <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
@@ -344,6 +347,7 @@ export default function AdminDashboard() {
                           {isAdmin && <Button size="sm" variant="outline" onClick={()=>navigate('/admin/access?task='+task.id)}>Compartir acceso</Button>}
                           {can('planning.view') && <Button size="sm" variant="outline" onClick={()=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))}>Planificar</Button>}
                           {can('tasks.edit') && <Button size="sm" variant="outline" onClick={()=>setChecklistTask(task)}>Pasos</Button>}
+                          {can('tasks.edit') && <Button size="sm" variant="outline" onClick={()=>setSubtaskTask(task)}>Subtareas</Button>}
                           {can('tasks.create') && <Button size="sm" variant="outline" aria-label={`Duplicar ${task.title}`} onClick={()=>handleDuplicateTask(task)}><Copy className="h-4 w-4"/></Button>}
                           {can('tasks.edit') && <Button size="sm" variant="outline" aria-label={`Editar ${task.title}`} onClick={() => openEditModal(task)}><Edit className="h-4 w-4" /></Button>}
                           {can('tasks.delete') && <Button size="sm" variant="outline" aria-label={`Eliminar ${task.title}`} onClick={() => handleDeleteTask(task.id)} className="text-red-600 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>}
