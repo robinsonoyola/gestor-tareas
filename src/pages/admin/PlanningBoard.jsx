@@ -126,6 +126,8 @@ export default function PlanningBoard() {
     [state, setState] = useState(""),
     [search, setSearch] = useState(""),
     [employees, setEmployees] = useState([]),
+    [areas, setAreas] = useState([]),
+    [area, setArea] = useState(""),
     [directoryError, setDirectoryError] = useState(""),
     [data, setData] = useState(null),
     [busy, setBusy] = useState(true),
@@ -149,6 +151,7 @@ export default function PlanningBoard() {
     );
     setEnd(/^\d{4}-\d{2}-\d{2}$/.test(view.end || "") ? view.end : workDate());
     setEmployee(typeof view.employee === "string" ? view.employee : "");
+    setArea(typeof view.area === "string" ? view.area : "");
     setState(columns.some(([key]) => key === view.state) ? view.state : "");
     setSearch(typeof view.search === "string" ? view.search.slice(0, 120) : "");
     setQuick(
@@ -161,14 +164,20 @@ export default function PlanningBoard() {
     let live = true;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
-    workRpc("work_employee_directory", undefined, { signal: controller.signal })
-      .then((items) => {
-        if (live) setEmployees(items);
+    Promise.all([
+      workRpc("work_employee_directory", undefined, { signal: controller.signal }),
+      workRpc("work_area_directory", undefined, { signal: controller.signal }),
+    ])
+      .then(([items, directory]) => {
+        if (live) {
+          setEmployees(items);
+          setAreas(directory.areas || []);
+        }
       })
       .catch(() => {
         if (live)
           setDirectoryError(
-            "No se pudo cargar el filtro de empleados. Puedes consultar todo el equipo o volver a intentar.",
+            "No se pudieron cargar los filtros de empleados y áreas. Puedes volver a intentar.",
           );
       })
       .finally(() => clearTimeout(timer));
@@ -210,6 +219,7 @@ export default function PlanningBoard() {
               p_start: start,
               p_end: end,
               p_user: employee || null,
+              p_area: area || null,
               p_state: state || null,
               p_query: search.trim() || null,
               p_limit: 200,
@@ -248,7 +258,7 @@ export default function PlanningBoard() {
       window.removeEventListener("focus", onFocus);
       controller?.abort();
     };
-  }, [start, end, employee, state, search, revision]);
+  }, [start, end, employee, area, state, search, revision]);
   useEffect(() => {
     interaction.current = !!moveRequest || !!dragging;
   }, [moveRequest, dragging]);
@@ -257,7 +267,7 @@ export default function PlanningBoard() {
     setDragging(null);
     dragId.current = null;
     setNotice("");
-  }, [start, end, employee, state]);
+  }, [start, end, employee, area, state]);
   const openMove = (item, target = null) => {
     if (item.state === "review") {
       setNotice(
@@ -439,6 +449,22 @@ export default function PlanningBoard() {
                 </select>
               </div>
               <div>
+                <Label htmlFor="board-area">Área</Label>
+                <select
+                  id="board-area"
+                  className="w-full border rounded-md bg-white p-2"
+                  value={area}
+                  onChange={(e) => setArea(e.target.value)}
+                >
+                  <option value="">Todas las áreas</option>
+                  {areas.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <Label htmlFor="board-search">Buscar tarea o empleado</Label>
                 <Input
                   id="board-search"
@@ -504,7 +530,7 @@ export default function PlanningBoard() {
         today={workDate()}
       />
       <BoardSavedViews
-        value={{ period, start, end, employee, state, search, quick }}
+        value={{ period, start, end, employee, area, state, search, quick }}
           onApply={applySavedView}
         />
         {data?.labels?.length > 0 && (
@@ -616,6 +642,11 @@ export default function PlanningBoard() {
                       </h3>
                       <ImportanceBadge value={item.importance} />
                       <p className="text-sm break-words">{item.employee}</p>
+                    {item.area_name && (
+                      <p className="text-xs text-gray-600 break-words">
+                        Área: {item.area_name}
+                      </p>
+                    )}
                       <p className="text-xs text-gray-500">
                         Orden {item.priority} · {item.work_date}
                       </p>
