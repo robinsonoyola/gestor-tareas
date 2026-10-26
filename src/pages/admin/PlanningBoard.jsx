@@ -1,65 +1,741 @@
-import {ImportanceBadge} from '@/components/TaskImportance'
-import {ScheduleEditor,ScheduleText} from '@/components/planning/ExecutionSchedule'
-import BoardMoveDialog,{boardTransitions} from '@/components/planning/BoardMoveDialog'
-import BoardHistory from '@/components/planning/BoardHistory'
-import BoardSavedViews from '@/components/planning/BoardSavedViews'
-import {useAuth} from '@/hooks/useAuth'
-import {useEffect,useRef,useState} from 'react'
-import {Link,useSearchParams} from 'react-router-dom'
-import Layout from '@/components/layout/Layout'
-import {Button} from '@/components/ui/button'
-import {Input} from '@/components/ui/input'
-import {Label} from '@/components/ui/label'
-import {Badge} from '@/components/ui/badge'
-import {Card,CardContent} from '@/components/ui/card'
-import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog'
-import {workDate,workRpc} from '@/lib/workflow'
-import {randomId} from '@/lib/randomId'
-const columns=[['pending','Pendientes'],['active','En curso'],['paused','Pausadas'],['blocked','Bloqueadas'],['review','En revisión'],['completed','Completadas'],['cancelled','Canceladas']]
-const palette={
- pending:{column:'border-amber-500 bg-amber-200',heading:'text-amber-950',badge:'border-amber-700 bg-amber-600 text-white',card:'border-l-4 border-l-amber-600'},
- active:{column:'border-blue-500 bg-blue-200',heading:'text-blue-950',badge:'border-blue-800 bg-blue-700 text-white',card:'border-l-4 border-l-blue-700'},
- paused:{column:'border-orange-500 bg-orange-200',heading:'text-orange-950',badge:'border-orange-800 bg-orange-700 text-white',card:'border-l-4 border-l-orange-700'},
- blocked:{column:'border-red-500 bg-red-200',heading:'text-red-950',badge:'border-red-800 bg-red-700 text-white',card:'border-l-4 border-l-red-700'},
- review:{column:'border-violet-500 bg-violet-200',heading:'text-violet-950',badge:'border-violet-800 bg-violet-700 text-white',card:'border-l-4 border-l-violet-700'},
- completed:{column:'border-green-500 bg-green-200',heading:'text-green-950',badge:'border-green-800 bg-green-700 text-white',card:'border-l-4 border-l-green-700'},
- cancelled:{column:'border-slate-500 bg-slate-200',heading:'text-slate-950',badge:'border-slate-700 bg-slate-700 text-white',card:'border-l-4 border-l-slate-600'}
-}
-const states=Object.fromEntries(columns)
-const stamp=value=>value?new Date(value).toLocaleString('es-ES',{timeZone:'Europe/Madrid'}):'—'
-const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es')
-const isoDay=date=>date.toISOString().slice(0,10)
-const rangeFor=(kind,anchor)=>{const d=new Date(`${anchor}T12:00:00`),start=new Date(d),end=new Date(d);if(kind==='week'){const shift=(d.getDay()+6)%7;start.setDate(d.getDate()-shift);end.setDate(start.getDate()+6)}else if(kind==='month'){start.setDate(1);end.setMonth(start.getMonth()+1,0)}return [isoDay(start),isoDay(end)]}
-export default function PlanningBoard(){
- const {isAdmin}=useAuth()
- const [moveRequest,setMoveRequest]=useState(null),[dragging,setDragging]=useState(null),[notice,setNotice]=useState('')
- const dragId=useRef(null),interaction=useRef(false),boardRef=useRef(null)
- const [query]=useSearchParams(),initialDate=/^\d{4}-\d{2}-\d{2}$/.test(query.get('date')||'')?query.get('date'):workDate()
- const [period,setPeriod]=useState('day'),[start,setStart]=useState(initialDate),[end,setEnd]=useState(initialDate),[employee,setEmployee]=useState(query.get('employee')||''),[state,setState]=useState(''),[search,setSearch]=useState(''),[employees,setEmployees]=useState([]),[directoryError,setDirectoryError]=useState(''),[data,setData]=useState(null),[busy,setBusy]=useState(true),[error,setError]=useState(''),[revision,setRevision]=useState(0),[selected,setSelected]=useState(null)
- const setPreset=kind=>{setPeriod(kind);if(kind!=='custom'){const [a,b]=rangeFor(kind,initialDate);setStart(a);setEnd(b)}}
- const applySavedView=view=>{if(!view)return;setPeriod(view.period||'custom');setStart(/^\d{4}-\d{2}-\d{2}$/.test(view.start||'')?view.start:workDate());setEnd(/^\d{4}-\d{2}-\d{2}$/.test(view.end||'')?view.end:workDate());setEmployee(typeof view.employee==='string'?view.employee:'');setState(columns.some(([key])=>key===view.state)?view.state:'');setSearch(typeof view.search==='string'?view.search.slice(0,120):'')}
- useEffect(()=>{let live=true;const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),15000);workRpc('work_employee_directory',undefined,{signal:controller.signal}).then(items=>{if(live)setEmployees(items)}).catch(()=>{if(live)setDirectoryError('No se pudo cargar el filtro de empleados. Puedes consultar todo el equipo o volver a intentar.')}).finally(()=>clearTimeout(timer));return()=>{live=false;clearTimeout(timer);controller.abort()}},[revision])
- useEffect(()=>{let live=true,running=false,controller=null;setData(null);setSelected(null);setError('');
- const load=async()=>{if(!live||running||interaction.current)return;running=true;setBusy(true);controller=new AbortController();let timeout;
- try{if(!start||!end)throw Error('Selecciona un periodo válido.');const deadline=new Promise((_,reject)=>{timeout=setTimeout(()=>{controller.abort();reject(Error('No se pudo cargar el tablero a tiempo. Vuelve a intentar.'))},15000)});
- const result=await Promise.race([workRpc('work_planning_board_range',{p_start:start,p_end:end,p_user:employee||null,p_state:state||null,p_query:search.trim()||null,p_limit:200,p_offset:0},{signal:controller.signal}),deadline]);if(live){setData(result);setError('')}
- }catch(e){if(live)setError(e.message.includes('work_planning_board_range')?'Falta activar la consulta por periodos del tablero en Supabase.':e.message||'No se pudo actualizar el tablero.')}finally{clearTimeout(timeout);running=false;if(live)setBusy(false)}};
- load();const onFocus=()=>{if(!document.hidden)load()};const interval=setInterval(onFocus,30000);window.addEventListener('focus',onFocus);return()=>{live=false;clearInterval(interval);window.removeEventListener('focus',onFocus);controller?.abort()}
- },[start,end,employee,state,search,revision])
- useEffect(()=>{interaction.current=!!moveRequest||!!dragging},[moveRequest,dragging])
- useEffect(()=>{setMoveRequest(null);setDragging(null);dragId.current=null;setNotice('')},[start,end,employee,state])
- const openMove=(item,target=null)=>{if(item.state==='review'){setNotice('Utiliza Tareas · Revisiones para aprobar o devolver este trabajo.');return}if(item.state==='paused'){setNotice('La ejecución está pausada. El empleado debe reanudarla desde su tarea.');return}if(!isAdmin||busy||moveRequest||!Number.isFinite(item.version))return;if(target&&!boardTransitions[item.state]?.includes(target)){setNotice('Ese cambio necesita un fichaje activo o resolver primero el bloqueo.');return}interaction.current=true;setSelected(null);setMoveRequest({id:randomId(),item:{...item},target})}
- const dragStart=(event,item)=>{if(!isAdmin||busy||moveRequest||!Number.isFinite(item.version)){event.preventDefault();return}interaction.current=true;dragId.current=item.id;event.dataTransfer.setData('text/plain',item.id);event.dataTransfer.effectAllowed='move';setDragging(item.id)}
- const drop=(event,state)=>{event.preventDefault();const item=data?.items?.find(item=>item.id===dragId.current);dragId.current=null;setDragging(null);if(item&&item.state!==state)openMove(item,state)}
- const canDrop=state=>{const item=data?.items?.find(item=>item.id===dragging);return !!item&&boardTransitions[item.state]?.includes(state)}
- const goColumn=target=>boardRef.current?.querySelector(`[data-board-column="${target}"]`)?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'})
- const rows=data?.items||[]
- const precisePointer=typeof window!=='undefined'&&window.matchMedia('(pointer: fine)').matches
- const detail=data?.items?.find(item=>item.id===selected)
- const planningLink=item=>`/admin/planning?employee=${encodeURIComponent(item.employee_id)}&date=${item.work_date}`
- return <Layout>{moveRequest&&<BoardMoveDialog key={moveRequest.id} request={moveRequest} employees={employees} onClose={()=>{interaction.current=false;setMoveRequest(null)}} onApplied={()=>{interaction.current=false;setMoveRequest(null);setNotice('Cambio guardado. El fichaje y el historial se han actualizado.');setRevision(v=>v+1)}}/>}<div className="max-w-7xl mx-auto space-y-6 min-w-0"><div><h1 className="text-3xl font-bold">Tablero del equipo</h1><p className="text-gray-500 mt-2">Consulta y gestiona ejecuciones por periodo, empleado y estado.</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" asChild><Link to={`/admin/planning?date=${start}${employee?'&employee='+encodeURIComponent(employee):''}`}>Planificación</Link></Button><Button aria-current="page">Tablero</Button></div><Card><CardContent className="pt-6 space-y-4"><div className="flex flex-wrap gap-2">{[['day','Día'],['week','Semana'],['month','Mes'],['custom','Rango personalizado']].map(([key,label])=><Button key={key} type="button" size="sm" variant={period===key?'default':'outline'} onClick={()=>setPreset(key)}>{label}</Button>)}</div><div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"><div><Label htmlFor="board-start">Desde</Label><Input id="board-start" type="date" value={start} onChange={e=>{setPeriod('custom');setStart(e.target.value)}}/></div><div><Label htmlFor="board-end">Hasta</Label><Input id="board-end" type="date" value={end} onChange={e=>{setPeriod('custom');setEnd(e.target.value)}}/></div><div><Label htmlFor="board-employee">Empleado</Label><select id="board-employee" className="w-full border rounded-md bg-white p-2" value={employee} onChange={e=>setEmployee(e.target.value)}><option value="">Todo el equipo</option>{employees.map(person=><option key={person.id} value={person.id}>{person.full_name}</option>)}</select></div><div><Label htmlFor="board-state">Estado</Label><select id="board-state" className="w-full border rounded-md bg-white p-2" value={state} onChange={e=>setState(e.target.value)}><option value="">Todos los estados</option>{columns.map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></div><div><Label htmlFor="board-search">Buscar tarea o empleado</Label><Input id="board-search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nombre, tarea o descripción"/></div><div className="flex items-end"><Button variant="outline" disabled={busy} onClick={()=>{setDirectoryError('');setRevision(v=>v+1)}}>Actualizar tablero</Button></div></div></CardContent></Card>{data?.counts&&<div className="grid grid-cols-2 lg:grid-cols-4 gap-3">{columns.map(([key,label])=><button key={key} type="button" onClick={()=>setState(state===key?'':key)} className={`rounded-lg border p-3 text-left ${state===key?palette[key].column:'bg-white'}`}><span className="block text-sm">{label}</span><strong className="text-2xl">{data.counts[key]||0}</strong></button>)}</div>}{directoryError&&<p role="alert" className="text-red-700">{directoryError}</p>}{error&&<p role="alert" className="text-red-700">{error}{data?' Se conserva la última consulta; los estados pueden haber cambiado.':''}</p>}{busy&&<p role="status">Actualizando tablero…</p>}<p className="text-sm text-gray-500">Consulta automática cada 30 segundos con esta pestaña visible.{data?` Última consulta: ${stamp(data.as_of)} · ${rows.length} de ${data.total} tareas.`:''}</p>
- <BoardSavedViews value={{period,start,end,employee,state,search}} onApply={applySavedView}/>{data?.labels?.length>0&&<p className="text-sm text-gray-600">El buscador también filtra por etiqueta. Disponibles: {data.labels.join(' · ')}</p>}{isAdmin&&<p className="text-sm text-gray-600"><span className="hidden md:inline">Arrastra una tarjeta a otra columna para cambiar su estado. </span><span className="md:hidden">Desliza el tablero hacia los lados y usa Mover en la tarjeta. </span>Siempre se pedirá motivo y confirmación.</p>}{notice&&<p role="status" className="text-sm text-blue-800">{notice}</p>}{isAdmin&&data?.items?.some(item=>!Number.isFinite(item.version))&&<p role="alert" className="text-amber-800">Falta activar los movimientos administrativos del tablero en Supabase.</p>}
- {data&&<nav aria-label="Ir a columna del tablero" className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 md:hidden">{columns.map(([key,title])=><Button key={key} type="button" size="sm" variant="outline" className="shrink-0 snap-start" onClick={()=>goColumn(key)}>{title} · {rows.filter(item=>item.state===key).length}</Button>)}</nav>}
- {data&&<div ref={boardRef} className="-mx-4 flex snap-x snap-proximity gap-4 overflow-x-auto px-4 pb-4 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 xl:grid-cols-4 items-start" aria-label="Tablero de tareas">{columns.map(([state,title])=>{const items=rows.filter(item=>item.state===state);return <section key={state} data-board-column={state} aria-label={title} onDragOver={event=>{if(canDrop(state))event.preventDefault()}} onDrop={event=>drop(event,state)} className={"w-[84vw] max-w-[22rem] shrink-0 snap-center rounded-xl border p-3 space-y-3 md:w-auto md:max-w-none "+palette[state].column+(canDrop(state)?' ring-2 ring-blue-400':'')}><div className="flex items-center justify-between gap-2 rounded-lg py-1"><h2 className={"font-semibold "+palette[state].heading}>{title}</h2><Badge variant="outline" className={palette[state].badge}>{items.length}</Badge></div>{items.map(item=><article key={item.id} draggable={precisePointer&&isAdmin&&!busy&&!moveRequest&&Number.isFinite(item.version)} onDragStart={event=>dragStart(event,item)} onDragEnd={()=>{dragId.current=null;setDragging(null)}} className={"min-w-0 bg-white border rounded-lg p-4 space-y-3 shadow-sm "+palette[state].card+(precisePointer&&isAdmin&&Number.isFinite(item.version)?' md:cursor-grab md:active:cursor-grabbing':'')}><h3 className="font-semibold break-words">{item.title}</h3><ImportanceBadge value={item.importance}/><p className="text-sm break-words">{item.employee}</p><p className="text-xs text-gray-500">Orden {item.priority} · {item.work_date}</p><ScheduleText item={item}/>{item.completed_late&&<p className="text-sm text-amber-800">Finalizada fuera de plazo</p>}{state==='blocked'&&<p className="text-xs text-gray-500">Pendiente de resolver la incidencia.</p>}<Button variant="outline" className="w-full" onClick={()=>setSelected(item.id)} aria-label={`Ver detalle de ${item.title} · ${item.employee}`}>Ver detalle</Button>{isAdmin&&Number.isFinite(item.version)&&<Button variant="outline" className="w-full" disabled={busy||!!moveRequest} onClick={()=>openMove(item)} aria-label={`Cambiar estado de ${item.title} · ${item.employee}`}><span className="md:hidden">Mover</span><span className="hidden md:inline">Cambiar estado</span></Button>}</article>)}{items.length===0&&<p className="rounded-lg bg-white/70 p-3 text-sm text-gray-600">Sin tareas con estos filtros.</p>}</section>})}</div>}
- <Dialog open={!!detail} onOpenChange={open=>{if(!open)setSelected(null)}}><DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>{detail?.title}</DialogTitle><DialogDescription>Detalle e historial de esta ejecución.</DialogDescription></DialogHeader>{detail&&<><dl className="space-y-3 text-sm"><div><dt className="font-semibold">Empleado</dt><dd>{detail.employee}</dd></div><div><dt className="font-semibold">Estado</dt><dd>{states[detail.state]}</dd></div><div><dt className="font-semibold">Fecha y orden</dt><dd>{detail.work_date} · Orden {detail.priority}</dd></div><div><dt className="font-semibold">Instrucciones</dt><dd className="whitespace-pre-wrap break-words">{detail.description||'Sin instrucciones adicionales.'}</dd></div><div><dt className="font-semibold">Inicio</dt><dd>{stamp(detail.started_at)}</dd></div><div><dt className="font-semibold">Último cierre del fichaje</dt><dd>{stamp(detail.finished_at)}</dd></div></dl><ScheduleText item={detail}/><ScheduleEditor item={detail} disabled={!isAdmin||detail.state==='completed'||detail.state==='blocked'} onSaved={()=>{setSelected(null);setRevision(v=>v+1)}}/><BoardHistory key={detail.id} planId={detail.id}/><Button asChild><Link to={planningLink(detail)}>Revisar planificación del empleado</Link></Button><Button variant="outline" onClick={()=>setSelected(null)}>Cerrar detalle</Button></>}</DialogContent></Dialog></div></Layout>
+import { ImportanceBadge } from "@/components/TaskImportance";
+import {
+  ScheduleEditor,
+  ScheduleText,
+} from "@/components/planning/ExecutionSchedule";
+import BoardMoveDialog, {
+  boardTransitions,
+} from "@/components/planning/BoardMoveDialog";
+import BoardHistory from "@/components/planning/BoardHistory";
+import BoardSavedViews from "@/components/planning/BoardSavedViews";
+import BoardQuickFilters, {
+  matchesQuickFilter,
+} from "@/components/planning/BoardQuickFilters";
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import Layout from "@/components/layout/Layout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { workDate, workRpc } from "@/lib/workflow";
+import { randomId } from "@/lib/randomId";
+const columns = [
+  ["pending", "Pendientes"],
+  ["active", "En curso"],
+  ["paused", "Pausadas"],
+  ["blocked", "Bloqueadas"],
+  ["review", "En revisión"],
+  ["completed", "Completadas"],
+  ["cancelled", "Canceladas"],
+];
+const palette = {
+  pending: {
+    column: "border-amber-500 bg-amber-200",
+    heading: "text-amber-950",
+    badge: "border-amber-700 bg-amber-600 text-white",
+    card: "border-l-4 border-l-amber-600",
+  },
+  active: {
+    column: "border-blue-500 bg-blue-200",
+    heading: "text-blue-950",
+    badge: "border-blue-800 bg-blue-700 text-white",
+    card: "border-l-4 border-l-blue-700",
+  },
+  paused: {
+    column: "border-orange-500 bg-orange-200",
+    heading: "text-orange-950",
+    badge: "border-orange-800 bg-orange-700 text-white",
+    card: "border-l-4 border-l-orange-700",
+  },
+  blocked: {
+    column: "border-red-500 bg-red-200",
+    heading: "text-red-950",
+    badge: "border-red-800 bg-red-700 text-white",
+    card: "border-l-4 border-l-red-700",
+  },
+  review: {
+    column: "border-violet-500 bg-violet-200",
+    heading: "text-violet-950",
+    badge: "border-violet-800 bg-violet-700 text-white",
+    card: "border-l-4 border-l-violet-700",
+  },
+  completed: {
+    column: "border-green-500 bg-green-200",
+    heading: "text-green-950",
+    badge: "border-green-800 bg-green-700 text-white",
+    card: "border-l-4 border-l-green-700",
+  },
+  cancelled: {
+    column: "border-slate-500 bg-slate-200",
+    heading: "text-slate-950",
+    badge: "border-slate-700 bg-slate-700 text-white",
+    card: "border-l-4 border-l-slate-600",
+  },
+};
+const states = Object.fromEntries(columns);
+const stamp = (value) =>
+  value
+    ? new Date(value).toLocaleString("es-ES", { timeZone: "Europe/Madrid" })
+    : "—";
+const normalize = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es");
+const isoDay = (date) => date.toISOString().slice(0, 10);
+const rangeFor = (kind, anchor) => {
+  const d = new Date(`${anchor}T12:00:00`),
+    start = new Date(d),
+    end = new Date(d);
+  if (kind === "week") {
+    const shift = (d.getDay() + 6) % 7;
+    start.setDate(d.getDate() - shift);
+    end.setDate(start.getDate() + 6);
+  } else if (kind === "month") {
+    start.setDate(1);
+    end.setMonth(start.getMonth() + 1, 0);
+  }
+  return [isoDay(start), isoDay(end)];
+};
+export default function PlanningBoard() {
+  const { isAdmin } = useAuth();
+  const [moveRequest, setMoveRequest] = useState(null),
+    [dragging, setDragging] = useState(null),
+    [notice, setNotice] = useState("");
+  const dragId = useRef(null),
+    interaction = useRef(false),
+    boardRef = useRef(null);
+  const [query] = useSearchParams(),
+    initialDate = /^\d{4}-\d{2}-\d{2}$/.test(query.get("date") || "")
+      ? query.get("date")
+      : workDate();
+  const [period, setPeriod] = useState("day"),
+    [start, setStart] = useState(initialDate),
+    [end, setEnd] = useState(initialDate),
+    [employee, setEmployee] = useState(query.get("employee") || ""),
+    [state, setState] = useState(""),
+    [search, setSearch] = useState(""),
+    [employees, setEmployees] = useState([]),
+    [directoryError, setDirectoryError] = useState(""),
+    [data, setData] = useState(null),
+    [busy, setBusy] = useState(true),
+    [error, setError] = useState(""),
+    [revision, setRevision] = useState(0),
+    [selected, setSelected] = useState(null);
+  const [quick, setQuick] = useState("all");
+  const setPreset = (kind) => {
+    setPeriod(kind);
+    if (kind !== "custom") {
+      const [a, b] = rangeFor(kind, initialDate);
+      setStart(a);
+      setEnd(b);
+    }
+  };
+  const applySavedView = (view) => {
+    if (!view) return;
+    setPeriod(view.period || "custom");
+    setStart(
+      /^\d{4}-\d{2}-\d{2}$/.test(view.start || "") ? view.start : workDate(),
+    );
+    setEnd(/^\d{4}-\d{2}-\d{2}$/.test(view.end || "") ? view.end : workDate());
+    setEmployee(typeof view.employee === "string" ? view.employee : "");
+    setState(columns.some(([key]) => key === view.state) ? view.state : "");
+    setSearch(typeof view.search === "string" ? view.search.slice(0, 120) : "");
+    setQuick(
+      ["all", "urgent", "overdue", "today", "evidence"].includes(view.quick)
+        ? view.quick
+        : "all",
+    );
+  };
+  useEffect(() => {
+    let live = true;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    workRpc("work_employee_directory", undefined, { signal: controller.signal })
+      .then((items) => {
+        if (live) setEmployees(items);
+      })
+      .catch(() => {
+        if (live)
+          setDirectoryError(
+            "No se pudo cargar el filtro de empleados. Puedes consultar todo el equipo o volver a intentar.",
+          );
+      })
+      .finally(() => clearTimeout(timer));
+    return () => {
+      live = false;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [revision]);
+  useEffect(() => {
+    let live = true,
+      running = false,
+      controller = null;
+    setData(null);
+    setSelected(null);
+    setError("");
+    const load = async () => {
+      if (!live || running || interaction.current) return;
+      running = true;
+      setBusy(true);
+      controller = new AbortController();
+      let timeout;
+      try {
+        if (!start || !end) throw Error("Selecciona un periodo válido.");
+        const deadline = new Promise((_, reject) => {
+          timeout = setTimeout(() => {
+            controller.abort();
+            reject(
+              Error(
+                "No se pudo cargar el tablero a tiempo. Vuelve a intentar.",
+              ),
+            );
+          }, 15000);
+        });
+        const result = await Promise.race([
+          workRpc(
+            "work_planning_board_range",
+            {
+              p_start: start,
+              p_end: end,
+              p_user: employee || null,
+              p_state: state || null,
+              p_query: search.trim() || null,
+              p_limit: 200,
+              p_offset: 0,
+            },
+            { signal: controller.signal },
+          ),
+          deadline,
+        ]);
+        if (live) {
+          setData(result);
+          setError("");
+        }
+      } catch (e) {
+        if (live)
+          setError(
+            e.message.includes("work_planning_board_range")
+              ? "Falta activar la consulta por periodos del tablero en Supabase."
+              : e.message || "No se pudo actualizar el tablero.",
+          );
+      } finally {
+        clearTimeout(timeout);
+        running = false;
+        if (live) setBusy(false);
+      }
+    };
+    load();
+    const onFocus = () => {
+      if (!document.hidden) load();
+    };
+    const interval = setInterval(onFocus, 30000);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      live = false;
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      controller?.abort();
+    };
+  }, [start, end, employee, state, search, revision]);
+  useEffect(() => {
+    interaction.current = !!moveRequest || !!dragging;
+  }, [moveRequest, dragging]);
+  useEffect(() => {
+    setMoveRequest(null);
+    setDragging(null);
+    dragId.current = null;
+    setNotice("");
+  }, [start, end, employee, state]);
+  const openMove = (item, target = null) => {
+    if (item.state === "review") {
+      setNotice(
+        "Utiliza Tareas · Revisiones para aprobar o devolver este trabajo.",
+      );
+      return;
+    }
+    if (item.state === "paused") {
+      setNotice(
+        "La ejecución está pausada. El empleado debe reanudarla desde su tarea.",
+      );
+      return;
+    }
+    if (!isAdmin || busy || moveRequest || !Number.isFinite(item.version))
+      return;
+    if (target && !boardTransitions[item.state]?.includes(target)) {
+      setNotice(
+        "Ese cambio necesita un fichaje activo o resolver primero el bloqueo.",
+      );
+      return;
+    }
+    interaction.current = true;
+    setSelected(null);
+    setMoveRequest({ id: randomId(), item: { ...item }, target });
+  };
+  const dragStart = (event, item) => {
+    if (!isAdmin || busy || moveRequest || !Number.isFinite(item.version)) {
+      event.preventDefault();
+      return;
+    }
+    interaction.current = true;
+    dragId.current = item.id;
+    event.dataTransfer.setData("text/plain", item.id);
+    event.dataTransfer.effectAllowed = "move";
+    setDragging(item.id);
+  };
+  const drop = (event, state) => {
+    event.preventDefault();
+    const item = data?.items?.find((item) => item.id === dragId.current);
+    dragId.current = null;
+    setDragging(null);
+    if (item && item.state !== state) openMove(item, state);
+  };
+  const canDrop = (state) => {
+    const item = data?.items?.find((item) => item.id === dragging);
+    return !!item && boardTransitions[item.state]?.includes(state);
+  };
+  const goColumn = (target) =>
+    boardRef.current
+      ?.querySelector(`[data-board-column="${target}"]`)
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+  const allRows = data?.items || [];
+  const rows = allRows.filter((item) =>
+    matchesQuickFilter(item, quick, workDate()),
+  );
+  const precisePointer =
+    typeof window !== "undefined" &&
+    window.matchMedia("(pointer: fine)").matches;
+  const detail = data?.items?.find((item) => item.id === selected);
+  const planningLink = (item) =>
+    `/admin/planning?employee=${encodeURIComponent(item.employee_id)}&date=${item.work_date}`;
+  return (
+    <Layout>
+      {moveRequest && (
+        <BoardMoveDialog
+          key={moveRequest.id}
+          request={moveRequest}
+          employees={employees}
+          onClose={() => {
+            interaction.current = false;
+            setMoveRequest(null);
+          }}
+          onApplied={() => {
+            interaction.current = false;
+            setMoveRequest(null);
+            setNotice(
+              "Cambio guardado. El fichaje y el historial se han actualizado.",
+            );
+            setRevision((v) => v + 1);
+          }}
+        />
+      )}
+      <div className="max-w-7xl mx-auto space-y-6 min-w-0">
+        <div>
+          <h1 className="text-3xl font-bold">Tablero del equipo</h1>
+          <p className="text-gray-500 mt-2">
+            Consulta y gestiona ejecuciones por periodo, empleado y estado.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <Link
+              to={`/admin/planning?date=${start}${employee ? "&employee=" + encodeURIComponent(employee) : ""}`}
+            >
+              Planificación
+            </Link>
+          </Button>
+          <Button aria-current="page">Tablero</Button>
+        </div>
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {[
+                ["day", "Día"],
+                ["week", "Semana"],
+                ["month", "Mes"],
+                ["custom", "Rango personalizado"],
+              ].map(([key, label]) => (
+                <Button
+                  key={key}
+                  type="button"
+                  size="sm"
+                  variant={period === key ? "default" : "outline"}
+                  onClick={() => setPreset(key)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="board-start">Desde</Label>
+                <Input
+                  id="board-start"
+                  type="date"
+                  value={start}
+                  onChange={(e) => {
+                    setPeriod("custom");
+                    setStart(e.target.value);
+                  }}
+                />
+              </div>
+              <div>
+                <Label htmlFor="board-end">Hasta</Label>
+                <Input
+                  id="board-end"
+                  type="date"
+                  value={end}
+                  onChange={(e) => {
+                    setPeriod("custom");
+                    setEnd(e.target.value);
+                  }}
+                />
+              </div>
+              <div>
+                <Label htmlFor="board-employee">Empleado</Label>
+                <select
+                  id="board-employee"
+                  className="w-full border rounded-md bg-white p-2"
+                  value={employee}
+                  onChange={(e) => setEmployee(e.target.value)}
+                >
+                  <option value="">Todo el equipo</option>
+                  {employees.map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.full_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="board-state">Estado</Label>
+                <select
+                  id="board-state"
+                  className="w-full border rounded-md bg-white p-2"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                >
+                  <option value="">Todos los estados</option>
+                  {columns.map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="board-search">Buscar tarea o empleado</Label>
+                <Input
+                  id="board-search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Nombre, tarea o descripción"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => {
+                    setDirectoryError("");
+                    setRevision((v) => v + 1);
+                  }}
+                >
+                  Actualizar tablero
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        {data?.counts && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {columns.map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setState(state === key ? "" : key)}
+                className={`rounded-lg border p-3 text-left ${state === key ? palette[key].column : "bg-white"}`}
+              >
+                <span className="block text-sm">{label}</span>
+                <strong className="text-2xl">{data.counts[key] || 0}</strong>
+              </button>
+            ))}
+          </div>
+        )}
+        {directoryError && (
+          <p role="alert" className="text-red-700">
+            {directoryError}
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="text-red-700">
+            {error}
+            {data
+              ? " Se conserva la última consulta; los estados pueden haber cambiado."
+              : ""}
+          </p>
+        )}
+        {busy && <p role="status">Actualizando tablero…</p>}
+        <p className="text-sm text-gray-500">
+          Consulta automática cada 30 segundos con esta pestaña visible.
+          {data
+            ? ` Última consulta: ${stamp(data.as_of)} · ${rows.length} de ${data.total} tareas.`
+            : ""}
+        </p>
+      <BoardQuickFilters
+        value={quick}
+        onChange={setQuick}
+        items={allRows}
+        today={workDate()}
+      />
+      <BoardSavedViews
+        value={{ period, start, end, employee, state, search, quick }}
+          onApply={applySavedView}
+        />
+        {data?.labels?.length > 0 && (
+          <p className="text-sm text-gray-600">
+            El buscador también filtra por etiqueta. Disponibles:{" "}
+            {data.labels.join(" · ")}
+          </p>
+        )}
+        {isAdmin && (
+          <p className="text-sm text-gray-600">
+            <span className="hidden md:inline">
+              Arrastra una tarjeta a otra columna para cambiar su estado.{" "}
+            </span>
+            <span className="md:hidden">
+              Desliza el tablero hacia los lados y usa Mover en la tarjeta.{" "}
+            </span>
+            Siempre se pedirá motivo y confirmación.
+          </p>
+        )}
+        {notice && (
+          <p role="status" className="text-sm text-blue-800">
+            {notice}
+          </p>
+        )}
+        {isAdmin &&
+          data?.items?.some((item) => !Number.isFinite(item.version)) && (
+            <p role="alert" className="text-amber-800">
+              Falta activar los movimientos administrativos del tablero en
+              Supabase.
+            </p>
+          )}
+        {data && (
+          <nav
+            aria-label="Ir a columna del tablero"
+            className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 md:hidden"
+          >
+            {columns.map(([key, title]) => (
+              <Button
+                key={key}
+                type="button"
+                size="sm"
+                variant="outline"
+                className="shrink-0 snap-start"
+                onClick={() => goColumn(key)}
+              >
+                {title} · {rows.filter((item) => item.state === key).length}
+              </Button>
+            ))}
+          </nav>
+        )}
+        {data && (
+          <div
+            ref={boardRef}
+            className="-mx-4 flex snap-x snap-proximity gap-4 overflow-x-auto px-4 pb-4 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 xl:grid-cols-4 items-start"
+            aria-label="Tablero de tareas"
+          >
+            {columns.map(([state, title]) => {
+              const items = rows.filter((item) => item.state === state);
+              return (
+                <section
+                  key={state}
+                  data-board-column={state}
+                  aria-label={title}
+                  onDragOver={(event) => {
+                    if (canDrop(state)) event.preventDefault();
+                  }}
+                  onDrop={(event) => drop(event, state)}
+                  className={
+                    "w-[84vw] max-w-[22rem] shrink-0 snap-center rounded-xl border p-3 space-y-3 md:w-auto md:max-w-none " +
+                    palette[state].column +
+                    (canDrop(state) ? " ring-2 ring-blue-400" : "")
+                  }
+                >
+                  <div className="flex items-center justify-between gap-2 rounded-lg py-1">
+                    <h2 className={"font-semibold " + palette[state].heading}>
+                      {title}
+                    </h2>
+                    <Badge variant="outline" className={palette[state].badge}>
+                      {items.length}
+                    </Badge>
+                  </div>
+                  {items.map((item) => (
+                    <article
+                      key={item.id}
+                      draggable={
+                        precisePointer &&
+                        isAdmin &&
+                        !busy &&
+                        !moveRequest &&
+                        Number.isFinite(item.version)
+                      }
+                      onDragStart={(event) => dragStart(event, item)}
+                      onDragEnd={() => {
+                        dragId.current = null;
+                        setDragging(null);
+                      }}
+                      className={
+                        "min-w-0 bg-white border rounded-lg p-4 space-y-3 shadow-sm " +
+                        palette[state].card +
+                        (precisePointer &&
+                        isAdmin &&
+                        Number.isFinite(item.version)
+                          ? " md:cursor-grab md:active:cursor-grabbing"
+                          : "")
+                      }
+                    >
+                      <h3 className="font-semibold break-words">
+                        {item.title}
+                      </h3>
+                      <ImportanceBadge value={item.importance} />
+                      <p className="text-sm break-words">{item.employee}</p>
+                      <p className="text-xs text-gray-500">
+                        Orden {item.priority} · {item.work_date}
+                      </p>
+                      <ScheduleText item={item} />
+                      {item.completed_late && (
+                        <p className="text-sm text-amber-800">
+                          Finalizada fuera de plazo
+                        </p>
+                      )}
+                      {state === "blocked" && (
+                        <p className="text-xs text-gray-500">
+                          Pendiente de resolver la incidencia.
+                        </p>
+                      )}
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setSelected(item.id)}
+                        aria-label={`Ver detalle de ${item.title} · ${item.employee}`}
+                      >
+                        Ver detalle
+                      </Button>
+                      {isAdmin && Number.isFinite(item.version) && (
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          disabled={busy || !!moveRequest}
+                          onClick={() => openMove(item)}
+                          aria-label={`Cambiar estado de ${item.title} · ${item.employee}`}
+                        >
+                          <span className="md:hidden">Mover</span>
+                          <span className="hidden md:inline">
+                            Cambiar estado
+                          </span>
+                        </Button>
+                      )}
+                    </article>
+                  ))}
+                  {items.length === 0 && (
+                    <p className="rounded-lg bg-white/70 p-3 text-sm text-gray-600">
+                      Sin tareas con estos filtros.
+                    </p>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        )}
+        <Dialog
+          open={!!detail}
+          onOpenChange={(open) => {
+            if (!open) setSelected(null);
+          }}
+        >
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{detail?.title}</DialogTitle>
+              <DialogDescription>
+                Detalle e historial de esta ejecución.
+              </DialogDescription>
+            </DialogHeader>
+            {detail && (
+              <>
+                <dl className="space-y-3 text-sm">
+                  <div>
+                    <dt className="font-semibold">Empleado</dt>
+                    <dd>{detail.employee}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Estado</dt>
+                    <dd>{states[detail.state]}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Fecha y orden</dt>
+                    <dd>
+                      {detail.work_date} · Orden {detail.priority}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Instrucciones</dt>
+                    <dd className="whitespace-pre-wrap break-words">
+                      {detail.description || "Sin instrucciones adicionales."}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Inicio</dt>
+                    <dd>{stamp(detail.started_at)}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold">Último cierre del fichaje</dt>
+                    <dd>{stamp(detail.finished_at)}</dd>
+                  </div>
+                </dl>
+                <ScheduleText item={detail} />
+                <ScheduleEditor
+                  item={detail}
+                  disabled={
+                    !isAdmin ||
+                    detail.state === "completed" ||
+                    detail.state === "blocked"
+                  }
+                  onSaved={() => {
+                    setSelected(null);
+                    setRevision((v) => v + 1);
+                  }}
+                />
+                <BoardHistory key={detail.id} planId={detail.id} />
+                <Button asChild>
+                  <Link to={planningLink(detail)}>
+                    Revisar planificación del empleado
+                  </Link>
+                </Button>
+                <Button variant="outline" onClick={() => setSelected(null)}>
+                  Cerrar detalle
+                </Button>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </Layout>
+  );
 }
