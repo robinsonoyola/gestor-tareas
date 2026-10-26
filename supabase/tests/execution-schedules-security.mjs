@@ -690,6 +690,18 @@ ok('task report includes the result of each execution',resultReport.items.some(x
 await denied('other organization cannot consult foreign result history',BADMIN,OB,`SELECT public.work_task_timeline('${pauseTask}') v`);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000100_execution_result_visibility.sql','utf8'));
 ok('result visibility activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false&&(await db.query(`SELECT count(*)::int n FROM public.work_execution_result_events WHERE organization_id=$1 AND plan_id=$2`,[OA,pausePlan])).rows[0].n===2);
+const indicatorCheckin=(await db.query(`SELECT id FROM public.checkins WHERE organization_id=$1 AND work_plan_id=$2 ORDER BY checkin_time DESC,id DESC LIMIT 1`,[OA,pausePlan])).rows[0].id;
+await db.query(`UPDATE public.work_checklist_runs SET steps=jsonb_build_array(jsonb_build_object('id',$3::uuid,'title','First','required',true,'done',true),jsonb_build_object('id',$4::uuid,'title','Second','required',false,'done',false))WHERE organization_id=$1 AND checkin_id=$2`,[OA,indicatorCheckin,id(9982),id(9983)]);
+await db.query(`UPDATE public.tasks SET require_comment=true,require_file=true WHERE organization_id=$1 AND id=$2`,[OA,pauseTask]);
+await db.query(`INSERT INTO public.task_comments(organization_id,task_id,user_id,comment,file_url,created_at)VALUES($1,$2,$3,'Execution comment',$4,clock_timestamp())`,[OA,pauseTask,employee,`tasks/${pauseTask}/${employee}/${id(9984)}.pdf`]);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000700_board_card_indicators.sql','utf8'));
+const indicatorBoard=(await request(ADMIN,OA,`SELECT public.work_planning_board_range(public.work_today(),public.work_today(),NULL,NULL,'Pause task',200,0) v`))[0].v.items.find(x=>x.id===pausePlan);
+ok('Kanban card reports execution checklist progress',indicatorBoard.checklist_total===2&&indicatorBoard.checklist_done===1);
+ok('Kanban card reports comments and attachments from current execution',indicatorBoard.comments_count>0&&indicatorBoard.attachments_count>0);
+ok('Kanban card reports required evidence progress',indicatorBoard.evidence_required===2&&indicatorBoard.evidence_provided===2);
+await denied('employee cannot use management board indicators',employee,OA,`SELECT public.work_planning_board_range(public.work_today(),public.work_today(),NULL,NULL,NULL,200,0)`);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000700_board_card_indicators.sql','utf8'));
+ok('board indicator activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}
