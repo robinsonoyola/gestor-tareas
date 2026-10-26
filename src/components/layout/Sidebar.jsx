@@ -65,6 +65,7 @@ export default function Sidebar({ onClose }) {
     {icon:ListTodo,label:'Completadas',path:'/employee/tasks?status=completed',badge:null},
     {icon:Clock,label:'Incidencias',path:'/incidents',badge:null},
     {icon:Clock,label:'Mi historial',path:'/employee/history',badge:null},
+    {icon:CalendarDays,label:'Mis ausencias',path:'/employee/absences',badge:null},
     {
       icon: Settings,
       label: 'Mi cuenta',

@@ -18,10 +18,13 @@ try{
  await db.exec(fs.readFileSync(root+'supabase/migrations/20261022000100_core_multitenancy_a1.sql','utf8'))
  const org=(await db.query(`SELECT organization_id id FROM public.organization_memberships WHERE user_id='${ADMIN}'`)).rows[0].id
  await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000300_employee_absences.sql','utf8'))
+ await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000400_employee_own_absences.sql','utf8'))
  const future=(await request(ADMIN,org,`SELECT public.work_save_absence(NULL,'${WORKER}','vacation',public.work_today()+1,public.work_today()+3,'Vacaciones aprobadas') v`))[0].v
  ok('admin creates employee absence',!!future)
  const directory=(await request(ADMIN,org,`SELECT public.work_absence_directory(public.work_today(),public.work_today()+10) v`))[0].v
  ok('directory returns people and absence',directory.people.length===1&&directory.absences.length===1&&directory.absences[0].employee==='Worker')
+ const personal=(await request(WORKER,org,`SELECT public.work_my_absences(NULL,NULL) v`))[0].v
+ ok('employee sees own absence only',personal.items.length===1&&personal.items[0].id===future)
  await denied('employee cannot create absence',WORKER,org,`SELECT public.work_save_absence(NULL,'${WORKER}','leave',public.work_today()+5,public.work_today()+5,NULL)`)
  await denied('overlapping absence is rejected',ADMIN,org,`SELECT public.work_save_absence(NULL,'${WORKER}','leave',public.work_today()+3,public.work_today()+4,NULL)`)
  await denied('planning during absence is rejected',ADMIN,org,`SELECT public.work_save_plan('${WORKER}',public.work_today()+2,ARRAY['${TASK}']::uuid[])`)

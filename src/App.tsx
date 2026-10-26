@@ -20,6 +20,7 @@ import EmployeeManager from './pages/admin/EmployeeManager'
 import EmployeeAbsences from './pages/admin/EmployeeAbsences'
 import EmployeeWorkHome from './pages/EmployeeWorkHome'
 import EmployeeCurrentWork from './pages/EmployeeCurrentWork'
+import EmployeeAbsences from './pages/EmployeeAbsences'
 import RoleManager from './pages/admin/RoleManager'
 import Productivity from './pages/admin/Productivity'
 import WorkdayManager from './pages/admin/WorkdayManager'
@@ -106,6 +107,7 @@ function App() {
         />
 
         <Route path="/employee/tasks" element={<ProtectedRoute><EmployeeWorkHome /></ProtectedRoute>} />
+        <Route path="/employee/absences" element={<ProtectedRoute><EmployeeAbsences /></ProtectedRoute>} />
 
         <Route
           path="/employee/settings"
