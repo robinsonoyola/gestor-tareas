@@ -380,6 +380,15 @@ await db.query(`UPDATE public.work_day_plan SET state='completed',finished_at=no
 ok('reclosing old plan does not reschedule another recurrence',(await db.query(`SELECT next_due::text d FROM public.work_recurrences WHERE id='${COMP}'`)).rows[0].d===expected);
 ok('month-end calculation retains anchor rather than drifting',(await db.query(`SELECT ase_private.recurrence_date('2027-01-31','monthly',1)::text a,ase_private.recurrence_date('2027-01-31','monthly',2)::text b`)).rows[0].b==='2027-03-31');
 ok('leap annual date clamps to final valid day',(await db.query(`SELECT ase_private.recurrence_date('2028-02-29','yearly',1)::text d`)).rows[0].d==='2029-02-28');
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000600_edit_recurrences.sql','utf8'));
+const editedStart=(await db.query(`SELECT (public.work_today()+interval '2 years')::date::text d`)).rows[0].d;
+await request(ADMIN,OA,`SELECT public.work_update_recurrence('${RULE}','${editedStart}','weekly',2,'fixed',5)`);
+const edited=(await db.query(`SELECT anchor::text,next_due::text,frequency,every_n,notice_days,active FROM public.work_recurrences WHERE id='${RULE}'`)).rows[0];
+ok('editing recurrence changes only future rule settings',edited.anchor===editedStart&&edited.next_due===editedStart&&edited.frequency==='weekly'&&edited.every_n===2&&edited.notice_days===5&&edited.active===false);
+ok('editing recurrence preserves generated executions',(await db.query(`SELECT count(*)::int n FROM public.work_recurrence_runs WHERE recurrence_id='${RULE}'`)).rows[0].n===1);
+ok('editing recurrence keeps an immutable audit event',(await db.query(`SELECT count(*)::int n FROM public.work_recurrence_events WHERE recurrence_id='${RULE}' AND previous_value->>'frequency'='yearly' AND current_value->>'frequency'='weekly'`)).rows[0].n===1);
+await denied('ordinary employee cannot edit recurring work',RP,OA,`SELECT public.work_update_recurrence('${RULE}','${editedStart}','daily',1,'fixed',0)`);
+await denied('other company cannot edit recurrence',BADMIN,OB,`SELECT public.work_update_recurrence('${RULE}','${editedStart}','daily',1,'fixed',0)`);
 await denied('ordinary employee cannot create recurring work',RP,OA,`SELECT public.work_create_recurrence('${id(9590)}','${RT}','${RP}','${due}','yearly',1,'fixed',15)`);
 await denied('other company cannot pause recurrence',BADMIN,OB,`SELECT public.work_pause_recurrence('${RULE}',true)`);
 await denied('API cannot invoke cross-company scheduler',ADMIN,OA,`SELECT ase_private.schedule_recurrences()`);
