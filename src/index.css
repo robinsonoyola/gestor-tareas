@@ -407,6 +407,15 @@ html, body, #root { min-width: 0; width: 100%; }
 .ase-layout [data-slot="card"] { transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
 .ase-layout [data-slot="card"]:hover { border-color: rgba(96, 144, 255, .42) !important; }
 
+/* Some operational panels deliberately remain light inside the dark theme.
+   Their content must keep dark ink instead of inheriting the surrounding theme. */
+.ase-layout:not(.ase-light) .ase-content :where(.bg-gray-50,.bg-gray-100) {
+  color: #05070a !important;
+}
+.ase-layout:not(.ase-light) .ase-content :where(.bg-gray-50,.bg-gray-100) :where(h1,h2,h3,p,span,label,dt,dd,summary,a) {
+  color: #05070a !important;
+}
+
 .ase-layout :where(input,textarea,select,[data-slot="input"],[data-slot="textarea"]) {
   color: #e7eef9;
   background-color: #0a1628 !important;
