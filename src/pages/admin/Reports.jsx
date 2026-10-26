@@ -90,6 +90,22 @@ const definitions = {
     ],
   },
 };
+const managementIndicators = {
+  productivity: { name: "Productividad", kind: "productivity" },
+  hours: { name: "Horas trabajadas", kind: "checkins" },
+  compliance: { name: "Cumplimiento de tareas", kind: "tasks" },
+  overdue: { name: "Tareas atrasadas", kind: "tasks" },
+  workload: { name: "Carga de trabajo", kind: "tasks" },
+  incidents: { name: "Gestión de incidencias", kind: "incidents" },
+  closures: { name: "Cierres y bloqueos", kind: "closures" },
+};
+const defaultIndicator = {
+  checkins: "hours",
+  tasks: "compliance",
+  productivity: "productivity",
+  incidents: "incidents",
+  closures: "closures",
+};
 const monthsBetween = (start, end) => {
   const result = [];
   const current = new Date(start?.slice(0, 7) + "-01T12:00:00Z");
@@ -115,6 +131,12 @@ export default function Reports() {
     [display, setDisplay] = useState(
       params.get("mode") === "charts" ? "charts" : "data",
     ),
+    [indicator, setIndicator] = useState(() => {
+      const requested = params.get("indicator");
+      return managementIndicators[requested]
+        ? requested
+        : defaultIndicator[initialKind];
+    }),
     [start, setStart] = useState(() => {
       const d = new Date(workDate() + "T12:00:00Z");
       d.setUTCDate(d.getUTCDate() - 29);
@@ -289,9 +311,10 @@ export default function Reports() {
     [rows, rowField, columnField, metric, kind, start, end],
   );
   useEffect(() => setPivotPage(0), [rowField, columnField, metric, data]);
-  const changeKind = (key) => {
+  const changeKind = (key, nextIndicator = defaultIndicator[key]) => {
     setKind(key);
-    setParams({ kind: key, mode: display });
+    setIndicator(nextIndicator);
+    setParams({ kind: key, mode: display, indicator: nextIndicator });
     setState("");
     setMethod("");
     setSort(null);
@@ -308,7 +331,13 @@ export default function Reports() {
   };
   const changeDisplay = (value) => {
     setDisplay(value);
-    setParams({ kind, mode: value });
+    setParams({ kind, mode: value, indicator });
+  };
+  const changeIndicator = (key) => {
+    const selected = managementIndicators[key];
+    if (!selected) return;
+    setDisplay("charts");
+    changeKind(selected.kind, key);
   };
   const exportColumns = view === "pivot" ? pivot.columns : config.columns;
   const exportRows =
@@ -502,6 +531,41 @@ export default function Reports() {
           </p>
         )}
         {busy && <p role="status">Cargando informe…</p>}
+        {display === "charts" && (
+          <Card>
+            <CardContent className="pt-6 space-y-3">
+              <div className="max-w-xl">
+                <Label htmlFor="management-indicator">
+                  Indicador de gestión
+                </Label>
+                <select
+                  id="management-indicator"
+                  className="w-full border bg-white rounded-md p-2"
+                  value={indicator}
+                  onChange={(event) => changeIndicator(event.target.value)}
+                >
+                  <optgroup label="Operación y equipo">
+                    {Object.entries(managementIndicators).map(([key, item]) => (
+                      <option key={key} value={key}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Finanzas · pendiente del módulo económico">
+                    <option disabled>Ventas</option>
+                    <option disabled>Punto de equilibrio</option>
+                    <option disabled>Margen y costes</option>
+                  </optgroup>
+                </select>
+              </div>
+              <p className="text-sm text-gray-600">
+                Ventas, punto de equilibrio y márgenes se habilitarán cuando ASE
+                Work disponga de ingresos y costes reales. No se muestran
+                estimaciones inventadas.
+              </p>
+            </CardContent>
+          </Card>
+        )}
         {display === "data" && (
           <div className={sectionTabsClass}>
             <Button
@@ -593,7 +657,13 @@ export default function Reports() {
           </Card>
         )}
         {data && display === "charts" && (
-          <ReportCharts kind={kind} rows={rows} start={start} end={end} />
+          <ReportCharts
+            kind={kind}
+            indicator={indicator}
+            rows={rows}
+            start={start}
+            end={end}
+          />
         )}
         {data && display === "data" && view === "pivot" && (
           <Card>

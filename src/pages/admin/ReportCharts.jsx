@@ -31,7 +31,7 @@ const percent = (value, total) =>
     ? `${((value / total) * 100).toLocaleString("es-ES", { maximumFractionDigits: 1 })} %`
     : "0 %";
 
-export default function ReportCharts({ kind, rows, start, end }) {
+export default function ReportCharts({ kind, indicator, rows, start, end }) {
   const today = workDate(),
     total = rows.length;
   const sum = (key) =>
@@ -79,6 +79,21 @@ export default function ReportCharts({ kind, rows, start, end }) {
               (row) => !["completed", "cancelled"].includes(row._sort?._state),
             ).length
           : 0;
+  const analyticalRows =
+    indicator === "overdue"
+      ? rows.filter(
+          (row) =>
+            row.report_day &&
+            row.report_day < today &&
+            ["pending", "active", "paused", "blocked", "review"].includes(
+              row._sort?._state,
+            ),
+        )
+      : indicator === "workload"
+        ? rows.filter(
+            (row) => !["completed", "cancelled"].includes(row._sort?._state),
+          )
+        : rows;
   const workCount = kind === "productivity" ? sum("count") : completed;
   const minutes = sum("minutes");
   const cards =
@@ -139,6 +154,16 @@ export default function ReportCharts({ kind, rows, start, end }) {
                   ).length,
                 ],
               ];
+  const visibleCards =
+    indicator === "overdue"
+      ? cards.filter(([label]) =>
+          ["Registros", "Trabajo abierto", "Vencidas"].includes(label),
+        )
+      : indicator === "workload"
+        ? cards.filter(([label]) =>
+            ["Registros", "Trabajo abierto", "Bloqueadas"].includes(label),
+          )
+        : cards;
   const groupKey =
     kind === "incidents"
       ? "responsible"
@@ -146,7 +171,7 @@ export default function ReportCharts({ kind, rows, start, end }) {
         ? "type"
         : "employee";
   const groups = Object.entries(
-    rows.reduce((result, row) => {
+    analyticalRows.reduce((result, row) => {
       const key = row[groupKey] || "Sin asignar";
       result[key] =
         (result[key] || 0) +
@@ -158,7 +183,7 @@ export default function ReportCharts({ kind, rows, start, end }) {
     .slice(0, 10);
   const maxGroup = Math.max(1, ...groups.map(([, value]) => value));
   const days = Object.entries(
-    rows.reduce((result, row) => {
+    analyticalRows.reduce((result, row) => {
       const day = row.report_day;
       if (day)
         result[day] =
@@ -172,7 +197,7 @@ export default function ReportCharts({ kind, rows, start, end }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {cards.map(([label, value]) => (
+        {visibleCards.map(([label, value]) => (
           <Card key={label}>
             <CardContent className="pt-6">
               <p className="text-sm text-gray-600">{label}</p>
@@ -185,11 +210,15 @@ export default function ReportCharts({ kind, rows, start, end }) {
         <Card>
           <CardHeader>
             <CardTitle>
-              {kind === "incidents"
-                ? "Incidencias por responsable"
-                : kind === "closures"
-                  ? "Registros por tipo"
-                  : "Carga por empleado"}
+              {indicator === "overdue"
+                ? "Tareas atrasadas por empleado"
+                : indicator === "workload"
+                  ? "Carga activa por empleado"
+                  : kind === "incidents"
+                    ? "Incidencias por responsable"
+                    : kind === "closures"
+                      ? "Registros por tipo"
+                      : "Carga por empleado"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
