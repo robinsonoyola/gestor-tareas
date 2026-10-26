@@ -27,6 +27,12 @@ CREATE TABLE IF NOT EXISTS public.work_task_subtask_events(
  PRIMARY KEY(organization_id,id)
 );
 ALTER TABLE public.work_task_subtask_events ENABLE ROW LEVEL SECURITY;
+GRANT SELECT,INSERT,UPDATE,DELETE ON public.work_task_subtasks,public.work_task_subtask_events TO ase_tenant_executor;
+GRANT USAGE,SELECT ON SEQUENCE public.work_task_subtask_events_id_seq TO ase_tenant_executor;
+DROP POLICY IF EXISTS work_task_subtasks_executor ON public.work_task_subtasks;
+CREATE POLICY work_task_subtasks_executor ON public.work_task_subtasks TO ase_tenant_executor USING(true)WITH CHECK(true);
+DROP POLICY IF EXISTS work_task_subtask_events_executor ON public.work_task_subtask_events;
+CREATE POLICY work_task_subtask_events_executor ON public.work_task_subtask_events TO ase_tenant_executor USING(true)WITH CHECK(true);
 
 CREATE OR REPLACE FUNCTION public.work_task_subtask_directory(p_task uuid)RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $$
