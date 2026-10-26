@@ -702,6 +702,14 @@ ok('Kanban card reports required evidence progress',indicatorBoard.evidence_requ
 await denied('employee cannot use management board indicators',employee,OA,`SELECT public.work_planning_board_range(public.work_today(),public.work_today(),NULL,NULL,NULL,200,0)`);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000700_board_card_indicators.sql','utf8'));
 ok('board indicator activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+const labeledPlan=id(9985);await db.query(`INSERT INTO public.work_day_plan(organization_id,id,user_id,task_id,work_date,priority,state)VALUES($1,$2,$3,$4,public.work_today(),150,'pending')`,[OA,labeledPlan,employee,labeledTask]);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000800_board_labels.sql','utf8'));
+const labeledBoard=(await request(ADMIN,OA,`SELECT public.work_planning_board_range(public.work_today(),public.work_today(),NULL,NULL,'Preventivo',200,0) v`))[0].v;
+ok('Kanban cards expose existing task labels',labeledBoard.items.some(x=>x.id===labeledPlan&&x.labels.includes('Preventivo')));
+ok('board search filters by task label',labeledBoard.total===1&&labeledBoard.items[0].id===labeledPlan);
+ok('board returns company label directory',labeledBoard.labels.includes('Preventivo')&&!labeledBoard.labels.includes('Foreign'));
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000800_board_labels.sql','utf8'));
+ok('board label activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
 }catch(e){console.log(JSON.stringify({error:e.message,code:e.code,where:e.where}));process.exitCode=1;}finally{fs.writeFileSync(root+'supabase/tests/execution-schedules-results.json',JSON.stringify({scope:'Synthetic isolated PostgreSQL; foundation only, no hosted writes',results},null,2));await db.close()}
