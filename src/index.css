@@ -480,6 +480,15 @@ html, body, #root { min-width: 0; width: 100%; }
 [data-slot="dialog-content"] :where(input,textarea,select) { color: #e7eef9; background: #091526 !important; border-color: #3a4b66; }
 [data-slot="dialog-content"] select option { color: #e7eef9; background: #091526; }
 [data-slot="dialog-description"] { color: #9fb0c7; }
+[data-slot="dialog-content"] :where(.text-gray-500,.text-gray-600) { color: #b7c5d8 !important; }
+[data-slot="dialog-content"] [data-slot="button"][data-variant="outline"],
+[data-slot="dialog-content"] button.bg-white,
+[data-slot="dialog-content"] button[class*="bg-white"] {
+  color: #05070a !important;
+  background: #fff !important;
+  border-color: #cbd5e1 !important;
+}
+[data-slot="dialog-content"] [data-slot="button"][data-variant="outline"]:disabled { color: #475467 !important; }
 [data-slot="dropdown-menu-content"] .text-gray-500 { color: #9fb0c7 !important; }
 
 .ase-review-card { position: relative; overflow: hidden; }
