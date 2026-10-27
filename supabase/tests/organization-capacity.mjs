@@ -36,5 +36,10 @@ try{
  const finalCapacity=(await request(ADMIN,org,`SELECT public.work_organization_capacity() v`))[0].v
  ok('capacity returns to the contracted limit',finalCapacity.used===2&&finalCapacity.can_add===false)
  ok('capacity function is not exposed to anonymous users',(await db.query(`SELECT has_function_privilege('anon','public.work_organization_capacity()','EXECUTE') v`)).rows[0].v===false)
+ await db.exec(fs.readFileSync(root+'supabase/migrations/20261027000300_remove_organization_user_capacity.sql','utf8'))
+ ok('removal migration drops the commercial limit column',(await db.query(`SELECT count(*)::int n FROM information_schema.columns WHERE table_schema='public' AND table_name='organizations' AND column_name='user_limit'`)).rows[0].n===0)
+ ok('removal migration drops the capacity endpoint',(await db.query(`SELECT to_regprocedure('public.work_organization_capacity()') IS NULL v`)).rows[0].v===true)
+ const unrestricted=(await db.query(`SELECT public.mt_attach_created_employee('${ADMIN}','${org}','${NEW_USER}','12345678901234567890123456789012','New',NULL,NULL) v`)).rows[0].v
+ ok('employee creation is unrestricted again',unrestricted.id===NEW_USER)
  console.log(`${results.length} comprobaciones de límite de usuarios correctas`)
 }finally{await db.close()}

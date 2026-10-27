@@ -75,7 +75,6 @@ export default function EmployeeManager() {
   const [assignments, setAssignments] = useState([])
   const [rolesReady, setRolesReady] = useState(false)
   const [roleError, setRoleError] = useState('')
-  const [capacity, setCapacity] = useState(null)
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -95,18 +94,11 @@ export default function EmployeeManager() {
 
   useEffect(() => {
     fetchEmployees()
-    fetchCapacity()
     const refreshRoles = () => fetchRoles()
     refreshRoles()
     window.addEventListener('focus', refreshRoles)
     return () => window.removeEventListener('focus', refreshRoles)
   }, [])
-
-  const fetchCapacity = async () => {
-    if (!tenantMode()) return
-    try { setCapacity(await workRpc('work_organization_capacity')) }
-    catch { setCapacity(null) }
-  }
 
   const fetchRoles = async () => {
     try {
@@ -160,7 +152,6 @@ export default function EmployeeManager() {
       setIsCreateModalOpen(false)
       resetForm()
       await fetchEmployees(); await fetchRoles()
-      await fetchCapacity()
     } catch (error) {
       console.error('Error creating employee:', error?.code || 'unknown')
       toast.error(error.message || 'No se pudo crear el empleado')
@@ -274,7 +265,6 @@ export default function EmployeeManager() {
 
   const filteredEmployees = employees.filter(e=>(e.full_name+' '+e.email+' '+(e.whatsapp||'')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')) && (!roleFilter||(roleFilter==='none'?!roleIdFor(e.id):roleIdFor(e.id)===roleFilter)))
   const stats = getEmployeeStats()
-  const capacityReached = capacity && !capacity.can_add
 
   return (
     <Layout>
@@ -292,7 +282,7 @@ export default function EmployeeManager() {
             <Button variant="outline" asChild><Link to="/admin/team/absences">Ausencias</Link></Button>
 
             <Button
-              onClick={() => setIsCreateModalOpen(true)} disabled={capacityReached}
+              onClick={() => setIsCreateModalOpen(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -302,7 +292,6 @@ export default function EmployeeManager() {
         </div>
 
         {roleError && <p role="alert" className="rounded-lg bg-red-50 text-red-800 p-4">{roleError} <Button variant="outline" onClick={fetchRoles}>Reintentar</Button></p>}
-        {capacity && <Alert className={capacityReached?'border-amber-500 bg-amber-50':'bg-blue-50'}><AlertCircle className="h-4 w-4"/><AlertDescription className="text-gray-900"><strong>{capacity.used} de {capacity.limit} usuarios utilizados.</strong> {capacityReached?'Para añadir otra persona debe desactivar una cuenta o ampliar el límite contratado.':`Quedan ${capacity.available} plazas disponibles.`}</AlertDescription></Alert>}
         {/* Estadísticas */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
@@ -350,7 +339,7 @@ export default function EmployeeManager() {
               <div className="text-center py-12">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-900 mb-4">{employees.length?'No hay empleados con estos filtros':'No hay empleados registrados'}</p>
-                <Button onClick={() => setIsCreateModalOpen(true)} disabled={capacityReached}>
+                <Button onClick={() => setIsCreateModalOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Crear Primer Empleado
                 </Button>
