@@ -98,6 +98,7 @@ export default function AdminDashboard() {
     collaborators: [],
     followers: [],
     area_id: '',
+    project_id: '',
     require_comment: false,
     require_photo: false,
     require_video: false,
@@ -160,11 +161,14 @@ export default function AdminDashboard() {
     e.preventDefault()
 
     try {
-      await workRpc('work_manage_task_outcome',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null,p_labels:taskForm.labels_text.split(',').map(label=>label.trim()).filter(Boolean),p_location:taskForm.location||null,p_source_module:taskForm.source_module||null,p_entity_type:taskForm.related_entity_type||null,p_entity_reference:taskForm.related_entity_reference||null,p_entity_label:taskForm.related_entity_label||null,p_require_result:taskForm.require_result})
+      const taskId=await workRpc('work_manage_task_outcome',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null,p_labels:taskForm.labels_text.split(',').map(label=>label.trim()).filter(Boolean),p_location:taskForm.location||null,p_source_module:taskForm.source_module||null,p_entity_type:taskForm.related_entity_type||null,p_entity_reference:taskForm.related_entity_reference||null,p_entity_label:taskForm.related_entity_label||null,p_require_result:taskForm.require_result})
+      try { await workRpc('work_set_task_project',{p_task:taskId,p_project:taskForm.project_id||null}) }
+      catch { toast.error('La tarea se creó, pero no se pudo vincular al proyecto') }
       toast.success('✅ Tarea creada correctamente')
       setIsCreateModalOpen(false)
       resetForm()
       fetchTasks()
+      fetchProjects()
     } catch (error) {
       console.error('Error creating task:', error)
       const message=String(error?.message||error||'')
@@ -177,11 +181,14 @@ export default function AdminDashboard() {
 
     try {
       await workRpc('work_manage_task_outcome',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null,p_labels:taskForm.labels_text.split(',').map(label=>label.trim()).filter(Boolean),p_location:taskForm.location||null,p_source_module:taskForm.source_module||null,p_entity_type:taskForm.related_entity_type||null,p_entity_reference:taskForm.related_entity_reference||null,p_entity_label:taskForm.related_entity_label||null,p_require_result:taskForm.require_result})
+      try { await workRpc('work_set_task_project',{p_task:selectedTask.id,p_project:taskForm.project_id||null}) }
+      catch { toast.error('La tarea se actualizó, pero no se pudo cambiar su proyecto') }
       toast.success('✅ Tarea actualizada correctamente')
       setIsEditModalOpen(false)
       setSelectedTask(null)
       resetForm()
       fetchTasks()
+      fetchProjects()
     } catch (error) {
       console.error('Error updating task:', error)
       const message=String(error?.message||error||'')
@@ -228,6 +235,7 @@ export default function AdminDashboard() {
       collaborators: task.assigned_users.filter(u=>u.role!=='primary').map(u=>u.id),
       followers: (task.followers||[]).map(u=>u.id),
       area_id: task.area?.id || '',
+      project_id: projects.find(project=>project.task_ids.includes(task.id))?.id || '',
       require_comment: Boolean(task.require_comment),
       require_photo: Boolean(task.require_photo),
       require_video: Boolean(task.require_video),
@@ -257,6 +265,7 @@ export default function AdminDashboard() {
       collaborators: [],
       followers: [],
       area_id: '',
+      project_id: '',
       require_comment: false,
       require_photo: false,
       require_video: false,
@@ -272,6 +281,7 @@ export default function AdminDashboard() {
   const setTaskArea = areaId => setTaskForm(prev=>{const members=areas.find(a=>a.id===areaId)?.members||[];return {...prev,area_id:areaId,primary_user:areaId&& !members.includes(prev.primary_user)?'':prev.primary_user,collaborators:areaId?prev.collaborators.filter(id=>members.includes(id)):prev.collaborators}})
   const workloadText = employee => {const load=assignmentLoad[employee.id];return load?`${employee.full_name} · ${load.open_count} abiertas${load.active_count?` · ${load.active_count} en curso`:''}${load.estimated_minutes?` · ${load.estimated_minutes} min previstos`:''}`:employee.full_name}
   const peopleFields = prefix => <div className="space-y-4"><div className="space-y-2"><Label htmlFor={`${prefix}-area`} className="text-gray-900 font-semibold">Área responsable</Label><select id={`${prefix}-area`} className="w-full border rounded-md bg-white p-2" value={taskForm.area_id} onChange={e=>setTaskArea(e.target.value)}><option value="">Sin área concreta</option>{areas.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select><p className="text-xs text-gray-500">Puedes dejar la tarea pendiente en el área y elegir la persona más adelante.</p></div><div className="space-y-2"><Label htmlFor={`${prefix}-primary`} className="text-gray-900 font-semibold">Responsable principal</Label><select id={`${prefix}-primary`} className="w-full border rounded-md bg-white p-2" value={taskForm.primary_user} onChange={e=>setPrimaryUser(e.target.value)}><option value="">Sin responsable principal</option>{executorEmployees.map(e=><option key={e.id} value={e.id}>{workloadText(e)}</option>)}</select><p className="text-xs text-gray-500">Dirige la ejecución. La carga muestra los próximos 14 días y solo orienta; no asigna automáticamente.</p></div><div className="grid sm:grid-cols-2 gap-4"><div><Label className="text-gray-900 font-semibold">Colaboradores</Label><div className="border rounded-md p-3 mt-2 max-h-40 overflow-y-auto space-y-2">{executorEmployees.map(e=><label key={e.id} className="flex items-start gap-2 text-sm"><Checkbox checked={taskForm.collaborators.includes(e.id)} disabled={taskForm.primary_user===e.id} onCheckedChange={()=>togglePersonRole('collaborators',e.id)}/><span>{workloadText(e)}</span></label>)}</div><p className="text-xs text-gray-500 mt-1">Pueden ejecutar y fichar.</p></div><div><Label className="text-gray-900 font-semibold">Seguidores</Label><div className="border rounded-md p-3 mt-2 max-h-40 overflow-y-auto space-y-2">{employees.map(e=><label key={e.id} className="flex items-center gap-2 text-sm"><Checkbox checked={taskForm.followers.includes(e.id)} disabled={taskForm.primary_user===e.id} onCheckedChange={()=>togglePersonRole('followers',e.id)}/>{e.full_name}</label>)}</div><p className="text-xs text-gray-500 mt-1">Consultan y reciben avisos; no fichan.</p></div></div></div>
+  const projectField = prefix => <div className="space-y-2"><Label htmlFor={`${prefix}-project`} className="text-gray-900 font-semibold">Proyecto</Label><select id={`${prefix}-project`} className="w-full border rounded-md bg-white p-2 text-gray-900" value={taskForm.project_id} onChange={e=>setTaskForm(v=>({...v,project_id:e.target.value}))}><option value="">Sin proyecto</option>{projects.filter(project=>project.status!=='archived').map(project=><option key={project.id} value={project.id}>{project.name}</option>)}</select><p className="text-xs text-gray-500">Agrupa esta actividad dentro de un proyecto. También puedes cambiarla después desde la pestaña Proyectos.</p></div>
   const evidenceFields = prefix => <div className="space-y-2"><Label className="text-gray-900 font-semibold">Evidencias obligatorias para finalizar</Label><div className="grid sm:grid-cols-2 gap-2 border rounded-md p-3">{[['require_comment','Comentario'],['require_photo','Foto'],['require_video','Vídeo'],['require_file','Archivo']].map(([field,label])=><label key={field} className="flex items-center gap-2 text-sm"><Checkbox id={`${prefix}-${field}`} checked={taskForm[field]} onCheckedChange={checked=>setTaskForm(v=>({...v,[field]:checked===true}))}/>{label}</label>)}</div><p className="text-xs text-gray-500">El empleado deberá aportar lo marcado durante ese fichaje antes de poder finalizar.</p></div>
   const estimateField = prefix => <div className="space-y-2"><Label htmlFor={`${prefix}-estimate`} className="text-gray-900 font-semibold">Tiempo estimado (minutos)</Label><Input id={`${prefix}-estimate`} type="number" min="1" max="10080" value={taskForm.estimated_minutes} onChange={e=>setTaskForm(v=>({...v,estimated_minutes:e.target.value}))} placeholder="Sin estimación"/><p className="text-xs text-gray-500">Sirve para comparar la planificación con el tiempo real; no limita el fichaje.</p></div>
   const reviewField = prefix => <label className="flex items-start gap-3 rounded-md border p-3"><Checkbox id={`${prefix}-review`} checked={taskForm.requires_review} onCheckedChange={checked=>setTaskForm(v=>({...v,requires_review:checked===true}))}/><span><span className="font-semibold text-gray-900">Requiere aprobación del encargado</span><span className="block text-xs text-gray-500 mt-1">Al finalizar quedará En revisión hasta que se apruebe o se devuelva.</span></span></label>
@@ -397,6 +407,7 @@ export default function AdminDashboard() {
               <Textarea id="description" value={taskForm.description} onChange={(e) => setTaskForm(prev => ({ ...prev, description: e.target.value }))} rows={3} className="text-gray-900" />
             </div>
             {labelsField('create-task')}
+            {projectField('create-task')}
             {contextFields('create-task')}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -453,6 +464,7 @@ export default function AdminDashboard() {
               <Textarea id="edit-description" value={taskForm.description} onChange={(e) => setTaskForm(prev => ({ ...prev, description: e.target.value }))} rows={3} className="text-gray-900" />
             </div>
             {labelsField('edit-task')}
+            {projectField('edit-task')}
             {contextFields('edit-task')}
 
             <div className="space-y-2">
