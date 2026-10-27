@@ -218,8 +218,15 @@ export default function Reports() {
     }
     const request = kind === "projects" ? Promise.all([workRpc("work_projects_overview"),workRpc("work_task_catalog_labeled")]).then(([result,tasks]) => {
       const taskMap=new Map((tasks||[]).map(task=>[task.id,task]))
-      const items=(result?.projects||[]).map(project=>{const linked=(project.task_ids||[]).map(id=>taskMap.get(id)).filter(Boolean),completed=linked.filter(task=>task.status==='completed').length,milestones=project.milestones||[];return {project:project.name,status:project.status,start_date:project.start_date,end_date:project.end_date,activities:linked.length,completed,progress:linked.length?Math.round(completed*100/linked.length):0,milestones:milestones.length,late_milestones:milestones.filter(item=>item.due_date&&item.due_date<workDate()&&!item.completed_at).length}})
-      const filtered=items.filter(row=>(!state||row.status===state)&&(!term||(row.project+' '+row.status).toLocaleLowerCase('es').includes(term.toLocaleLowerCase('es')))&&(row.end_date||'9999-12-31')>=start&&(row.start_date||'0001-01-01')<=end)
+      const employeeId=scope.startsWith("employee:")?scope.slice(9):null
+      const areaId=scope.startsWith("area:")?scope.slice(5):null
+      const items=(result?.projects||[]).map(project=>{
+        const allLinked=(project.task_ids||[]).map(id=>taskMap.get(id)).filter(Boolean)
+        const linked=allLinked.filter(task=>(!employeeId||task.assigned_users?.some(person=>person.id===employeeId))&&(!areaId||task.area?.id===areaId))
+        const completed=linked.filter(task=>task.status==='completed').length,milestones=project.milestones||[]
+        return {project:project.name,status:project.status,start_date:project.start_date,end_date:project.end_date,activities:linked.length,completed,progress:linked.length?Math.round(completed*100/linked.length):0,milestones:milestones.length,late_milestones:milestones.filter(item=>item.due_date&&item.due_date<workDate()&&!item.completed_at).length,_matches_scope:scope==='all'||linked.length>0,_search:[project.name,project.status,...allLinked.map(task=>task.title),...milestones.map(item=>item.title)].join(' ')}
+      })
+      const filtered=items.filter(row=>row._matches_scope&&(!state||row.status===state)&&(!term||row._search.toLocaleLowerCase('es').includes(term.toLocaleLowerCase('es')))&&(row.end_date||'9999-12-31')>=start&&(row.start_date||'0001-01-01')<=end)
       return {items:filtered,total:filtered.length,as_of:new Date().toISOString()}
     }) : workRpc("work_report_table_scope", {
       p_kind: kind,
