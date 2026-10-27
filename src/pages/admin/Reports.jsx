@@ -93,6 +93,7 @@ const definitions = {
     name: "Proyectos",
     columns: [
       ["project", "Proyecto"],
+      ["responsible", "Responsable general"],
       ["status", "Estado"],
       ["start_date", "Inicio previsto"],
       ["end_date", "Fin previsto"],
@@ -224,7 +225,7 @@ export default function Reports() {
         const allLinked=(project.task_ids||[]).map(id=>taskMap.get(id)).filter(Boolean)
         const linked=allLinked.filter(task=>(!employeeId||task.assigned_users?.some(person=>person.id===employeeId))&&(!areaId||task.area?.id===areaId))
         const completed=linked.filter(task=>task.status==='completed').length,milestones=project.milestones||[]
-        return {project:project.name,status:project.status,start_date:project.start_date,end_date:project.end_date,activities:linked.length,completed,progress:linked.length?Math.round(completed*100/linked.length):0,milestones:milestones.length,late_milestones:milestones.filter(item=>item.due_date&&item.due_date<workDate()&&!item.completed_at).length,_matches_scope:scope==='all'||linked.length>0,_search:[project.name,project.status,...allLinked.map(task=>task.title),...milestones.map(item=>item.title)].join(' ')}
+        return {project:project.name,responsible:project.owner_name||'Sin responsable',status:project.status,start_date:project.start_date,end_date:project.end_date,activities:linked.length,completed,progress:linked.length?Math.round(completed*100/linked.length):0,milestones:milestones.length,late_milestones:milestones.filter(item=>item.due_date&&item.due_date<workDate()&&!item.completed_at).length,_matches_scope:scope==='all'||linked.length>0||project.owner_user_id===employeeId,_search:[project.name,project.owner_name,project.status,...allLinked.map(task=>task.title),...milestones.map(item=>item.title)].filter(Boolean).join(' ')}
       })
       const filtered=items.filter(row=>row._matches_scope&&(!state||row.status===state)&&(!term||row._search.toLocaleLowerCase('es').includes(term.toLocaleLowerCase('es')))&&(row.end_date||'9999-12-31')>=start&&(row.start_date||'0001-01-01')<=end)
       return {items:filtered,total:filtered.length,as_of:new Date().toISOString()}
