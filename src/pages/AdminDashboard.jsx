@@ -198,14 +198,17 @@ export default function AdminDashboard() {
 
   const handleDeleteTask = async (taskId) => {
     if (!window.confirm('¿Estás seguro de eliminar esta tarea?')) return
-
+    const task=tasks.find(item=>item.id===taskId)
+    if (!task) return
     try {
-      await workRpc('work_manage_task',{p_action:'delete',p_id:taskId})
+      await workRpc('work_delete_task_safe',{p_task:taskId,p_expected_version:task.version,p_request:crypto.randomUUID()})
       toast.success('✅ Tarea eliminada')
       fetchTasks()
     } catch (error) {
       console.error('Error deleting task:', error)
-      toast.error('Error al eliminar la tarea')
+      const message=String(error?.message||'')
+      toast.error(message.includes('work_delete_task_safe')?'Falta activar la eliminación segura en Supabase.':message||'Error al eliminar la tarea')
+      if(message.includes('modificada por otra persona'))fetchTasks()
     }
   }
 

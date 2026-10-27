@@ -712,6 +712,7 @@ await db.exec(fs.readFileSync(root+'supabase/migrations/20261026000800_board_lab
 ok('board label activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261027000400_task_projects.sql','utf8'));
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261027000700_concurrency_hardening.sql','utf8'));
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261027000800_safe_task_deletion.sql','utf8'));
 const atomicRequest=id(9986),atomicEditRequest=id(9987),atomicRepeatRequest=id(9988);
 const atomicCreated=(await request(ADMIN,OA,`SELECT public.work_manage_task_atomic('create','normal',NULL,'Atomic activity','All-or-nothing task','daily',NULL,'pending','${employee}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,20,false,NULL,ARRAY['Atomic']::text[],NULL,NULL,NULL,NULL,NULL,false,NULL,NULL,'${atomicRequest}') v`))[0].v;
 ok('atomic task command creates task and assignments together',Boolean(atomicCreated.id)&&(await db.query(`SELECT count(*)::int n FROM public.task_assignments WHERE organization_id=$1 AND task_id=$2`,[OA,atomicCreated.id])).rows[0].n===1);
@@ -735,6 +736,14 @@ const manualFinishAgain=(await request(employee,OA,`SELECT public.work_finish_ma
 ok('manual finish retry preserves the same server timestamp',manualFinish.success&&manualFinishAgain.repeated&&manualFinish.checkout_time===manualFinishAgain.checkout_time);
 const smokeIds=[];for(let n=0;n<50;n++){const requestId=id(10000+n);const created=(await request(ADMIN,OA,`SELECT public.work_manage_task_atomic('create','normal',NULL,'Load smoke ${n+1}',NULL,'daily',NULL,'pending','${employee}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,NULL,false,NULL,ARRAY[]::text[],NULL,NULL,NULL,NULL,NULL,false,NULL,NULL,'${requestId}') v`))[0].v;smokeIds.push(created.id)}
 ok('small load smoke completes 50 atomic commands without partial assignments',smokeIds.length===50&&(await db.query(`SELECT count(*)::int n FROM public.tasks t JOIN public.task_assignments a ON a.organization_id=t.organization_id AND a.task_id=t.id WHERE t.organization_id=$1 AND t.id=ANY($2::uuid[])`,[OA,smokeIds])).rows[0].n===50);
+ok('completed manual flow leaves operational history',(await db.query(`SELECT count(*)::int n FROM public.checkins WHERE organization_id=$1 AND task_id=$2`,[OA,atomicCreated.id])).rows[0].n>0);
+let historyDeleteRejected=false;try{await request(ADMIN,OA,`SELECT public.work_delete_task_safe('${atomicCreated.id}',2,'${id(10060)}')`)}catch(error){historyDeleteRejected=error.message.includes('historial operativo');if(!historyDeleteRejected)throw error}
+ok('task with operational history cannot be deleted',historyDeleteRejected);
+const disposable=(await request(ADMIN,OA,`SELECT public.work_manage_task_atomic('create','normal',NULL,'Disposable activity',NULL,'daily',NULL,'pending',NULL,ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,NULL,false,NULL,ARRAY[]::text[],NULL,NULL,NULL,NULL,NULL,false,NULL,NULL,'${id(10061)}') v`))[0].v;
+const deleted=(await request(ADMIN,OA,`SELECT public.work_delete_task_safe('${disposable.id}',1,'${id(10062)}') v`))[0].v;
+const deletedAgain=(await request(ADMIN,OA,`SELECT public.work_delete_task_safe('${disposable.id}',1,'${id(10062)}') v`))[0].v;
+ok('unused task deletion is idempotent',deleted.success&&deletedAgain.repeated&&(await db.query(`SELECT count(*)::int n FROM public.tasks WHERE organization_id=$1 AND id=$2`,[OA,disposable.id])).rows[0].n===0);
+await denied('another tenant cannot delete a foreign task',BADMIN,OB,`SELECT public.work_delete_task_safe('${atomicCreated.id}',2,'${id(10063)}')`);
 ok('concurrency migration revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
