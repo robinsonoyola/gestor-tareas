@@ -744,6 +744,23 @@ const deleted=(await request(ADMIN,OA,`SELECT public.work_delete_task_safe('${di
 const deletedAgain=(await request(ADMIN,OA,`SELECT public.work_delete_task_safe('${disposable.id}',1,'${id(10062)}') v`))[0].v;
 ok('unused task deletion is idempotent',deleted.success&&deletedAgain.repeated&&(await db.query(`SELECT count(*)::int n FROM public.tasks WHERE organization_id=$1 AND id=$2`,[OA,disposable.id])).rows[0].n===0);
 await denied('another tenant cannot delete a foreign task',BADMIN,OB,`SELECT public.work_delete_task_safe('${atomicCreated.id}',2,'${id(10063)}')`);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261027000900_task_archiving.sql','utf8'));
+const archived=(await request(ADMIN,OA,`SELECT public.work_change_task_archive('${atomicCreated.id}','archive',2,'Actividad terminada; se conserva para consulta','${id(10064)}') v`))[0].v;
+ok('completed task with history can be archived without deleting its records',archived.archived===true&&archived.version===3&&(await db.query(`SELECT archived_at IS NOT NULL archived,(SELECT count(*) FROM public.checkins c WHERE c.organization_id=t.organization_id AND c.task_id=t.id)::int history FROM public.tasks t WHERE organization_id=$1 AND id=$2`,[OA,atomicCreated.id])).rows[0].archived&&(await db.query(`SELECT count(*)::int n FROM public.checkins WHERE organization_id=$1 AND task_id=$2`,[OA,atomicCreated.id])).rows[0].n>0);
+await denied('archived task cannot be edited until restored',ADMIN,OA,`SELECT public.work_manage_task_atomic('edit','normal','${atomicCreated.id}','Archived overwrite',NULL,'daily',NULL,'pending','${employee}',ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,NULL,false,NULL,ARRAY[]::text[],NULL,NULL,NULL,NULL,NULL,false,NULL,3,'${id(10065)}')`);
+const archivedAgain=(await request(ADMIN,OA,`SELECT public.work_change_task_archive('${atomicCreated.id}','archive',2,'Actividad terminada; se conserva para consulta','${id(10064)}') v`))[0].v;
+ok('repeated archive request is idempotent',archivedAgain.repeated===true&&archivedAgain.version===3);
+await denied('another tenant cannot restore a foreign archived task',BADMIN,OB,`SELECT public.work_change_task_archive('${atomicCreated.id}','restore',3,'Intento desde otra empresa','${id(10066)}')`);
+const restored=(await request(ADMIN,OA,`SELECT public.work_change_task_archive('${atomicCreated.id}','restore',3,'La actividad vuelve a estar disponible','${id(10067)}') v`))[0].v;
+ok('archived task can be restored with a new version',restored.archived===false&&restored.version===4&&(await db.query(`SELECT archived_at IS NULL restored,version FROM public.tasks WHERE organization_id=$1 AND id=$2`,[OA,atomicCreated.id])).rows[0].restored);
+const pendingArchiveTask=smokeIds[0],pendingArchivePlan=id(10068);
+await db.query(`INSERT INTO public.work_day_plan(organization_id,id,user_id,task_id,work_date,priority,state)VALUES($1,$2,$3,$4,public.work_today(),999,'pending')`,[OA,pendingArchivePlan,employee,pendingArchiveTask]);
+let pendingArchiveRejected=false;try{await request(ADMIN,OA,`SELECT public.work_change_task_archive('${pendingArchiveTask}','archive',1,'Todavía tiene una ejecución pendiente','${id(10069)}')`)}catch(error){pendingArchiveRejected=error.message.includes('Finaliza o cancela');if(!pendingArchiveRejected)throw error}
+ok('task with unfinished execution cannot be archived',pendingArchiveRejected);
+const archivedCatalog=(await request(ADMIN,OA,`SELECT public.work_task_catalog() v`))[0].v;
+ok('task catalog exposes archive fields for the interface',archivedCatalog.some(x=>x.id===atomicCreated.id&&Object.hasOwn(x,'archived_at')&&Object.hasOwn(x,'archived_by')));
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261027000900_task_archiving.sql','utf8'));
+ok('task archive activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 ok('concurrency migration revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));

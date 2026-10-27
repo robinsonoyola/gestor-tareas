@@ -66,6 +66,7 @@ export default function AdminDashboard() {
   const [statusFilter,setStatusFilter]=useState('all')
   const [importanceFilter,setImportanceFilter]=useState('all')
   const [projectFilter,setProjectFilter]=useState('all')
+  const [lifecycleFilter,setLifecycleFilter]=useState('active')
   const { can, isAdmin } = useAuth()
   const [tasks, setTasks] = useState([])
   const [employees, setEmployees] = useState([])
@@ -212,6 +213,22 @@ export default function AdminDashboard() {
     }
   }
 
+  const handleArchiveTask = async (task,action) => {
+    const verb=action==='archive'?'archivar':'restaurar'
+    const reason=window.prompt(`Motivo para ${verb} “${task.title}” (mínimo 5 caracteres):`)
+    if(reason===null)return
+    if(reason.trim().length<5){toast.error('Escribe un motivo de al menos 5 caracteres');return}
+    try{
+      await workRpc('work_change_task_archive',{p_task:task.id,p_action:action,p_expected_version:task.version,p_reason:reason.trim(),p_request:crypto.randomUUID()})
+      toast.success(action==='archive'?'Actividad archivada; su historial se conserva':'Actividad restaurada')
+      await fetchTasks()
+    }catch(error){
+      const message=String(error?.message||'')
+      toast.error(message.includes('work_change_task_archive')?'Falta activar el archivo de actividades en Supabase.':message||`No se pudo ${verb} la actividad`)
+      if(message.includes('modificada por otra persona'))fetchTasks()
+    }
+  }
+
   const handleDuplicateTask = async task => {
     try { await workRpc('work_duplicate_task',{p_task:task.id,p_title:`${task.title} (copia)`});toast.success('Actividad duplicada sin copiar ejecuciones ni historial');await fetchTasks() }
     catch(error){const message=String(error?.message||error||'');toast.error(message.includes('work_duplicate_task')?'Falta activar la duplicación de actividades en Supabase.':message||'No se pudo duplicar la actividad')}
@@ -294,7 +311,7 @@ export default function AdminDashboard() {
 
   const taskProject=new Map(projects.flatMap(project=>project.task_ids.map(taskId=>[taskId,project])))
   const projectName=task=>taskProject.get(task.id)?.name||''
-  const filteredTasks = tasks.filter(t=>(t.title+' '+(t.description||'')+' '+(t.labels||[]).join(' ')+' '+projectName(t)+' '+[t.location,t.source_module,t.related_entity_type,t.related_entity_reference,t.related_entity_label].filter(Boolean).join(' ')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')) && (!employeeFilter||t.assigned_users.some(u=>u.id===employeeFilter)) && (statusFilter==='all'||t.status===statusFilter) && (importanceFilter==='all'||(t.importance||'normal')===importanceFilter) && (projectFilter==='all'||(projectFilter==='none'?!taskProject.has(t.id):taskProject.get(t.id)?.id===projectFilter)))
+  const filteredTasks = tasks.filter(t=>(lifecycleFilter==='all'||(lifecycleFilter==='archived'?Boolean(t.archived_at):!t.archived_at)) && (t.title+' '+(t.description||'')+' '+(t.labels||[]).join(' ')+' '+projectName(t)+' '+[t.location,t.source_module,t.related_entity_type,t.related_entity_reference,t.related_entity_label].filter(Boolean).join(' ')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')) && (!employeeFilter||t.assigned_users.some(u=>u.id===employeeFilter)) && (statusFilter==='all'||t.status===statusFilter) && (importanceFilter==='all'||(t.importance||'normal')===importanceFilter) && (projectFilter==='all'||(projectFilter==='none'?!taskProject.has(t.id):taskProject.get(t.id)?.id===projectFilter)))
 
   const getStatusBadge = (status) => {
     const variants = {
@@ -321,7 +338,7 @@ export default function AdminDashboard() {
 
         <div className="flex flex-wrap justify-between gap-3"><div className={sectionTabsClass}><Button variant="outline" className={sectionTabClass(!query.get('tab'))} onClick={()=>setQuery({})}>Actividades</Button><Button variant="outline" className={sectionTabClass(query.get('tab')==='overdue')} onClick={()=>setQuery({tab:'overdue'})}>Tareas atrasadas</Button><Button variant="outline" className={sectionTabClass(query.get('tab')==='reviews')} onClick={()=>setQuery({tab:'reviews'})}>Revisiones</Button><Button variant="outline" className={sectionTabClass(query.get('tab')==='projects')} onClick={()=>setQuery({tab:'projects'})}>Proyectos</Button><Button variant="outline" className={sectionTabClass(query.get('tab')==='templates')} onClick={()=>setQuery({tab:'templates'})}>Plantillas</Button></div>{can('tasks.create') && !['templates','projects'].includes(query.get('tab')) && <Button onClick={()=>{resetForm();fetchAssignmentLoad();setIsCreateModalOpen(true)}}><Plus className="w-4 h-4 mr-2"/>Crear tarea</Button>}</div>
         {query.get('tab')==='overdue' ? <TaskFollowup canPlan={can('planning.view')}/> : query.get('tab')==='reviews'?<ReviewQueue/>:query.get('tab')==='projects'?<TaskProjects tasks={tasks} employees={employees} canEdit={can('tasks.edit')} onChanged={fetchProjects}/>:query.get('tab')==='templates'?<TaskTemplates tasks={tasks} onCreated={fetchTasks} canCreate={can('tasks.create')} canEdit={can('tasks.edit')}/>:<>
-        <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3"><Input aria-label="Buscar tareas" placeholder="Buscar actividad, descripción o proyecto" value={search} onChange={e=>setSearch(e.target.value)}/><select aria-label="Filtrar por empleado" className="border rounded-md p-2 bg-white" value={employeeFilter} onChange={e=>setEmployeeFilter(e.target.value)}><option value="">Todos los empleados</option>{employees.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}</select><select aria-label="Filtrar por proyecto" className="border rounded-md p-2 bg-white" value={projectFilter} onChange={e=>setProjectFilter(e.target.value)}><option value="all">Todos los proyectos</option><option value="none">Sin proyecto</option>{projects.filter(p=>p.status!=='archived').map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><select aria-label="Filtrar por estado general" className="border rounded-md p-2 bg-white" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="all">Todos los estados generales</option><option value="pending">Pendiente</option><option value="in_progress">En progreso</option><option value="completed">Completada</option></select></div>
+        <div className="grid md:grid-cols-2 xl:grid-cols-5 gap-3"><Input aria-label="Buscar tareas" placeholder="Buscar actividad, descripción o proyecto" value={search} onChange={e=>setSearch(e.target.value)}/><select aria-label="Filtrar por empleado" className="border rounded-md p-2 bg-white" value={employeeFilter} onChange={e=>setEmployeeFilter(e.target.value)}><option value="">Todos los empleados</option>{employees.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}</select><select aria-label="Filtrar por proyecto" className="border rounded-md p-2 bg-white" value={projectFilter} onChange={e=>setProjectFilter(e.target.value)}><option value="all">Todos los proyectos</option><option value="none">Sin proyecto</option>{projects.filter(p=>p.status!=='archived').map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><select aria-label="Filtrar por estado general" className="border rounded-md p-2 bg-white" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="all">Todos los estados generales</option><option value="pending">Pendiente</option><option value="in_progress">En progreso</option><option value="completed">Completada</option></select><select aria-label="Filtrar por archivo" className="border rounded-md p-2 bg-white" value={lifecycleFilter} onChange={e=>setLifecycleFilter(e.target.value)}><option value="active">Actividades vigentes</option><option value="archived">Actividades archivadas</option><option value="all">Vigentes y archivadas</option></select></div>
         <p className="text-sm text-gray-500">Este catálogo define las actividades. Sus ejecuciones diarias y su orden se gestionan en Planificación.</p>
         <Card>
           <CardHeader>
@@ -342,7 +359,7 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <>
-              <MobileTasks items={filteredTasks} statusBadge={getStatusBadge} projectName={projectName} can={can} isAdmin={isAdmin} onShare={task=>navigate('/admin/access?task='+task.id)} onPlan={task=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))} onChecklist={setChecklistTask} onSubtasks={setSubtaskTask} onDependencies={setDependencyTask} onDuplicate={handleDuplicateTask} onEdit={openEditModal} onDelete={handleDeleteTask}/>
+              <MobileTasks items={filteredTasks} statusBadge={getStatusBadge} projectName={projectName} can={can} isAdmin={isAdmin} onShare={task=>navigate('/admin/access?task='+task.id)} onPlan={task=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))} onChecklist={setChecklistTask} onSubtasks={setSubtaskTask} onDependencies={setDependencyTask} onDuplicate={handleDuplicateTask} onEdit={openEditModal} onDelete={handleDeleteTask} onArchive={handleArchiveTask}/>
               <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
@@ -358,7 +375,7 @@ export default function AdminDashboard() {
                   <TableBody>
                     {filteredTasks.map((task) => (
                       <TableRow key={task.id}>
-                        <TableCell className="font-medium text-gray-900"><p>{task.title}</p><div className="mt-2 flex flex-wrap gap-1"><ImportanceBadge value={task.importance}/>{projectName(task)&&<Badge className="border border-violet-200 bg-violet-50 text-violet-800">Proyecto: {projectName(task)}</Badge>}{(task.labels||[]).map(label=><Badge key={label} className="border border-cyan-200 bg-cyan-50 text-cyan-800">{label}</Badge>)}</div>{task.location&&<p className="mt-2 text-xs text-gray-600">📍 {task.location}</p>}{(task.source_module||task.related_entity_reference)&&<p className="mt-1 text-xs text-gray-600">Origen: {[task.source_module,task.related_entity_type,task.related_entity_reference,task.related_entity_label].filter(Boolean).join(' · ')}</p>}</TableCell>
+                        <TableCell className="font-medium text-gray-900"><p>{task.title}</p><div className="mt-2 flex flex-wrap gap-1"><ImportanceBadge value={task.importance}/>{task.archived_at&&<Badge className="border border-slate-300 bg-slate-100 text-slate-800">Archivada</Badge>}{projectName(task)&&<Badge className="border border-violet-200 bg-violet-50 text-violet-800">Proyecto: {projectName(task)}</Badge>}{(task.labels||[]).map(label=><Badge key={label} className="border border-cyan-200 bg-cyan-50 text-cyan-800">{label}</Badge>)}</div>{task.location&&<p className="mt-2 text-xs text-gray-600">📍 {task.location}</p>}{(task.source_module||task.related_entity_reference)&&<p className="mt-1 text-xs text-gray-600">Origen: {[task.source_module,task.related_entity_type,task.related_entity_reference,task.related_entity_label].filter(Boolean).join(' · ')}</p>}</TableCell>
                         <TableCell className="text-gray-900">
                           {task.schedule_type === 'daily' && '🔄 Diaria'}
                           {task.schedule_type === 'weekly' && '📅 Semanal'}
@@ -371,13 +388,14 @@ export default function AdminDashboard() {
                         <TableCell className="text-gray-900">{task.assigned_names}</TableCell>
                         <TableCell>{getStatusBadge(task.status)}</TableCell>
                         <TableCell className="text-right space-x-2">
-                          {isAdmin && <Button size="sm" variant="outline" onClick={()=>navigate('/admin/access?task='+task.id)}>Compartir acceso</Button>}
-                          {can('planning.view') && <Button size="sm" variant="outline" onClick={()=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))}>Planificar</Button>}
-                          {can('tasks.edit') && <Button size="sm" variant="outline" onClick={()=>setChecklistTask(task)}>Pasos</Button>}
-                          {can('tasks.edit') && <Button size="sm" variant="outline" onClick={()=>setSubtaskTask(task)}>Subtareas</Button>}
-                          {can('tasks.edit') && <Button size="sm" variant="outline" onClick={()=>setDependencyTask(task)}>Dependencias</Button>}
-                          {can('tasks.create') && <Button size="sm" variant="outline" aria-label={`Duplicar ${task.title}`} onClick={()=>handleDuplicateTask(task)}><Copy className="h-4 w-4"/></Button>}
-                          {can('tasks.edit') && <Button size="sm" variant="outline" aria-label={`Editar ${task.title}`} onClick={() => openEditModal(task)}><Edit className="h-4 w-4" /></Button>}
+                          {!task.archived_at&&isAdmin && <Button size="sm" variant="outline" onClick={()=>navigate('/admin/access?task='+task.id)}>Compartir acceso</Button>}
+                          {!task.archived_at&&can('planning.view') && <Button size="sm" variant="outline" onClick={()=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))}>Planificar</Button>}
+                          {!task.archived_at&&can('tasks.edit') && <Button size="sm" variant="outline" onClick={()=>setChecklistTask(task)}>Pasos</Button>}
+                          {!task.archived_at&&can('tasks.edit') && <Button size="sm" variant="outline" onClick={()=>setSubtaskTask(task)}>Subtareas</Button>}
+                          {!task.archived_at&&can('tasks.edit') && <Button size="sm" variant="outline" onClick={()=>setDependencyTask(task)}>Dependencias</Button>}
+                          {!task.archived_at&&can('tasks.create') && <Button size="sm" variant="outline" aria-label={`Duplicar ${task.title}`} onClick={()=>handleDuplicateTask(task)}><Copy className="h-4 w-4"/></Button>}
+                          {!task.archived_at&&can('tasks.edit') && <Button size="sm" variant="outline" aria-label={`Editar ${task.title}`} onClick={() => openEditModal(task)}><Edit className="h-4 w-4" /></Button>}
+                          {can('tasks.edit')&&<Button size="sm" variant="outline" onClick={()=>handleArchiveTask(task,task.archived_at?'restore':'archive')}>{task.archived_at?'Restaurar':'Archivar'}</Button>}
                           {can('tasks.delete') && <Button size="sm" variant="outline" aria-label={`Eliminar ${task.title}`} onClick={() => handleDeleteTask(task.id)} className="text-red-600 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>}
                         </TableCell>
                       </TableRow>
