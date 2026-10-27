@@ -73,6 +73,7 @@ export default function AdminDashboard() {
   const [projects,setProjects]=useState([])
   const [assignmentLoad,setAssignmentLoad] = useState({})
   const [loading, setLoading] = useState(true)
+  const [savingTask, setSavingTask] = useState(false)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [checklistTask,setChecklistTask]=useState(null)
@@ -159,11 +160,10 @@ export default function AdminDashboard() {
 
   const handleCreateTask = async (e) => {
     e.preventDefault()
-
+    if (savingTask) return
+    setSavingTask(true)
     try {
-      const taskId=await workRpc('work_manage_task_outcome',{p_importance:taskForm.importance||'normal',p_action:'create',p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null,p_labels:taskForm.labels_text.split(',').map(label=>label.trim()).filter(Boolean),p_location:taskForm.location||null,p_source_module:taskForm.source_module||null,p_entity_type:taskForm.related_entity_type||null,p_entity_reference:taskForm.related_entity_reference||null,p_entity_label:taskForm.related_entity_label||null,p_require_result:taskForm.require_result})
-      try { await workRpc('work_set_task_project',{p_task:taskId,p_project:taskForm.project_id||null}) }
-      catch { toast.error('La tarea se creó, pero no se pudo vincular al proyecto') }
+      await workRpc('work_manage_task_atomic',{p_importance:taskForm.importance||'normal',p_action:'create',p_id:null,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null,p_labels:taskForm.labels_text.split(',').map(label=>label.trim()).filter(Boolean),p_location:taskForm.location||null,p_source_module:taskForm.source_module||null,p_entity_type:taskForm.related_entity_type||null,p_entity_reference:taskForm.related_entity_reference||null,p_entity_label:taskForm.related_entity_label||null,p_require_result:taskForm.require_result,p_project:taskForm.project_id||null,p_expected_version:null,p_request:crypto.randomUUID()})
       toast.success('✅ Tarea creada correctamente')
       setIsCreateModalOpen(false)
       resetForm()
@@ -172,17 +172,16 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error creating task:', error)
       const message=String(error?.message||error||'')
-      toast.error(message.includes('work_manage_task_outcome')?'Falta activar el resultado obligatorio en Supabase.':message||'Error al crear la tarea')
-    }
+      toast.error(message.includes('work_manage_task_atomic')?'Falta activar el refuerzo de concurrencia en Supabase.':message||'Error al crear la tarea')
+    } finally { setSavingTask(false) }
   }
 
   const handleEditTask = async (e) => {
     e.preventDefault()
-
+    if (savingTask || !selectedTask) return
+    setSavingTask(true)
     try {
-      await workRpc('work_manage_task_outcome',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null,p_labels:taskForm.labels_text.split(',').map(label=>label.trim()).filter(Boolean),p_location:taskForm.location||null,p_source_module:taskForm.source_module||null,p_entity_type:taskForm.related_entity_type||null,p_entity_reference:taskForm.related_entity_reference||null,p_entity_label:taskForm.related_entity_label||null,p_require_result:taskForm.require_result})
-      try { await workRpc('work_set_task_project',{p_task:selectedTask.id,p_project:taskForm.project_id||null}) }
-      catch { toast.error('La tarea se actualizó, pero no se pudo cambiar su proyecto') }
+      await workRpc('work_manage_task_atomic',{p_importance:taskForm.importance||'normal',p_action:'edit',p_id:selectedTask.id,p_title:taskForm.title,p_description:taskForm.description,p_schedule:taskForm.schedule_type,p_date:taskForm.schedule_date||null,p_status:taskForm.status,p_primary:taskForm.primary_user||null,p_collaborators:taskForm.collaborators,p_followers:taskForm.followers,p_require_comment:taskForm.require_comment,p_require_photo:taskForm.require_photo,p_require_video:taskForm.require_video,p_require_file:taskForm.require_file,p_estimated_minutes:taskForm.estimated_minutes?Number(taskForm.estimated_minutes):null,p_requires_review:taskForm.requires_review,p_area:taskForm.area_id||null,p_labels:taskForm.labels_text.split(',').map(label=>label.trim()).filter(Boolean),p_location:taskForm.location||null,p_source_module:taskForm.source_module||null,p_entity_type:taskForm.related_entity_type||null,p_entity_reference:taskForm.related_entity_reference||null,p_entity_label:taskForm.related_entity_label||null,p_require_result:taskForm.require_result,p_project:taskForm.project_id||null,p_expected_version:selectedTask.version,p_request:crypto.randomUUID()})
       toast.success('✅ Tarea actualizada correctamente')
       setIsEditModalOpen(false)
       setSelectedTask(null)
@@ -192,8 +191,9 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error updating task:', error)
       const message=String(error?.message||error||'')
-      toast.error(message.includes('work_manage_task_outcome')?'Falta activar el resultado obligatorio en Supabase.':message||'Error al actualizar la tarea')
-    }
+      toast.error(message.includes('modificada por otra persona')?message:message.includes('work_manage_task_atomic')?'Falta activar el refuerzo de concurrencia en Supabase.':message||'Error al actualizar la tarea')
+      if (message.includes('modificada por otra persona')) fetchTasks()
+    } finally { setSavingTask(false) }
   }
 
   const handleDeleteTask = async (taskId) => {
@@ -440,7 +440,7 @@ export default function AdminDashboard() {
             {reviewField('create-task')}
             {resultField('create-task')}
 
-            <Button type="submit" disabled={!can('tasks.create')} className="w-full">Crear Tarea</Button>
+            <Button type="submit" disabled={!can('tasks.create')||savingTask} className="w-full">{savingTask?'Guardando…':'Crear Tarea'}</Button>
           </form>
         </DialogContent>
       </Dialog>
@@ -487,7 +487,7 @@ export default function AdminDashboard() {
             {reviewField('edit-task')}
             {resultField('edit-task')}
 
-            <Button type="submit" disabled={!can('tasks.edit')} className="w-full">Guardar Cambios</Button>
+            <Button type="submit" disabled={!can('tasks.edit')||savingTask} className="w-full">{savingTask?'Guardando…':'Guardar Cambios'}</Button>
           </form>
         </DialogContent>
       </Dialog>

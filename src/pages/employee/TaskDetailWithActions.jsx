@@ -76,6 +76,7 @@ export default function TaskDetailWithActions() {
     requestAnimationFrame(()=>incidentSection.current?.scrollIntoView({behavior:'smooth',block:'start'}))
   }
   const [endingCheckin, setEndingCheckin] = useState(false)
+  const [startingCheckin, setStartingCheckin] = useState(false)
   const [changingPause,setChangingPause] = useState(false)
   const [finishedNotice, setFinishedNotice] = useState(false)
   const [executionResult,setExecutionResult] = useState('')
@@ -357,6 +358,7 @@ export default function TaskDetailWithActions() {
         `)
         .eq('task_id', id)
         .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
 
       if (error) throw error
       const actorNames = await fetchTaskActorNames()
@@ -427,7 +429,8 @@ export default function TaskDetailWithActions() {
   const handleStartCheckin = async () => {
     if (!canStart) { toast.info('Esta tarea está disponible solo para consulta'); return }
     if (tabletMode) { toast.info('Confirma esta acción en la tablet'); return }
-    if (!task || !userData?.id || activeCheckin) return
+    if (!task || !userData?.id || activeCheckin || startingCheckin) return
+    setStartingCheckin(true)
     const hasCoordinate = (value) => value !== null && value !== undefined && String(value).trim() !== ''
     const requiresGps = hasCoordinate(task.expected_latitude) && hasCoordinate(task.expected_longitude)
     try {
@@ -464,30 +467,18 @@ export default function TaskDetailWithActions() {
         }
       }
 
-      const { data: newCheckin, error } = await supabase
-        .from('checkins')
-        .insert([{
-          task_id: id,
-          user_id: userData.id,
-          location: requiresGps ? `${latitude},${longitude}` : null,
-          latitude,
-          longitude,
-          qr_code: 'Manual',
-          checkin_method: 'manual'
-        }])
-        .select()
-        .single()
-      if (error) throw error
-
-      await supabase.from('tasks').update({ status: 'in_progress', last_checkin: new Date().toISOString() }).eq('id', id)
+      const result = await workRpc('work_start_manual_checkin',{p_task:id,p_request:crypto.randomUUID(),p_latitude:latitude,p_longitude:longitude,p_location:requiresGps?`${latitude},${longitude}`:null})
+      const newCheckin=result?.checkin
+      if (!result?.success || !newCheckin?.id) throw new Error('El servidor no confirmó el inicio')
       setActiveCheckin(newCheckin)
       toast.success('✅ Fichaje iniciado')
       fetchCheckins()
       fetchTaskDetails()
     } catch (error) {
       console.error('Error starting checkin:', error)
-      toast.error('Error al iniciar fichaje')
-    }
+      const message=String(error?.message||'')
+      toast.error(message.includes('work_start_manual_checkin')?'Falta activar el refuerzo de fichajes en Supabase.':message||'Error al iniciar fichaje')
+    } finally { setStartingCheckin(false) }
   }
 
   const handleEndCheckin = async () => {
@@ -496,11 +487,7 @@ export default function TaskDetailWithActions() {
     setEndingCheckin(true)
     try {
       if(task.require_result&&executionResult.trim().length<3)throw Error('Escribe el resultado del trabajo antes de finalizar')
-      if(executionResult.trim())await workRpc('work_save_execution_result',{p_plan:queueItem?.plan_id,p_result:executionResult.trim()})
-      const { data, error } = await supabase.rpc('finish_manual_checkin', {
-        p_checkin_id: activeCheckin.id
-      })
-      if (error) throw error
+      const data=await workRpc('work_finish_manual_checkin_atomic',{p_checkin:activeCheckin.id,p_plan:queueItem?.plan_id||activeCheckin.work_plan_id,p_result:executionResult.trim()||null,p_request:crypto.randomUUID()})
       if (!data?.success || data.checkin_id !== activeCheckin.id || !data.checkout_time) {
         throw new Error('El servidor no confirmó el cierre')
       }
@@ -593,6 +580,7 @@ export default function TaskDetailWithActions() {
       return
     }
 
+    const uploadedPaths = []
     try {
       // Validate both files before uploading either one.
       if (commentForm.imageFile) taskAttachmentExtension(commentForm.imageFile, 'image')
@@ -608,18 +596,21 @@ export default function TaskDetailWithActions() {
       if (commentForm.imageFile) {
         setUploadProgress(30)
         imageUrl = await uploadFile(commentForm.imageFile, 'image')
+        uploadedPaths.push(imageUrl)
         setUploadProgress(50)
       }
 
       if (commentForm.videoFile) {
         setUploadProgress(60)
         videoUrl = await uploadFile(commentForm.videoFile, 'video')
+        uploadedPaths.push(videoUrl)
         setUploadProgress(80)
       }
 
       if (commentForm.file) {
         setUploadProgress(85)
         fileUrl = await uploadFile(commentForm.file, 'file')
+        uploadedPaths.push(fileUrl)
         setUploadProgress(90)
       }
 
@@ -636,6 +627,10 @@ export default function TaskDetailWithActions() {
 
       fetchComments()
     } catch (error) {
+      if (uploadedPaths.length) {
+        const {error: cleanupError}=await supabase.storage.from('task-files').remove(uploadedPaths)
+        if(cleanupError) console.error('No se pudieron retirar adjuntos huérfanos:',cleanupError.code||'unknown')
+      }
       console.error('Error adding comment:', error?.code || 'unknown')
       toast.error(error instanceof Error ? error.message : 'Error al agregar comentario')
     } finally {
@@ -857,12 +852,12 @@ export default function TaskDetailWithActions() {
                 {checkinConfig.manual_enabled && canStart && (
                   <Button
                     onClick={handleStartCheckin}
-                    disabled={activeCheckinStatus !== 'ready'}
+                    disabled={activeCheckinStatus !== 'ready'||startingCheckin}
                     className="w-full bg-green-600 hover:bg-green-700"
                     size="lg"
                   >
                     <Play className="mr-2 h-5 w-5" />
-                    Iniciar Fichaje Manual
+                    {startingCheckin?'Iniciando…':'Iniciar Fichaje Manual'}
                   </Button>
                 )}
               </div>
