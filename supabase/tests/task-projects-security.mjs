@@ -17,16 +17,27 @@ try{
  await db.exec(fs.readFileSync(root+'supabase/migrations/20261022000300_hosted_auth_identity.sql','utf8'))
  const org=(await db.query(`SELECT organization_id id FROM public.organization_memberships WHERE user_id='${ADMIN}'`)).rows[0].id
  await db.exec(fs.readFileSync(root+'supabase/migrations/20261027000400_task_projects.sql','utf8'))
+ await db.exec(fs.readFileSync(root+'supabase/migrations/20261027000500_project_milestones.sql','utf8'))
  const project=(await request(ADMIN,org,`SELECT public.work_save_project(NULL,'Apertura local','Preparación completa','active',DATE '2026-11-01',DATE '2026-11-30') v`))[0].v
  ok('admin creates project',!!project)
  await request(ADMIN,org,`SELECT public.work_set_task_project('${TASK}','${project}')`)
  const overview=(await request(ADMIN,org,`SELECT public.work_projects_overview() v`))[0].v
  ok('overview returns linked activity',overview.projects.length===1&&overview.projects[0].task_ids[0]===TASK)
+ const milestone=(await request(ADMIN,org,`SELECT public.work_save_project_milestone(NULL,'${project}','Entrega inicial',DATE '2026-11-10',false) v`))[0].v
+ ok('admin creates project milestone',!!milestone)
+ const withMilestone=(await request(ADMIN,org,`SELECT public.work_projects_overview() v`))[0].v
+ ok('overview returns project milestone',withMilestone.projects[0].milestones[0].title==='Entrega inicial')
+ await request(ADMIN,org,`SELECT public.work_save_project_milestone('${milestone}','${project}','Entrega inicial',DATE '2026-11-10',true)`)
+ ok('completed milestone keeps its completion time',(await db.query(`SELECT completed_at IS NOT NULL v FROM public.work_project_milestones WHERE id='${milestone}'`)).rows[0].v===true)
  await denied('employee cannot create projects',WORKER,org,`SELECT public.work_save_project(NULL,'No permitido',NULL,'active',NULL,NULL)`)
+ await denied('employee cannot create milestones',WORKER,org,`SELECT public.work_save_project_milestone(NULL,'${project}','No permitido',NULL,false)`)
  await denied('employee cannot change project assignment',WORKER,org,`SELECT public.work_set_task_project('${TASK}',NULL)`)
  await db.exec(`INSERT INTO auth.users(id,email,raw_user_meta_data) VALUES('${BADMIN}','badmin@example.test','{"full_name":"B Admin"}');INSERT INTO public.organizations(id,name,slug)VALUES('${id(900)}','Empresa B','empresa-b');INSERT INTO public.organization_memberships(organization_id,user_id,role,status,full_name)VALUES('${id(900)}','${BADMIN}','admin','active','B Admin');`)
  await denied('another company cannot link a task from this project',BADMIN,id(900),`SELECT public.work_set_task_project('${TASK}','${project}')`)
  ok('tables are not exposed directly to authenticated',(await db.query(`SELECT has_table_privilege('authenticated','public.work_projects','SELECT') v`)).rows[0].v===false)
+ ok('milestones are not exposed directly to authenticated',(await db.query(`SELECT has_table_privilege('authenticated','public.work_project_milestones','SELECT') v`)).rows[0].v===false)
+ await request(ADMIN,org,`SELECT public.work_delete_project_milestone('${milestone}')`)
+ ok('admin deletes milestone',(await db.query(`SELECT count(*)::int v FROM public.work_project_milestones WHERE id='${milestone}'`)).rows[0].v===0)
  await request(ADMIN,org,`SELECT public.work_set_task_project('${TASK}',NULL)`)
  ok('unlink keeps task and project',(await db.query(`SELECT (SELECT count(*) FROM public.tasks WHERE id='${TASK}')=1 AND (SELECT count(*) FROM public.work_projects WHERE id='${project}')=1 v`)).rows[0].v===true)
  console.log(`${results.length} comprobaciones de proyectos correctas`)
