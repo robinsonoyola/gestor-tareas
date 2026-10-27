@@ -65,10 +65,12 @@ export default function AdminDashboard() {
   const [employeeFilter,setEmployeeFilter]=useState('')
   const [statusFilter,setStatusFilter]=useState('all')
   const [importanceFilter,setImportanceFilter]=useState('all')
+  const [projectFilter,setProjectFilter]=useState('all')
   const { can, isAdmin } = useAuth()
   const [tasks, setTasks] = useState([])
   const [employees, setEmployees] = useState([])
   const [areas, setAreas] = useState([])
+  const [projects,setProjects]=useState([])
   const [assignmentLoad,setAssignmentLoad] = useState({})
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -108,6 +110,7 @@ export default function AdminDashboard() {
     fetchTasks()
     fetchEmployees()
     fetchAreas()
+    fetchProjects()
     fetchAssignmentLoad()
   }, [])
 
@@ -141,6 +144,11 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error fetching areas:', error)
     }
+  }
+
+  const fetchProjects = async () => {
+    try { const data=await workRpc('work_projects_overview');setProjects(data?.projects||[]) }
+    catch { setProjects([]) }
   }
 
   const fetchAssignmentLoad = async () => {
@@ -271,7 +279,9 @@ export default function AdminDashboard() {
   const labelsField = prefix => <div className="space-y-2"><Label htmlFor={`${prefix}-labels`} className="text-gray-900 font-semibold">Etiquetas</Label><Input id={`${prefix}-labels`} value={taskForm.labels_text} onChange={e=>setTaskForm(v=>({...v,labels_text:e.target.value}))} placeholder="Ej.: Piscina, Cliente VIP, Preventivo"/><p className="text-xs text-gray-500">Separa las etiquetas con comas. Máximo 10; cada una puede tener hasta 40 caracteres.</p></div>
   const contextFields = prefix => <details className="rounded-md border p-3"><summary className="cursor-pointer font-semibold text-gray-900">Ubicación y origen relacionado</summary><div className="mt-4 space-y-4"><div className="space-y-2"><Label htmlFor={`${prefix}-location`}>Ubicación del trabajo</Label><Input id={`${prefix}-location`} value={taskForm.location} onChange={e=>setTaskForm(v=>({...v,location:e.target.value}))} maxLength={200} placeholder="Ej.: Planta 2 · Habitación 204"/></div><div className="grid sm:grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor={`${prefix}-source`}>Módulo de origen</Label><Input id={`${prefix}-source`} value={taskForm.source_module} onChange={e=>setTaskForm(v=>({...v,source_module:e.target.value}))} maxLength={60} placeholder="Ej.: Mantenimiento"/></div><div className="space-y-2"><Label htmlFor={`${prefix}-entity-type`}>Tipo de entidad</Label><Input id={`${prefix}-entity-type`} value={taskForm.related_entity_type} onChange={e=>setTaskForm(v=>({...v,related_entity_type:e.target.value}))} maxLength={60} placeholder="Ej.: Activo"/></div><div className="space-y-2"><Label htmlFor={`${prefix}-entity-reference`}>Referencia</Label><Input id={`${prefix}-entity-reference`} value={taskForm.related_entity_reference} onChange={e=>setTaskForm(v=>({...v,related_entity_reference:e.target.value}))} maxLength={120} placeholder="Ej.: AC-204"/></div><div className="space-y-2"><Label htmlFor={`${prefix}-entity-label`}>Nombre visible</Label><Input id={`${prefix}-entity-label`} value={taskForm.related_entity_label} onChange={e=>setTaskForm(v=>({...v,related_entity_label:e.target.value}))} maxLength={160} placeholder="Ej.: Aire acondicionado salón"/></div></div><p className="text-xs text-gray-500">El tipo y la referencia se completan juntos. Estos datos preparan la conexión con otros módulos sin cambiar la ejecución.</p></div></details>
 
-  const filteredTasks = tasks.filter(t=>(t.title+' '+(t.description||'')+' '+(t.labels||[]).join(' ')+' '+[t.location,t.source_module,t.related_entity_type,t.related_entity_reference,t.related_entity_label].filter(Boolean).join(' ')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')) && (!employeeFilter||t.assigned_users.some(u=>u.id===employeeFilter)) && (statusFilter==='all'||t.status===statusFilter) && (importanceFilter==='all'||(t.importance||'normal')===importanceFilter))
+  const taskProject=new Map(projects.flatMap(project=>project.task_ids.map(taskId=>[taskId,project])))
+  const projectName=task=>taskProject.get(task.id)?.name||''
+  const filteredTasks = tasks.filter(t=>(t.title+' '+(t.description||'')+' '+(t.labels||[]).join(' ')+' '+projectName(t)+' '+[t.location,t.source_module,t.related_entity_type,t.related_entity_reference,t.related_entity_label].filter(Boolean).join(' ')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')) && (!employeeFilter||t.assigned_users.some(u=>u.id===employeeFilter)) && (statusFilter==='all'||t.status===statusFilter) && (importanceFilter==='all'||(t.importance||'normal')===importanceFilter) && (projectFilter==='all'||(projectFilter==='none'?!taskProject.has(t.id):taskProject.get(t.id)?.id===projectFilter)))
 
   const getStatusBadge = (status) => {
     const variants = {
@@ -297,8 +307,8 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex flex-wrap justify-between gap-3"><div className={sectionTabsClass}><Button variant="outline" className={sectionTabClass(!query.get('tab'))} onClick={()=>setQuery({})}>Actividades</Button><Button variant="outline" className={sectionTabClass(query.get('tab')==='overdue')} onClick={()=>setQuery({tab:'overdue'})}>Tareas atrasadas</Button><Button variant="outline" className={sectionTabClass(query.get('tab')==='reviews')} onClick={()=>setQuery({tab:'reviews'})}>Revisiones</Button><Button variant="outline" className={sectionTabClass(query.get('tab')==='projects')} onClick={()=>setQuery({tab:'projects'})}>Proyectos</Button><Button variant="outline" className={sectionTabClass(query.get('tab')==='templates')} onClick={()=>setQuery({tab:'templates'})}>Plantillas</Button></div>{can('tasks.create') && !['templates','projects'].includes(query.get('tab')) && <Button onClick={()=>{resetForm();fetchAssignmentLoad();setIsCreateModalOpen(true)}}><Plus className="w-4 h-4 mr-2"/>Crear tarea</Button>}</div>
-        {query.get('tab')==='overdue' ? <TaskFollowup canPlan={can('planning.view')}/> : query.get('tab')==='reviews'?<ReviewQueue/>:query.get('tab')==='projects'?<TaskProjects tasks={tasks} canEdit={can('tasks.edit')}/>:query.get('tab')==='templates'?<TaskTemplates tasks={tasks} onCreated={fetchTasks} canCreate={can('tasks.create')} canEdit={can('tasks.edit')}/>:<>
-        <div className="grid md:grid-cols-3 gap-3"><Input aria-label="Buscar tareas" placeholder="Buscar actividad o descripción" value={search} onChange={e=>setSearch(e.target.value)}/><select aria-label="Filtrar por empleado" className="border rounded-md p-2 bg-white" value={employeeFilter} onChange={e=>setEmployeeFilter(e.target.value)}><option value="">Todos los empleados</option>{employees.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}</select><select aria-label="Filtrar por estado general" className="border rounded-md p-2 bg-white" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="all">Todos los estados generales</option><option value="pending">Pendiente</option><option value="in_progress">En progreso</option><option value="completed">Completada</option></select></div>
+        {query.get('tab')==='overdue' ? <TaskFollowup canPlan={can('planning.view')}/> : query.get('tab')==='reviews'?<ReviewQueue/>:query.get('tab')==='projects'?<TaskProjects tasks={tasks} canEdit={can('tasks.edit')} onChanged={fetchProjects}/>:query.get('tab')==='templates'?<TaskTemplates tasks={tasks} onCreated={fetchTasks} canCreate={can('tasks.create')} canEdit={can('tasks.edit')}/>:<>
+        <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3"><Input aria-label="Buscar tareas" placeholder="Buscar actividad, descripción o proyecto" value={search} onChange={e=>setSearch(e.target.value)}/><select aria-label="Filtrar por empleado" className="border rounded-md p-2 bg-white" value={employeeFilter} onChange={e=>setEmployeeFilter(e.target.value)}><option value="">Todos los empleados</option>{employees.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}</select><select aria-label="Filtrar por proyecto" className="border rounded-md p-2 bg-white" value={projectFilter} onChange={e=>setProjectFilter(e.target.value)}><option value="all">Todos los proyectos</option><option value="none">Sin proyecto</option>{projects.filter(p=>p.status!=='archived').map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select><select aria-label="Filtrar por estado general" className="border rounded-md p-2 bg-white" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="all">Todos los estados generales</option><option value="pending">Pendiente</option><option value="in_progress">En progreso</option><option value="completed">Completada</option></select></div>
         <p className="text-sm text-gray-500">Este catálogo define las actividades. Sus ejecuciones diarias y su orden se gestionan en Planificación.</p>
         <Card>
           <CardHeader>
@@ -319,7 +329,7 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <>
-              <MobileTasks items={filteredTasks} statusBadge={getStatusBadge} can={can} isAdmin={isAdmin} onShare={task=>navigate('/admin/access?task='+task.id)} onPlan={task=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))} onChecklist={setChecklistTask} onSubtasks={setSubtaskTask} onDependencies={setDependencyTask} onDuplicate={handleDuplicateTask} onEdit={openEditModal} onDelete={handleDeleteTask}/>
+              <MobileTasks items={filteredTasks} statusBadge={getStatusBadge} projectName={projectName} can={can} isAdmin={isAdmin} onShare={task=>navigate('/admin/access?task='+task.id)} onPlan={task=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))} onChecklist={setChecklistTask} onSubtasks={setSubtaskTask} onDependencies={setDependencyTask} onDuplicate={handleDuplicateTask} onEdit={openEditModal} onDelete={handleDeleteTask}/>
               <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
@@ -335,7 +345,7 @@ export default function AdminDashboard() {
                   <TableBody>
                     {filteredTasks.map((task) => (
                       <TableRow key={task.id}>
-                        <TableCell className="font-medium text-gray-900"><p>{task.title}</p><div className="mt-2 flex flex-wrap gap-1"><ImportanceBadge value={task.importance}/>{(task.labels||[]).map(label=><Badge key={label} className="border border-cyan-200 bg-cyan-50 text-cyan-800">{label}</Badge>)}</div>{task.location&&<p className="mt-2 text-xs text-gray-600">📍 {task.location}</p>}{(task.source_module||task.related_entity_reference)&&<p className="mt-1 text-xs text-gray-600">Origen: {[task.source_module,task.related_entity_type,task.related_entity_reference,task.related_entity_label].filter(Boolean).join(' · ')}</p>}</TableCell>
+                        <TableCell className="font-medium text-gray-900"><p>{task.title}</p><div className="mt-2 flex flex-wrap gap-1"><ImportanceBadge value={task.importance}/>{projectName(task)&&<Badge className="border border-violet-200 bg-violet-50 text-violet-800">Proyecto: {projectName(task)}</Badge>}{(task.labels||[]).map(label=><Badge key={label} className="border border-cyan-200 bg-cyan-50 text-cyan-800">{label}</Badge>)}</div>{task.location&&<p className="mt-2 text-xs text-gray-600">📍 {task.location}</p>}{(task.source_module||task.related_entity_reference)&&<p className="mt-1 text-xs text-gray-600">Origen: {[task.source_module,task.related_entity_type,task.related_entity_reference,task.related_entity_label].filter(Boolean).join(' · ')}</p>}</TableCell>
                         <TableCell className="text-gray-900">
                           {task.schedule_type === 'daily' && '🔄 Diaria'}
                           {task.schedule_type === 'weekly' && '📅 Semanal'}

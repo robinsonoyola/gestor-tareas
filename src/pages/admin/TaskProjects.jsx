@@ -13,7 +13,7 @@ import {FolderKanban,Pencil,Plus} from 'lucide-react'
 const empty={id:null,name:'',description:'',status:'active',start_date:'',end_date:''}
 const labels={planned:'Planificado',active:'Activo',completed:'Completado',archived:'Archivado'}
 
-export default function TaskProjects({tasks,canEdit}){
+export default function TaskProjects({tasks,canEdit,onChanged}){
  const [projects,setProjects]=useState([]),[loading,setLoading]=useState(true),[search,setSearch]=useState('')
  const [form,setForm]=useState(empty),[open,setOpen]=useState(false),[saving,setSaving]=useState(false)
  const load=async()=>{setLoading(true);try{const data=await workRpc('work_projects_overview');setProjects(data.projects||[])}catch(e){toast.error(e.message||'No se pudieron cargar los proyectos')}finally{setLoading(false)}}
@@ -22,8 +22,8 @@ export default function TaskProjects({tasks,canEdit}){
  const shown=projects.filter(p=>(p.name+' '+(p.description||'')).toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')))
  const projectTasks=p=>tasks.filter(t=>p.task_ids.includes(t.id))
  const progress=p=>{const linked=projectTasks(p),completed=linked.filter(t=>t.status==='completed').length,inProgress=linked.filter(t=>t.status==='in_progress').length;return {total:linked.length,completed,inProgress,percent:linked.length?Math.round(completed*100/linked.length):0}}
- const save=async e=>{e.preventDefault();if(saving)return;setSaving(true);try{await workRpc('work_save_project',{p_id:form.id,p_name:form.name,p_description:form.description||null,p_status:form.status,p_start:form.start_date||null,p_end:form.end_date||null});toast.success(form.id?'Proyecto actualizado':'Proyecto creado');setOpen(false);setForm(empty);await load()}catch(error){toast.error(error.message||'No se pudo guardar el proyecto')}finally{setSaving(false)}}
- const assign=async(taskId,projectId)=>{try{await workRpc('work_set_task_project',{p_task:taskId,p_project:projectId||null});toast.success(projectId?'Actividad vinculada':'Actividad retirada del proyecto');await load()}catch(error){toast.error(error.message||'No se pudo cambiar el proyecto')}}
+ const save=async e=>{e.preventDefault();if(saving)return;setSaving(true);try{await workRpc('work_save_project',{p_id:form.id,p_name:form.name,p_description:form.description||null,p_status:form.status,p_start:form.start_date||null,p_end:form.end_date||null});toast.success(form.id?'Proyecto actualizado':'Proyecto creado');setOpen(false);setForm(empty);await load();await onChanged?.()}catch(error){toast.error(error.message||'No se pudo guardar el proyecto')}finally{setSaving(false)}}
+ const assign=async(taskId,projectId)=>{try{await workRpc('work_set_task_project',{p_task:taskId,p_project:projectId||null});toast.success(projectId?'Actividad vinculada':'Actividad retirada del proyecto');await load();await onChanged?.()}catch(error){toast.error(error.message||'No se pudo cambiar el proyecto')}}
  const edit=p=>{setForm({id:p.id,name:p.name,description:p.description||'',status:p.status,start_date:p.start_date||'',end_date:p.end_date||''});setOpen(true)}
  return <div className="space-y-5">
   <div className="flex flex-wrap items-end justify-between gap-3"><div className="min-w-[220px] flex-1 max-w-xl"><Label htmlFor="project-search">Buscar proyectos</Label><Input id="project-search" placeholder="Nombre o descripción" value={search} onChange={e=>setSearch(e.target.value)}/></div>{canEdit&&<Button onClick={()=>{setForm(empty);setOpen(true)}}><Plus className="w-4 h-4 mr-2"/>Crear proyecto</Button>}</div>
