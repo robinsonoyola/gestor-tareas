@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node security.mjs && node scope.mjs && node migration-abort.mjs && node checklists-security.mjs && node planning-board-security.mjs && node board-moves-security.mjs && node recurring-work-security.mjs && node area-recurrences-security.mjs && node task-importance-security.mjs && node execution-schedules-security.mjs"
+    "test": "node security.mjs && node scope.mjs && node migration-abort.mjs && node checklists-security.mjs && node planning-board-security.mjs && node board-moves-security.mjs && node recurring-work-security.mjs && node area-recurrences-security.mjs && node task-importance-security.mjs && node execution-schedules-security.mjs && node organization-capacity.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.10"
