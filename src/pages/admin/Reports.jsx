@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/section-tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { workDate, workRpc } from "@/lib/workflow";
 import { csvTable, excelTable, saveReport } from "@/lib/reportExport";
 import ReportCharts from "./ReportCharts";
@@ -89,6 +89,21 @@ const definitions = {
       ["reason", "Motivo"],
     ],
   },
+  projects: {
+    name: "Proyectos",
+    columns: [
+      ["project", "Proyecto"],
+      ["status", "Estado"],
+      ["start_date", "Inicio previsto"],
+      ["end_date", "Fin previsto"],
+      ["activities", "Actividades"],
+      ["completed", "Completadas"],
+      ["progress", "Avance (%)"],
+      ["milestones", "Hitos"],
+      ["late_milestones", "Hitos vencidos"],
+    ],
+    states: { planned: "Planificado", active: "Activo", completed: "Completado", archived: "Archivado" },
+  },
 };
 const managementIndicators = {
   productivity: { name: "Productividad", kind: "productivity" },
@@ -106,6 +121,7 @@ const defaultIndicator = {
   productivity: "productivity",
   incidents: "incidents",
   closures: "closures",
+  projects: "compliance",
 };
 const monthsBetween = (start, end) => {
   const result = [];
@@ -200,7 +216,12 @@ export default function Reports() {
       setBusy(false);
       return;
     }
-    workRpc("work_report_table_scope", {
+    const request = kind === "projects" ? Promise.all([workRpc("work_projects_overview"),workRpc("work_task_catalog_labeled")]).then(([result,tasks]) => {
+      const taskMap=new Map((tasks||[]).map(task=>[task.id,task]))
+      const items=(result?.projects||[]).map(project=>{const linked=(project.task_ids||[]).map(id=>taskMap.get(id)).filter(Boolean),completed=linked.filter(task=>task.status==='completed').length,milestones=project.milestones||[];return {project:project.name,status:project.status,start_date:project.start_date,end_date:project.end_date,activities:linked.length,completed,progress:linked.length?Math.round(completed*100/linked.length):0,milestones:milestones.length,late_milestones:milestones.filter(item=>item.due_date&&item.due_date<workDate()&&!item.completed_at).length}})
+      const filtered=items.filter(row=>(!state||row.status===state)&&(!term||(row.project+' '+row.status).toLocaleLowerCase('es').includes(term.toLocaleLowerCase('es')))&&(row.end_date||'9999-12-31')>=start&&(row.start_date||'0001-01-01')<=end)
+      return {items:filtered,total:filtered.length,as_of:new Date().toISOString()}
+    }) : workRpc("work_report_table_scope", {
       p_kind: kind,
       p_start: start,
       p_end: end,
@@ -209,7 +230,8 @@ export default function Reports() {
       p_method: method || null,
       p_employee: scope.startsWith("employee:") ? scope.slice(9) : null,
       p_area: scope.startsWith("area:") ? scope.slice(5) : null,
-    })
+    });
+    request
       .then((v) => {
         if (live) setData(v);
       })
@@ -280,6 +302,7 @@ export default function Reports() {
         "type",
         "actor",
         "blocked",
+        "project",
       ].includes(key),
     ),
     ...[
@@ -532,7 +555,7 @@ export default function Reports() {
           </p>
         )}
         {busy && <p role="status">Cargando informe…</p>}
-        {display === "charts" && (
+        {display === "charts" && kind !== "projects" && (
           <Card>
             <CardContent className="pt-6 space-y-3">
               <div className="max-w-xl">
@@ -657,16 +680,19 @@ export default function Reports() {
             </CardContent>
           </Card>
         )}
-        {data && display === "charts" && (
-          <ReportCharts
-            kind={kind}
-            indicator={indicator}
-            scope={scope}
-            rows={rows}
-            start={start}
-            end={end}
-          />
-        )}
+        {data && display === "charts" &&
+          (kind === "projects" ? (
+            <ProjectReportCharts rows={rows} />
+          ) : (
+            <ReportCharts
+              kind={kind}
+              indicator={indicator}
+              scope={scope}
+              rows={rows}
+              start={start}
+              end={end}
+            />
+          ))}
         {data && display === "data" && view === "pivot" && (
           <Card>
             <CardContent className="pt-6 space-y-4">
@@ -834,4 +860,15 @@ export default function Reports() {
       </div>
     </Layout>
   );
+}
+
+function ProjectReportCharts({ rows }) {
+  const totals=rows.reduce((result,row)=>{result.activities+=Number(row.activities)||0;result.completed+=Number(row.completed)||0;result.late+=Number(row.late_milestones)||0;return result},{activities:0,completed:0,late:0})
+  const average=rows.length?Math.round(rows.reduce((sum,row)=>sum+(Number(row.progress)||0),0)/rows.length):0
+  return <div className="space-y-4">
+    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-4">
+      {[['Proyectos',rows.length,'border-blue-200 bg-blue-50 text-blue-900'],['Avance medio',`${average}%`,'border-violet-200 bg-violet-50 text-violet-900'],['Actividades completadas',`${totals.completed}/${totals.activities}`,'border-emerald-200 bg-emerald-50 text-emerald-900'],['Hitos vencidos',totals.late,'border-rose-200 bg-rose-50 text-rose-900']].map(([label,value,color])=><div key={label} className={`rounded-xl border p-4 ${color}`}><p className="text-sm font-medium">{label}</p><p className="mt-1 text-2xl font-bold">{value}</p></div>)}
+    </div>
+    <Card><CardHeader><CardTitle>Avance por proyecto</CardTitle></CardHeader><CardContent className="space-y-4">{rows.length===0?<p>No hay proyectos con estos filtros.</p>:rows.map(row=><div key={row.project}><div className="mb-2 flex flex-wrap justify-between gap-2 text-sm"><span className="font-medium">{row.project}</span><span>{row.progress}% · {row.completed}/{row.activities} actividades</span></div><div className="h-3 overflow-hidden rounded-full bg-slate-200"><div className="h-full rounded-full bg-blue-600" style={{width:`${row.progress}%`}}/></div>{Number(row.late_milestones)>0&&<p className="mt-1 text-xs font-medium text-rose-700">{row.late_milestones} hitos vencidos</p>}</div>)}</CardContent></Card>
+  </div>
 }
