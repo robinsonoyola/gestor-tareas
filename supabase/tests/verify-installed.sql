@@ -87,6 +87,21 @@ SELECT jsonb_build_object(
         AND (coalesce(p.qual,'') LIKE '%current_org()%' OR coalesce(p.with_check,'') LIKE '%current_org()%')
      )
   ),
+ 'integridad_relacional_empresa',NOT EXISTS(
+   SELECT 1 FROM information_schema.columns
+   WHERE table_schema='public' AND column_name='organization_id' AND is_nullable<>'NO'
+  ) AND NOT EXISTS(
+   SELECT 1
+   FROM pg_constraint c
+   JOIN pg_class source ON source.oid=c.conrelid
+   JOIN pg_namespace source_schema ON source_schema.oid=source.relnamespace
+   JOIN pg_class target ON target.oid=c.confrelid
+   JOIN pg_namespace target_schema ON target_schema.oid=target.relnamespace
+   JOIN pg_attribute source_org ON source_org.attrelid=source.oid AND source_org.attname='organization_id'
+   JOIN pg_attribute target_org ON target_org.attrelid=target.oid AND target_org.attname='organization_id'
+   WHERE c.contype='f' AND source_schema.nspname='public' AND target_schema.nspname='public'
+     AND NOT EXISTS(SELECT 1 FROM pg_constraint safe WHERE safe.contype='f' AND safe.conrelid=c.conrelid AND safe.confrelid=c.confrelid AND source_org.attnum=ANY(safe.conkey) AND target_org.attnum=ANY(safe.confkey))
+  ),
  'bucket_privado',(SELECT public IS FALSE FROM storage.buckets WHERE id='task-files'),
  'propietario_activo',EXISTS(SELECT 1 FROM public.organization_memberships WHERE role='owner' AND status='active'),
  'automatizaciones_activas',(SELECT count(*) FROM cron.job WHERE active AND jobname IN ('ase-work-recurrences','ase-work-deadline-notifications')),

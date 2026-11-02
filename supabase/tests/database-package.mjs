@@ -226,12 +226,38 @@ try {
   const unprotectedTenantTables = tenantBoundaries.rows.filter(table => !table.protected).map(table => table.table_name)
   if (unprotectedTenantTables.length) throw new Error(`Tablas sin límite de empresa propio: ${unprotectedTenantTables.join(', ')}`)
 
+  const nullableTenantColumns = await db.query(`
+    SELECT table_name
+    FROM information_schema.columns
+    WHERE table_schema='public' AND column_name='organization_id' AND is_nullable<>'NO'
+    ORDER BY table_name
+  `)
+  const crossTenantForeignKeys = await db.query(`
+    SELECT DISTINCT source.relname AS source_table,target.relname AS target_table
+    FROM pg_constraint c
+    JOIN pg_class source ON source.oid=c.conrelid
+    JOIN pg_namespace source_schema ON source_schema.oid=source.relnamespace
+    JOIN pg_class target ON target.oid=c.confrelid
+    JOIN pg_namespace target_schema ON target_schema.oid=target.relnamespace
+    JOIN pg_attribute source_org ON source_org.attrelid=source.oid AND source_org.attname='organization_id'
+    JOIN pg_attribute target_org ON target_org.attrelid=target.oid AND target_org.attname='organization_id'
+    WHERE c.contype='f' AND source_schema.nspname='public' AND target_schema.nspname='public'
+      AND NOT EXISTS(
+        SELECT 1 FROM pg_constraint safe
+        WHERE safe.contype='f' AND safe.conrelid=c.conrelid AND safe.confrelid=c.confrelid
+          AND source_org.attnum=ANY(safe.conkey) AND target_org.attnum=ANY(safe.confkey)
+      )
+    ORDER BY source.relname,target.relname
+  `)
+  if (nullableTenantColumns.rows.length) throw new Error(`Columnas de empresa que admiten NULL: ${nullableTenantColumns.rows.map(column => column.table_name).join(', ')}`)
+  if (crossTenantForeignKeys.rows.length) throw new Error(`Relaciones sin clave compuesta de empresa: ${crossTenantForeignKeys.rows.map(relation => `${relation.source_table}->${relation.target_table}`).join(', ')}`)
+
   console.log(JSON.stringify({
     passed: true,
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0 }
+    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0 }
   }))
 } finally {
   await db.close()

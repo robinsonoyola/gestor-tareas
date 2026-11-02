@@ -11164,5 +11164,47 @@ CREATE POLICY work_task_dependency_events_executor ON public.work_task_dependenc
  USING(organization_id=ase_private.current_org()) WITH CHECK(organization_id=ase_private.current_org());
 
 NOTIFY pgrst,'reload schema';
+
+-- ==== 20261102000800_complete_tenant_foreign_keys.sql ====
+-- ASE Work: tenant-owned relations cannot reference a row from another organization.
+
+DO $audit$
+BEGIN
+ IF EXISTS(SELECT 1 FROM public.work_comment_mentions x JOIN public.task_comments y ON y.id=x.comment_id WHERE x.organization_id<>y.organization_id) THEN
+  RAISE EXCEPTION 'Hay menciones enlazadas con comentarios de otra empresa';
+ END IF;
+ IF EXISTS(SELECT 1 FROM public.work_execution_result_events x JOIN public.work_day_plan y ON y.id=x.plan_id WHERE x.organization_id<>y.organization_id) THEN
+  RAISE EXCEPTION 'Hay resultados enlazados con ejecuciones de otra empresa';
+ END IF;
+ IF EXISTS(SELECT 1 FROM public.work_execution_result_events x JOIN public.tasks y ON y.id=x.task_id WHERE x.organization_id<>y.organization_id) THEN
+  RAISE EXCEPTION 'Hay resultados enlazados con tareas de otra empresa';
+ END IF;
+ IF EXISTS(SELECT 1 FROM public.work_time_adjustments x JOIN public.checkins y ON y.id=x.checkin_id WHERE x.organization_id<>y.organization_id) THEN
+  RAISE EXCEPTION 'Hay ajustes enlazados con fichajes de otra empresa';
+ END IF;
+END $audit$;
+
+ALTER TABLE public.task_comments
+ ADD CONSTRAINT task_comments_org_id_key UNIQUE(organization_id,id);
+
+ALTER TABLE public.work_comment_mentions
+ DROP CONSTRAINT work_comment_mentions_comment_id_fkey,
+ ADD CONSTRAINT work_comment_mentions_comment_org_fkey
+  FOREIGN KEY(organization_id,comment_id) REFERENCES public.task_comments(organization_id,id) ON DELETE CASCADE;
+
+ALTER TABLE public.work_execution_result_events
+ DROP CONSTRAINT work_execution_result_events_plan_id_fkey,
+ DROP CONSTRAINT work_execution_result_events_task_id_fkey,
+ ADD CONSTRAINT work_execution_result_events_plan_org_fkey
+  FOREIGN KEY(organization_id,plan_id) REFERENCES public.work_day_plan(organization_id,id) ON DELETE CASCADE,
+ ADD CONSTRAINT work_execution_result_events_task_org_fkey
+  FOREIGN KEY(organization_id,task_id) REFERENCES public.tasks(organization_id,id) ON DELETE CASCADE;
+
+ALTER TABLE public.work_time_adjustments
+ DROP CONSTRAINT work_time_adjustments_checkin_id_fkey,
+ ADD CONSTRAINT work_time_adjustments_checkin_org_fkey
+  FOREIGN KEY(organization_id,checkin_id) REFERENCES public.checkins(organization_id,id);
+
+NOTIFY pgrst,'reload schema';
 DO $finish$ DECLARE c ase_install_config%ROWTYPE; owner_id uuid; org_id uuid; BEGIN SELECT * INTO c FROM ase_install_config; SELECT id INTO STRICT owner_id FROM auth.users WHERE lower(email)=lower(c.owner_email); SELECT organization_id INTO STRICT org_id FROM public.organization_memberships WHERE user_id=owner_id AND status='active'; UPDATE public.organization_memberships SET role='owner' WHERE organization_id=org_id AND user_id=owner_id; UPDATE public.organizations SET name=c.company_name,slug=c.company_slug WHERE id=org_id; END $finish$;
 COMMIT;
