@@ -22,9 +22,10 @@ Genera en `deployment/generated`:
 - `instalacion-nueva-plantilla.sql`
 - `activar-automatizaciones.sql`
 - `verificar-instalacion.sql`
+- `comprobar-salud.sql`
 - `manifest.json`, con inventario, primera y última migración y SHA-256.
 
-Este archivo sirve únicamente para actualizar una copia de la base heredada capturada el 22/10/2026. No es todavía el alta de una empresa nueva y no debe ejecutarse sobre una base ya actualizada. Antes de usarlo se exige copia verificada y ensayo en un entorno restaurado.
+`actualizacion-completa.sql` sirve únicamente para actualizar una copia de la base heredada capturada el 22/10/2026. No debe ejecutarse sobre una base ya actualizada. Para el alta desde cero se utiliza `instalacion-nueva-plantilla.sql`. Antes de cualquier actualización se exige copia verificada y ensayo en un entorno restaurado.
 
 ## Instalar una empresa nueva
 
@@ -36,6 +37,7 @@ Este archivo sirve únicamente para actualizar una copia de la base heredada cap
 4. Ejecutar el archivo completo una sola vez. Todo se confirma o revierte en una única transacción.
 5. Ejecutar `activar-automatizaciones.sql` para preparar repeticiones y avisos de vencimiento cada hora.
 6. Ejecutar `verificar-instalacion.sql`. Debe devolver `ASE Work listo` y dos automatizaciones activas.
+7. Ejecutar `comprobar-salud.sql` y conservar el resultado técnico inicial.
 
 El instalador se detiene si queda un marcador sin sustituir, el correo no corresponde exactamente a un usuario Auth o el identificador de empresa no es válido. Al terminar, ese usuario queda como propietario activo.
 

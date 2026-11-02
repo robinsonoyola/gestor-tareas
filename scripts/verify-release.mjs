@@ -32,6 +32,7 @@ const required = [
   'docs/manuals/ADMINISTRADOR.md',
   'docs/manuals/ENCARGADO.md',
   'docs/manuals/EMPLEADO.md',
+  'docs/architecture/README.md',
   'docs/operations/DESPLIEGUE-Y-RECUPERACION.md',
   'supabase/tests/verify-installed.sql'
 ]
