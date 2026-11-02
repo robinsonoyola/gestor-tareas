@@ -8,12 +8,8 @@ import {
   Users,
   ListTodo,
   BarChart3,
-  QrCode,
-  MapPin,
   Key,
   Settings,
-  CreditCard,
-  SlidersHorizontal,
   X,
   Shield,
   BriefcaseBusiness
@@ -77,7 +73,7 @@ export default function Sidebar({ onClose }) {
   const menuItems = userData?.is_admin ? adminMenuItems : [...adminMenuItems.filter(item=>(item.permission && can(item.permission)) || item.any?.some(can)),...employeeMenuItems]
 
   return (
-    <aside className="ase-sidebar w-64 text-[#F8FAFC] border-r border-white/10 flex flex-col h-full">
+    <aside aria-label="Menú lateral" className="ase-sidebar w-64 text-[#F8FAFC] border-r border-white/10 flex flex-col h-full">
       {/* Header con Logo */}
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center justify-between">
@@ -99,6 +95,7 @@ export default function Sidebar({ onClose }) {
               size="icon"
               onClick={onClose}
               className="lg:hidden"
+              aria-label="Cerrar menú principal"
             >
               <X className="h-5 w-5" />
             </Button>
@@ -115,7 +112,7 @@ export default function Sidebar({ onClose }) {
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 overflow-y-auto p-4">
+      <nav aria-label="Navegación principal" className="flex-1 overflow-y-auto p-4">
         <div className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon

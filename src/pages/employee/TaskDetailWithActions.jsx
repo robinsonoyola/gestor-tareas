@@ -37,7 +37,8 @@ import {
   Activity,
   Timer,
   Play,
-  Square
+  Square,
+  ExternalLink
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'

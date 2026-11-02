@@ -11,7 +11,6 @@ import {
   User, 
   Settings,
   Menu,
-  X,
   ChevronDown
   ,Moon
   ,Sun
@@ -60,6 +59,7 @@ export default function Layout({ children }) {
 
   return (
     <div className={`ase-layout ${theme === 'dark' ? 'ase-dark dark' : 'ase-light'} min-h-dvh`}>
+      <a href="#ase-main-content" className="ase-skip-link">Saltar al contenido principal</a>
       <div className="flex h-dvh overflow-hidden">
         {/* Sidebar - Desktop */}
         <div className="hidden lg:block shrink-0">
@@ -72,6 +72,7 @@ export default function Layout({ children }) {
             {/* Backdrop */}
             <div 
               className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              aria-hidden="true"
               onClick={() => setSidebarOpen(false)}
             />
             {/* Sidebar */}
@@ -82,7 +83,7 @@ export default function Layout({ children }) {
         )}
         
         {/* Main Content */}
-        <main className="min-w-0 flex-1 overflow-auto">
+        <main id="ase-main-content" tabIndex={-1} className="min-w-0 flex-1 overflow-auto">
           {/* Header */}
           <header className="ase-topbar sticky top-0 z-30 border-b shadow-sm">
             <div className="flex min-w-0 items-center justify-between gap-2 px-3 py-3 sm:px-4 md:px-6 md:py-4">
@@ -93,6 +94,8 @@ export default function Layout({ children }) {
                   variant="ghost"
                   size="icon"
                   className="lg:hidden"
+                  aria-label="Abrir menú principal"
+                  aria-expanded={sidebarOpen}
                   onClick={() => setSidebarOpen(true)}
                 >
                   <Menu className="h-5 w-5" />
@@ -104,7 +107,7 @@ export default function Layout({ children }) {
                     <img src="/ase-icon.svg" alt="" aria-hidden="true" className="w-9 h-9 md:w-10 md:h-10 rounded-lg" />
                   </div>
                   <div className="hidden sm:block">
-                    <h1 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <p className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
                       ASE Work
                       {userData?.is_admin && (
                         <Badge className="bg-purple-100 text-purple-800 border-0 text-xs hidden md:inline-flex">
@@ -112,7 +115,7 @@ export default function Layout({ children }) {
                           Admin
                         </Badge>
                       )}
-                    </h1>
+                    </p>
                     <p className="text-xs text-gray-500 hidden md:block">
                       {userData?.is_admin ? 'Panel de Administración' : 'Panel de Empleado'}
                     </p>
@@ -145,6 +148,7 @@ export default function Layout({ children }) {
                   <DropdownMenuTrigger asChild>
                     <button 
                       className="relative h-10 rounded-full hover:bg-gray-100 transition-colors flex items-center gap-2 px-2 border-0 bg-transparent cursor-pointer"
+                      aria-label="Abrir menú de usuario"
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="bg-blue-600 text-white text-sm font-semibold">

@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8')
 const css = fs.readFileSync(path.join(root, 'src', 'index.css'), 'utf8')
+const layout = fs.readFileSync(path.join(root, 'src', 'components', 'layout', 'Layout.jsx'), 'utf8')
+const sidebar = fs.readFileSync(path.join(root, 'src', 'components', 'layout', 'Sidebar.jsx'), 'utf8')
 
 const checks = [
   ['idioma español declarado', /<html\s+lang=["']es["']/.test(html)],
@@ -12,7 +14,10 @@ const checks = [
   ['foco de teclado visible', /:focus-visible\s*\{[^}]*outline:/s.test(css)],
   ['movimiento reducido respetado', /@media\s*\(prefers-reduced-motion:\s*reduce\)/.test(css)],
   ['controles táctiles de 44 px', /pointer:\s*coarse[\s\S]*?min-height:\s*44px/.test(css)],
-  ['gestos táctiles sin retraso', /touch-action:\s*manipulation/.test(css)]
+  ['gestos táctiles sin retraso', /touch-action:\s*manipulation/.test(css)],
+  ['salto al contenido principal', /href="#ase-main-content"/.test(layout) && /id="ase-main-content"/.test(layout)],
+  ['menú principal identificado', /aria-label="Navegación principal"/.test(sidebar)],
+  ['controles de menú identificados', /aria-label="Abrir menú principal"/.test(layout) && /aria-label="Cerrar menú principal"/.test(sidebar)]
 ]
 
 const failed = checks.filter(([, passed]) => !passed).map(([name]) => name)

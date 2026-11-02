@@ -53,6 +53,7 @@ run('Recuperación de pantallas', process.execPath, ['tests/route-recovery.mjs']
 run('Hosting y caché', process.execPath, ['tests/hosting-config.mjs'])
 run('Configuración pública del frontend', process.execPath, ['tests/runtime-config.mjs'])
 run('Higiene del frontend', process.execPath, ['tests/frontend-hygiene.mjs'])
+run('Análisis estático del código', process.execPath, ['node_modules/eslint/bin/eslint.js', '.'])
 run('Accesibilidad y uso táctil', process.execPath, ['tests/accessibility-baseline.mjs'])
 run('Exportaciones e informes', process.execPath, ['tests/report-export.mjs'])
 run('Compilación del frontend', process.execPath, ['node_modules/vite/bin/vite.js', 'build'])

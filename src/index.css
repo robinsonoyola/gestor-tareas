@@ -222,6 +222,25 @@ html, body, #root { width: 100%; max-width: 100%; overflow-x: hidden; }
   outline-color: #93c5fd;
 }
 
+.ase-skip-link {
+  position: fixed;
+  top: .75rem;
+  left: .75rem;
+  z-index: 100;
+  padding: .7rem 1rem;
+  color: #fff;
+  background: #1d4ed8;
+  border: 2px solid #bfdbfe;
+  border-radius: .65rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  transform: translateY(-160%);
+  transition: transform .15s ease;
+}
+
+.ase-skip-link:focus {
+  transform: translateY(0);
+}
+
 img {
   max-width: 100%;
   height: auto;
