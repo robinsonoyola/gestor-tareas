@@ -10,6 +10,7 @@ import {
 } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import RouteErrorBoundary from "@/components/auth/RouteErrorBoundary";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -67,6 +68,7 @@ function App() {
   return (
     <BrowserRouter>
       <StationNavigation key={scopeKey}>
+        <RouteErrorBoundary key={scopeKey}>
         <Suspense fallback={<RouteLoading />}>
         <Routes>
           {/* ============================= */}
@@ -374,6 +376,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>
+        </RouteErrorBoundary>
       </StationNavigation>
 
       <Toaster />

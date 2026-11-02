@@ -49,6 +49,7 @@ run('Generación del paquete de base de datos', process.execPath, ['scripts/buil
 run('Paquete e instalación de base de datos', process.execPath, ['supabase/tests/database-package.mjs'])
 run('Funciones administrativas', process.execPath, ['scripts/build-edge-package.mjs'])
 run('Copias y restauración', process.execPath, ['tests/operations-package.mjs'])
+run('Recuperación de pantallas', process.execPath, ['tests/route-recovery.mjs'])
 run('Exportaciones e informes', process.execPath, ['tests/report-export.mjs'])
 run('Compilación del frontend', process.execPath, ['node_modules/vite/bin/vite.js', 'build'])
 run('Manifiesto de la entrega', process.execPath, ['scripts/build-release-manifest.mjs'])
