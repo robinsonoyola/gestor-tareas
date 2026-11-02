@@ -9,6 +9,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - aislamiento multiempresa sintético;
 - las 68 migraciones y una instalación nueva aislada;
 - paquetes de funciones administrativas;
+- funciones administrativas sin CORS abierto, secretos embebidos ni sesiones persistentes;
 - protecciones de copia y restauración;
 - rutas esenciales, menús y carga diferida de pantallas;
 - ausencia de pantallas y componentes desconectados del arranque real;
