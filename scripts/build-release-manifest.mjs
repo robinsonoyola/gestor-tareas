@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const dist = path.join(root, 'dist')
 const generated = path.join(root, 'deployment', 'generated')
+const packageMetadata = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
+const packageLock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'))
 const operationalPaths = [
   'docs/manuals/ADMINISTRADOR.md',
   'docs/manuals/ENCARGADO.md',
@@ -33,6 +35,9 @@ function filesBelow(directory, prefix = '') {
 }
 
 if (!fs.existsSync(path.join(dist, 'index.html'))) throw new Error('Compila el frontend antes de crear el manifiesto')
+if (!packageMetadata.version || packageMetadata.version !== packageLock.version || packageMetadata.version !== packageLock.packages?.['']?.version) {
+  throw new Error('La versión del proyecto y su bloqueo de dependencias no coinciden')
+}
 
 const frontendFiles = filesBelow(dist)
   .sort((a, b) => a.relative.localeCompare(b.relative, 'en'))
@@ -56,6 +61,7 @@ const frontendIdentity = frontendFiles.map(file => `${file.file}\0${file.sha256}
 const manifest = {
   format: 1,
   component: 'ase-work-task-manager-candidate',
+  version: packageMetadata.version,
   databaseManifestSha256: sha256(databaseManifest),
   functionsManifestSha256: sha256(functionsManifest),
   dependencyInventorySha256: sha256(dependencyInventory),
@@ -66,4 +72,4 @@ const manifest = {
 }
 
 fs.writeFileSync(path.join(generated, 'release-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`)
-console.log(JSON.stringify({ ok: true, frontendFiles: frontendFiles.length, frontendSha256: manifest.frontendSha256 }))
+console.log(JSON.stringify({ ok: true, version: manifest.version, frontendFiles: frontendFiles.length, frontendSha256: manifest.frontendSha256 }))

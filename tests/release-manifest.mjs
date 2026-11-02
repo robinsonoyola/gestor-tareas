@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'deployment', 'generated', 'release-manifest.json'), 'utf8'))
+const packageMetadata = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
+const packageLock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'))
 const sha256 = content => createHash('sha256').update(content).digest('hex').toUpperCase()
 const executableText = source => {
   let result = '', quote = '', escaped = false
@@ -23,6 +25,9 @@ const executableText = source => {
 }
 
 if (manifest.format !== 1 || manifest.component !== 'ase-work-task-manager-candidate') throw new Error('Manifiesto de entrega no reconocido')
+if (!manifest.version || manifest.version !== packageMetadata.version || manifest.version !== packageLock.version || manifest.version !== packageLock.packages?.['']?.version) {
+  throw new Error('La versión del manifiesto no coincide con la candidata compilada')
+}
 if (!manifest.frontendFiles.some(item => item.file === 'index.html')) throw new Error('Falta index.html en la entrega')
 if (!manifest.frontendFiles.some(item => item.file.endsWith('.js')) || !manifest.frontendFiles.some(item => item.file.endsWith('.css'))) throw new Error('Faltan recursos compilados')
 if (!Array.isArray(manifest.operationalFiles) || manifest.operationalFiles.length < 8) throw new Error('Faltan manuales o utilidades operativas en el manifiesto')
@@ -57,4 +62,4 @@ if (sha256(dependencies) !== manifest.dependencyInventorySha256) throw new Error
 const identity = manifest.frontendFiles.map(item => `${item.file}\0${item.sha256}`).join('\n')
 if (sha256(identity) !== manifest.frontendSha256) throw new Error('La identidad del frontend no coincide')
 
-console.log(JSON.stringify({ passed: true, frontendFiles: manifest.frontendFiles.length, operationalFiles: manifest.operationalFiles.length, buildInputs: manifest.build.inputs.length, node: manifest.build.node, frontendSha256: manifest.frontendSha256 }))
+console.log(JSON.stringify({ passed: true, version: manifest.version, frontendFiles: manifest.frontendFiles.length, operationalFiles: manifest.operationalFiles.length, buildInputs: manifest.build.inputs.length, node: manifest.build.node, frontendSha256: manifest.frontendSha256 }))
