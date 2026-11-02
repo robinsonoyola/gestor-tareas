@@ -137,12 +137,28 @@ try {
   ]
   if (JSON.stringify(anonymousApi) !== JSON.stringify(expectedAnonymousApi)) throw new Error(`Superficie anónima inesperada: ${anonymousApi.join(', ')}`)
 
+  const servicePublicRoutines = await db.query(`
+    SELECT p.oid::regprocedure::text AS name
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname='public' AND has_function_privilege('service_role',p.oid,'EXECUTE')
+    ORDER BY 1
+  `)
+  const serviceApi = servicePublicRoutines.rows.map(routine => routine.name)
+  const expectedServiceApi = [
+    'mt_attach_created_employee(uuid,uuid,uuid,text,text,text,uuid)',
+    'mt_email_change_grant(uuid)',
+    'mt_finish_email_change(uuid)',
+    'mt_identity_email_exists(text)'
+  ].sort()
+  if (JSON.stringify(serviceApi) !== JSON.stringify(expectedServiceApi)) throw new Error(`Superficie de servicio inesperada: ${serviceApi.join(', ')}`)
+
   console.log(JSON.stringify({
     passed: true,
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi }
+    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi }
   }))
 } finally {
   await db.close()

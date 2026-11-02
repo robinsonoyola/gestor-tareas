@@ -38,6 +38,16 @@ SELECT jsonb_build_object(
    FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
    WHERE n.nspname='public' AND has_function_privilege('anon',p.oid,'EXECUTE')
   ),
+ 'superficie_servicio_segura',(
+   SELECT count(*)=4 AND count(*) FILTER(WHERE NOT p.oid=ANY(ARRAY[
+    'public.mt_attach_created_employee(uuid,uuid,uuid,text,text,text,uuid)'::regprocedure,
+    'public.mt_email_change_grant(uuid)'::regprocedure,
+    'public.mt_finish_email_change(uuid)'::regprocedure,
+    'public.mt_identity_email_exists(text)'::regprocedure
+   ]))=0
+   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+   WHERE n.nspname='public' AND has_function_privilege('service_role',p.oid,'EXECUTE')
+  ),
  'bucket_privado',(SELECT public IS FALSE FROM storage.buckets WHERE id='task-files'),
  'propietario_activo',EXISTS(SELECT 1 FROM public.organization_memberships WHERE role='owner' AND status='active'),
  'automatizaciones_activas',(SELECT count(*) FROM cron.job WHERE active AND jobname IN ('ase-work-recurrences','ase-work-deadline-notifications')),
