@@ -29,7 +29,8 @@ export default function TaskCheckinMethodsConfig() {
 
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
-        .select('id, title, description, location')
+        .select('id, title, description, location, archived_at')
+        .is('archived_at', null)
         .order('title')
 
       if (tasksError) throw tasksError

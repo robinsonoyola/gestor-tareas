@@ -12,6 +12,7 @@ interface Task {
   id: string
   title: string
   description: string
+  archived_at?: string | null
 }
 
 interface CheckinConfig {
@@ -44,7 +45,8 @@ export default function TaskCheckinMethodsConfig() {
 
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
-        .select('id, title, description')
+        .select('id, title, description, archived_at')
+        .is('archived_at', null)
 
       console.log('📋 Tareas obtenidas:', tasksData)
       console.log('❌ Error tareas:', tasksError)

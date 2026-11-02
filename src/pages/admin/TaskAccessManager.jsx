@@ -97,6 +97,7 @@ export default function TaskAccessManager() {
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
+        .is('archived_at', null)
         .order('created_at', { ascending: false })
 
       if (error) throw error

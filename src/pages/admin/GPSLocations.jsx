@@ -41,6 +41,7 @@ import { supabase } from '@/lib/supabase'
 export default function GPSLocations() {
   const navigate = useNavigate()
   const { tasks, loading: tasksLoading, fetchTasks } = useTasks()
+  const activeTasks = tasks.filter(task => !task.archived_at)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
   const [taskToDelete, setTaskToDelete] = useState(null)
@@ -256,7 +257,7 @@ export default function GPSLocations() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    tasks.map((task) => (
+                    activeTasks.map((task) => (
                       <TableRow key={task.id}>
                         <TableCell className="font-mono text-xs text-gray-500">
                           {task.id.slice(0, 8)}...

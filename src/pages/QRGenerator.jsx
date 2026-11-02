@@ -21,6 +21,7 @@ import { es } from 'date-fns/locale'
 export default function QRGenerator() {
   const navigate = useNavigate()
   const { tasks, loading } = useTasks()
+  const activeTasks = tasks.filter(task => !task.archived_at)
   const [selectedTaskId, setSelectedTaskId] = useState('')
   const [qrSize, setQrSize] = useState(256)
 
@@ -118,5 +119,5 @@ export default function QRGenerator() {
                     <SelectValue placeholder="-- Selecciona una tarea --" />
                   </SelectTrigger>
                   <SelectContent>
-                    {tasks.map((task) => (
+                    {activeTasks.map((task) => (
                       <SelectItem key={task.id}

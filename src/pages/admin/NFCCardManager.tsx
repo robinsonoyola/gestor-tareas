@@ -31,6 +31,7 @@ interface NFCCard {
 interface Task {
   id: string
   title: string
+  archived_at?: string | null
 }
 
 export default function NFCCardManager() {
@@ -63,14 +64,14 @@ export default function NFCCardManager() {
       // Both tables have legacy and tenant foreign keys. Avoid ambiguous embeds.
       const [cardResponse,taskResponse] = await Promise.all([
         supabase.from('nfc_cards').select('*').order('created_at', {ascending:false}),
-        supabase.from('tasks').select('id, title').order('title')
+        supabase.from('tasks').select('id, title, archived_at').order('title')
       ])
       if (cardResponse.error) throw cardResponse.error
       if (taskResponse.error) throw taskResponse.error
       const tasksData = taskResponse.data || []
       const taskNames = new Map(tasksData.map(task => [task.id,task]))
       setCards((cardResponse.data || []).map(card => ({...card,task:taskNames.get(card.task_id) || null})))
-      setTasks(tasksData)
+      setTasks(tasksData.filter(task => !task.archived_at))
     } catch (error: any) {
       console.error('Error al cargar tarjetas NFC:', error?.code || 'unknown')
       setLoadError(error?.message || 'No se pudieron cargar las tarjetas y tareas. Vuelve a intentarlo.')

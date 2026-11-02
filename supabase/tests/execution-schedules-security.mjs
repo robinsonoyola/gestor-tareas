@@ -749,9 +749,13 @@ await db.exec(fs.readFileSync(root+'supabase/migrations/20261026001000_task_temp
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261102000100_archived_task_boundaries.sql','utf8'));
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261102000200_archive_timeline.sql','utf8'));
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261102000300_strict_unused_task_deletion.sql','utf8'));
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261102000400_active_task_selectors.sql','utf8'));
 const archiveTemplate=(await request(ADMIN,OA,`SELECT public.work_save_task_template('create',NULL::uuid,'${atomicCreated.id}'::uuid,'Atomic archive template','Used to verify archive boundaries') v`))[0].v;
 const archived=(await request(ADMIN,OA,`SELECT public.work_change_task_archive('${atomicCreated.id}','archive',2,'Actividad terminada; se conserva para consulta','${id(10064)}') v`))[0].v;
 ok('completed task with history can be archived without deleting its records',archived.archived===true&&archived.version===3&&(await db.query(`SELECT archived_at IS NOT NULL archived,(SELECT count(*) FROM public.checkins c WHERE c.organization_id=t.organization_id AND c.task_id=t.id)::int history FROM public.tasks t WHERE organization_id=$1 AND id=$2`,[OA,atomicCreated.id])).rows[0].archived&&(await db.query(`SELECT count(*)::int n FROM public.checkins WHERE organization_id=$1 AND task_id=$2`,[OA,atomicCreated.id])).rows[0].n>0);
+const activePlanningChoices=(await request(ADMIN,OA,`SELECT public.work_planning_assignments('${employee}') v`))[0].v;
+const recurrenceSelectorDefinition=(await db.query(`SELECT pg_get_functiondef('public.work_recurrence_list()'::regprocedure) definition`)).rows[0].definition;
+ok('archived task is absent from planning and recurrence selectors',!activePlanningChoices.some(x=>x.id===atomicCreated.id)&&recurrenceSelectorDefinition.includes('archived_at IS NULL'));
 let archivedPlanRejected=false;try{await db.query(`INSERT INTO public.work_day_plan(organization_id,id,user_id,task_id,work_date,priority,state)VALUES($1,$2,$3,$4,public.work_today()+1,998,'pending')`,[OA,id(10070),employee,atomicCreated.id])}catch(error){archivedPlanRejected=error.message.includes('archivada');if(!archivedPlanRejected)throw error}
 ok('archived task cannot receive a new execution even outside the interface',archivedPlanRejected);
 await denied('archived task cannot be duplicated',ADMIN,OA,`SELECT public.work_duplicate_task('${atomicCreated.id}','Forbidden archived copy')`);
@@ -789,6 +793,8 @@ await db.exec(fs.readFileSync(root+'supabase/migrations/20261102000200_archive_t
 ok('archive timeline activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261102000300_strict_unused_task_deletion.sql','utf8'));
 ok('strict unused deletion activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261102000400_active_task_selectors.sql','utf8'));
+ok('active task selector activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 ok('concurrency migration revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
