@@ -2,6 +2,8 @@
 
 ASE Work es un gestor operativo de tareas para microempresas. Separa empresas y permisos, organiza el orden diario de cada empleado y registra la ejecución mediante fichajes, pasos, evidencias, incidencias e historial.
 
+La entrega actual es `1.0.0-rc.1`, primera versión candidata del gestor de tareas. No incluye todavía la validación comercial definitiva ni los módulos ERP posteriores.
+
 ## Alcance actual
 
 - Empresas aisladas con administradores, encargados, empleados, roles y áreas.

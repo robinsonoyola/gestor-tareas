@@ -1,5 +1,7 @@
 # Control de versión candidata de ASE Work
 
+Versión identificada del gestor de tareas: `1.0.0-rc.1`. Es una candidata verificable, no una versión comercial definitiva. La numeración definitiva requiere completar y registrar las pruebas manuales separadas de este documento.
+
 ## Comprobación automática
 
 Ejecutar `npm run test:release`. El control se detiene en el primer fallo y valida:
