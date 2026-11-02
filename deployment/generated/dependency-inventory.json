@@ -3,6 +3,12 @@
   "component": "ase-work-task-manager-candidate",
   "scope": "production",
   "lockfileVersion": 3,
+  "licenses": {
+    "0BSD": 1,
+    "Apache-2.0": 1,
+    "ISC": 1,
+    "MIT": 92
+  },
   "components": [
     {
       "name": "@floating-ui/core",

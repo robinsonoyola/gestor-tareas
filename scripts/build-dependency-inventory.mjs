@@ -20,12 +20,16 @@ const components = Object.entries(lock.packages || {})
     }
   })
   .sort((left, right) => left.name.localeCompare(right.name, 'en') || left.version.localeCompare(right.version, 'en'))
+const licenses = Object.fromEntries([...new Set(components.map(item => item.license))]
+  .sort((left, right) => left.localeCompare(right, 'en'))
+  .map(license => [license, components.filter(item => item.license === license).length]))
 
 const inventory = {
   format: 1,
   component: 'ase-work-task-manager-candidate',
   scope: 'production',
   lockfileVersion: lock.lockfileVersion,
+  licenses,
   components,
 }
 const output = path.join(root, 'deployment', 'generated', 'dependency-inventory.json')
