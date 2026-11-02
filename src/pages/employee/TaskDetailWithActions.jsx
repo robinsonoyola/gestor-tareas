@@ -65,6 +65,7 @@ export default function TaskDetailWithActions() {
   const [activeCheckin, setActiveCheckin] = useState(null)
   const [incidentBlocked,setIncidentBlocked] = useState(false)
   const observedActiveCheckin = useRef(null)
+  const loaders = useRef({})
   useEffect(()=>{observedActiveCheckin.current=activeCheckin},[activeCheckin])
   const incidentReporter = useRef(null)
   const imagePicker = useRef(null)
@@ -93,7 +94,7 @@ export default function TaskDetailWithActions() {
     const item=requestedPlan?data?.items?.find(row=>row.plan_id===requestedPlan&&row.task_id===id):data?.items?.find(row=>row.plan_id===data?.next_plan&&row.task_id===id)||data?.items?.find(row=>row.task_id===id&&['active','paused'].includes(row.state))||null
     setQueueItem(item||null);setNextPlanId(data?.next_plan||null);setQueueReady(true)
   }
-  useEffect(()=>{setQueueItem(null);setQueueReady(false);if(userData?.id)loadQueue()},[id,requestedPlan,userData?.id])
+  useEffect(()=>{setQueueItem(null);setQueueReady(false);if(userData?.id)loaders.current.loadQueue?.()},[id,requestedPlan,userData?.id])
   const returnToTasks = () => navigate('/employee',{replace:true})
 
   const canStart = !incidentBlocked && !historyOnly && queueReady && nextPlanId===queueItem?.plan_id && queueItem?.task_id===id && queueItem?.can_start===true
@@ -152,12 +153,12 @@ export default function TaskDetailWithActions() {
     setFichajeTime(null)
     setActiveCheckinStatus('loading')
     if (id && userData?.id) {
-      fetchTaskDetails(() => !cancelled).then(allowed => {
+      loaders.current.fetchTaskDetails?.(() => !cancelled).then(allowed => {
         if (allowed && !cancelled) {
-          fetchCheckins()
-          fetchComments()
-          checkActiveCheckin()
-          fetchCheckinConfig()
+          loaders.current.fetchCheckins?.()
+          loaders.current.fetchComments?.()
+          loaders.current.checkActiveCheckin?.()
+          loaders.current.fetchCheckinConfig?.()
         }
       })
     }
@@ -180,7 +181,7 @@ export default function TaskDetailWithActions() {
           toast.info('La tarea ha cambiado. Volvemos a tus tareas asignadas.')
           navigate('/employee',{replace:true});return
         }
-        if(data?.id&&data.id!==previous?.id){observedActiveCheckin.current=data;setActiveCheckin(data);setActiveCheckinStatus('ready');loadQueue();await fetchTaskDetails(()=>live);if(live)fetchCheckins()}
+        if(data?.id&&data.id!==previous?.id){observedActiveCheckin.current=data;setActiveCheckin(data);setActiveCheckinStatus('ready');loaders.current.loadQueue?.();await loaders.current.fetchTaskDetails?.(()=>live);if(live)loaders.current.fetchCheckins?.()}
       }finally{running=false}
     }
     const timer=setInterval(()=>refresh().catch(()=>{}),10000)
@@ -387,7 +388,7 @@ export default function TaskDetailWithActions() {
   // Refresh short-lived links while this task remains open.
   useEffect(() => {
     if (!id || !userData?.id || task?.id !== id) return
-    const interval = setInterval(() => fetchComments(), 10 * 60 * 1000)
+    const interval = setInterval(() => loaders.current.fetchComments?.(), 10 * 60 * 1000)
     return () => clearInterval(interval)
   }, [id, userData?.id, task?.id])
 
@@ -411,6 +412,7 @@ export default function TaskDetailWithActions() {
       toast.error('No se pudo comprobar el fichaje activo. Recarga antes de iniciar otro.')
     }
   }
+  loaders.current = {loadQueue,fetchTaskDetails,fetchCheckinConfig,fetchCheckins,fetchComments,checkActiveCheckin}
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371e3

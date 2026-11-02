@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react'
+import {useEffect,useRef,useState} from 'react'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import {Label} from '@/components/ui/label'
@@ -23,7 +23,9 @@ const value=(iso)=>iso?new Date(iso).toLocaleString('sv-SE',{timeZone:'Europe/Ma
 const initial=item=>({kind:item.schedule_kind||'scheduled',available:value(item.available_from),scheduled:value(item.scheduled_for),due:value(item.due_at),end:value(item.planned_end),strict:item.strict_schedule??true})
 export function ScheduleEditor({item,onSaved,disabled=false}){
  const [open,setOpen]=useState(false),[form,setForm]=useState(()=>initial(item)),[busy,setBusy]=useState(false),[error,setError]=useState('')
- useEffect(()=>setForm(initial(item)),[item?.id,item?.version])
+ const currentItem=useRef(item)
+ currentItem.current=item
+ useEffect(()=>setForm(initial(currentItem.current)),[item?.id,item?.version])
  const set=(key,v)=>setForm(x=>({...x,[key]:v}))
  const iso=v=>v?new Date(v).toISOString():null
  const validation=()=>{

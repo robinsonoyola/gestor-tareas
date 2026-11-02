@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import Layout from '@/components/layout/Layout'
 import { Button } from '@/components/ui/button'
@@ -29,15 +29,14 @@ export default function QRGenerator() {
   const [qrCode, setQrCode] = useState(null)
   const [qrSize, setQrSize] = useState(256)
   const [loading, setLoading] = useState(true)
+  const qrGenerator = useRef(null)
 
   useEffect(() => {
     fetchTasks()
   }, [])
 
   useEffect(() => {
-    if (selectedTask && qrCode) {
-      generateQRCode()
-    }
+    qrGenerator.current?.()
   }, [qrSize])
 
   const fetchTasks = async () => {
@@ -145,6 +144,7 @@ export default function QRGenerator() {
       }
     })
   }
+  qrGenerator.current = generateQRCode
 
   const downloadQRCode = () => {
     if (!qrCode || !selectedTask) return

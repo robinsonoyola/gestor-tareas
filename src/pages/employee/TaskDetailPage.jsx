@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
@@ -38,6 +38,8 @@ export default function TaskDetailPage() {
   const [checkins, setCheckins] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const taskLoader = useRef(null)
+  const checkinLoader = useRef(null)
 
   // Formulario de fichaje/incidencia
   const [incidentForm, setIncidentForm] = useState({
@@ -47,8 +49,8 @@ export default function TaskDetailPage() {
 
   useEffect(() => {
     if (id) {
-      fetchTaskDetail()
-      fetchCheckins()
+      taskLoader.current?.()
+      checkinLoader.current?.()
     }
   }, [id])
 
@@ -129,6 +131,8 @@ export default function TaskDetailPage() {
       console.error('Error fetching checkins:', error)
     }
   }
+  taskLoader.current = fetchTaskDetail
+  checkinLoader.current = fetchCheckins
 
   const handleRegisterCheckin = async (e) => {
     e.preventDefault()

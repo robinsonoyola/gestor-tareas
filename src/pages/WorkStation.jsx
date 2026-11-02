@@ -33,6 +33,7 @@ export default function WorkStation() {
   const [nfcStatus, setNfcStatus] = useState('')
   const nfcController = useRef(null)
   const nfcIdentify = useRef(null)
+  const codeIdentify = useRef(null)
   const input = useRef(null)
   const generation = useRef(0)
   const inFlight = useRef(false)
@@ -83,11 +84,12 @@ export default function WorkStation() {
     } catch (e) { if (request === generation.current) { setError(e.message); setRemaining(8) } }
     finally { inFlight.current = false; setBusy(false) }
   }
+  codeIdentify.current = identifyCode
   useEffect(() => {
     if (!extras || !station || operatorSession || person || success || busy || !/^\d{5}$/.test(card.trim())) return
-    const timer = setTimeout(() => identifyCode(card,'pin'),450)
+    const timer = setTimeout(() => codeIdentify.current?.(card,'pin'),450)
     return () => clearTimeout(timer)
-  }, [card,extras,station,operatorSession,person,success])
+  }, [card,extras,station,operatorSession,person,success,busy])
   const identify = e => { e.preventDefault(); return identifyCode(card,/^\d{5}$/.test(card.trim())?'pin':'manual') }
   nfcIdentify.current = value => {
     if (!station || operatorSession || person || success || inFlight.current) return

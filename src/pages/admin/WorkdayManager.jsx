@@ -48,6 +48,7 @@ export default function WorkdayManager({section='planning'}) {
   const [stationName, setStationName] = useState('Tablet principal')
   const [stationKey, setStationKey] = useState('')
   const dayDetail = useRef(null)
+  const loadCurrent = useRef(null)
   const reviewRequested = useRef(section==='planning' && Boolean(query.get('date')))
   const focusDay = () => { const node=dayDetail.current; if(!node)return; const header=node.closest('main')?.querySelector('header'); node.style.scrollMarginTop=((header?.getBoundingClientRect().height||0)+16)+'px'; node.scrollIntoView({behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}); node.focus({preventScroll:true}) }
   const reviewDay = value => { reviewRequested.current=true; updatePeriod('day',value); if (value===date && !loading) { reviewRequested.current=false; requestAnimationFrame(focusDay) } }
@@ -77,7 +78,8 @@ export default function WorkdayManager({section='planning'}) {
     } catch (e) { if (request === serial.current) setError(e.message + '. Si faltan las funciones work_, instala primero el SQL del modo tablet.') }
     finally { if (request === serial.current) setLoading(false) }
   }
-  useEffect(() => { load(); return invalidate }, [user,date,section,planningScope,invalidate])
+  loadCurrent.current = load
+  useEffect(() => { loadCurrent.current?.(); return invalidate }, [user,date,section,planningScope,invalidate])
   const action = async (fn) => {
     if (busy) return
     setBusy(true); setError('')
