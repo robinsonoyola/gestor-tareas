@@ -15,6 +15,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - propiedad y configuración segura de todas las funciones privilegiadas;
 - ausencia de permisos directos anónimos o permisos peligrosos del API sobre tablas;
 - límite RLS propio para cada tabla que contiene datos de una empresa;
+- claves primarias en todas las tablas, restricciones validadas e índices íntegros;
 - claves foráneas compuestas que impiden relaciones entre empresas;
 - índices de apoyo para todas las claves foráneas operativas;
 - paquetes de funciones administrativas;

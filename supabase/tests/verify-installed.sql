@@ -87,6 +87,22 @@ SELECT jsonb_build_object(
         AND (coalesce(p.qual,'') LIKE '%current_org()%' OR coalesce(p.with_check,'') LIKE '%current_org()%')
      )
   ),
+ 'estructura_tablas_valida',NOT EXISTS(
+  SELECT 1 FROM pg_class c
+  JOIN pg_namespace n ON n.oid=c.relnamespace
+  WHERE n.nspname='public' AND c.relkind IN ('r','p')
+   AND NOT EXISTS(SELECT 1 FROM pg_constraint constraint_definition WHERE constraint_definition.conrelid=c.oid AND constraint_definition.contype='p')
+ ) AND NOT EXISTS(
+  SELECT 1 FROM pg_constraint constraint_definition
+  JOIN pg_class c ON c.oid=constraint_definition.conrelid
+  JOIN pg_namespace n ON n.oid=c.relnamespace
+  WHERE n.nspname='public' AND NOT constraint_definition.convalidated
+ ) AND NOT EXISTS(
+  SELECT 1 FROM pg_index index_definition
+  JOIN pg_class c ON c.oid=index_definition.indrelid
+  JOIN pg_namespace n ON n.oid=c.relnamespace
+  WHERE n.nspname='public' AND (NOT index_definition.indisvalid OR NOT index_definition.indisready)
+ ),
  'integridad_relacional_empresa',NOT EXISTS(
    SELECT 1 FROM information_schema.columns
    WHERE table_schema='public' AND column_name='organization_id' AND is_nullable<>'NO'

@@ -61,6 +61,40 @@ try {
   const withoutRls = tables.rows.filter(table => !table.rls).map(table => table.name)
   if (withoutRls.length) throw new Error(`Tablas públicas sin aislamiento RLS: ${withoutRls.join(', ')}`)
 
+  const tablesWithoutPrimaryKey = await db.query(`
+    SELECT c.relname AS table_name
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND c.relkind IN ('r','p')
+      AND NOT EXISTS(
+        SELECT 1 FROM pg_constraint constraint_definition
+        WHERE constraint_definition.conrelid=c.oid AND constraint_definition.contype='p'
+      )
+    ORDER BY c.relname
+  `)
+  if (tablesWithoutPrimaryKey.rows.length) throw new Error(`Tablas sin clave primaria: ${tablesWithoutPrimaryKey.rows.map(table => table.table_name).join(', ')}`)
+
+  const invalidConstraints = await db.query(`
+    SELECT c.relname AS table_name,constraint_definition.conname AS constraint_name
+    FROM pg_constraint constraint_definition
+    JOIN pg_class c ON c.oid=constraint_definition.conrelid
+    JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND NOT constraint_definition.convalidated
+    ORDER BY c.relname,constraint_definition.conname
+  `)
+  if (invalidConstraints.rows.length) throw new Error(`Restricciones sin validar: ${invalidConstraints.rows.map(item => `${item.table_name}.${item.constraint_name}`).join(', ')}`)
+
+  const invalidIndexes = await db.query(`
+    SELECT c.relname AS table_name,i.relname AS index_name
+    FROM pg_index index_definition
+    JOIN pg_class c ON c.oid=index_definition.indrelid
+    JOIN pg_namespace n ON n.oid=c.relnamespace
+    JOIN pg_class i ON i.oid=index_definition.indexrelid
+    WHERE n.nspname='public' AND (NOT index_definition.indisvalid OR NOT index_definition.indisready)
+    ORDER BY c.relname,i.relname
+  `)
+  if (invalidIndexes.rows.length) throw new Error(`Índices inválidos: ${invalidIndexes.rows.map(item => `${item.table_name}.${item.index_name}`).join(', ')}`)
+
   const routines = await db.query(`
     SELECT p.oid::regprocedure::text AS name
     FROM pg_proc p
@@ -276,7 +310,7 @@ try {
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
+    isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
   }))
 } finally {
   await db.close()
