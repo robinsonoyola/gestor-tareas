@@ -39,15 +39,21 @@ export default function ResetPassword() {
     setError('')
     try {
       validateRecoveryPassword(password, confirmation)
-      setSaving(true)
+    } catch (validationError) {
+      setError(validationError.message)
+      return
+    }
+
+    setSaving(true)
+    try {
       const { data, error: updateError } = await recovery.client.auth.updateUser({ password })
       if (updateError) throw updateError
       if (data?.user?.id !== recovery.user.id) throw new Error('No se confirmó el cambio de contraseña.')
       setSaved(true)
       // Clear only the isolated recovery session, never the main admin session.
       try { await recovery.client.auth.signOut({ scope: 'local' }) } catch { /* Local client is not persisted. */ }
-    } catch (failure) {
-      setError(failure.message || 'No se pudo actualizar la contraseña. Solicita otro enlace si ha expirado.')
+    } catch {
+      setError('No se pudo actualizar la contraseña. Solicita otro enlace si este ha expirado.')
     } finally {
       setPassword('')
       setConfirmation('')
