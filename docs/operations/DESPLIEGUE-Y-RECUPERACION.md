@@ -7,6 +7,7 @@
 - Toda actualización comienza con una copia verificable.
 - La base y el frontend deben poder volver a su versión anterior.
 - Los archivos de clientes no se incluyen en repositorios ni registros de soporte.
+- El HTML se revalida siempre; los recursos versionados de `assets` pueden conservarse en caché. Esto evita mezclar versiones durante una publicación.
 
 ## Empresa nueva
 
