@@ -85,6 +85,7 @@ export default function AdminDashboard() {
   const [archiveBusy,setArchiveBusy]=useState(false)
   const [deleteTask,setDeleteTask]=useState(null)
   const [deleteBusy,setDeleteBusy]=useState(false)
+  const [historyTask,setHistoryTask]=useState(null)
   const [selectedTask, setSelectedTask] = useState(null)
   
   const [taskForm, setTaskForm] = useState({
@@ -379,7 +380,7 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <>
-              <MobileTasks items={filteredTasks} statusBadge={getStatusBadge} projectName={projectName} can={can} isAdmin={isAdmin} onShare={task=>navigate('/admin/access?task='+task.id)} onPlan={task=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))} onChecklist={setChecklistTask} onSubtasks={setSubtaskTask} onDependencies={setDependencyTask} onDuplicate={handleDuplicateTask} onEdit={openEditModal} onDelete={handleDeleteTask} onArchive={handleArchiveTask}/>
+              <MobileTasks items={filteredTasks} statusBadge={getStatusBadge} projectName={projectName} can={can} isAdmin={isAdmin} onShare={task=>navigate('/admin/access?task='+task.id)} onPlan={task=>navigate('/admin/planning'+(task.assigned_users[0]?'?employee='+task.assigned_users[0].id:''))} onChecklist={setChecklistTask} onSubtasks={setSubtaskTask} onDependencies={setDependencyTask} onDuplicate={handleDuplicateTask} onEdit={openEditModal} onDelete={handleDeleteTask} onArchive={handleArchiveTask} onHistory={setHistoryTask}/>
               <div className="hidden md:block rounded-md border">
                 <Table>
                   <TableHeader>
@@ -415,6 +416,7 @@ export default function AdminDashboard() {
                           {!task.archived_at&&can('tasks.edit') && <Button size="sm" variant="outline" onClick={()=>setDependencyTask(task)}>Dependencias</Button>}
                           {!task.archived_at&&can('tasks.create') && <Button size="sm" variant="outline" aria-label={`Duplicar ${task.title}`} onClick={()=>handleDuplicateTask(task)}><Copy className="h-4 w-4"/></Button>}
                           {!task.archived_at&&can('tasks.edit') && <Button size="sm" variant="outline" aria-label={`Editar ${task.title}`} onClick={() => openEditModal(task)}><Edit className="h-4 w-4" /></Button>}
+                          <Button size="sm" variant="outline" onClick={()=>setHistoryTask(task)}>Historial</Button>
                           {can('tasks.edit')&&<Button size="sm" variant="outline" onClick={()=>handleArchiveTask(task,task.archived_at?'restore':'archive')}>{task.archived_at?'Restaurar':'Archivar'}</Button>}
                           {!task.archived_at&&can('tasks.delete') && <Button size="sm" variant="outline" aria-label={`Eliminar ${task.title}`} onClick={() => handleDeleteTask(task.id)} className="text-red-600 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>}
                         </TableCell>
@@ -551,6 +553,13 @@ export default function AdminDashboard() {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Eliminar actividad permanentemente</DialogTitle><DialogDescription>{deleteTask?.title}</DialogDescription></DialogHeader>
           <div className="space-y-4"><p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">Esta opción solo sirve para una actividad creada por error que nunca se ha ejecutado, archivado ni relacionado con otra información. Si existe historial, ASE Work impedirá el borrado.</p><p className="text-sm text-gray-700">Para retirar una actividad utilizada sin perder fichajes, informes o auditoría, utiliza <strong>Archivar</strong>.</p><div className="flex flex-wrap justify-end gap-2"><Button variant="outline" disabled={deleteBusy} onClick={()=>setDeleteTask(null)}>Cancelar</Button>{!deleteTask?.archived_at&&<Button variant="outline" disabled={deleteBusy} onClick={()=>{const task=deleteTask;setDeleteTask(null);handleArchiveTask(task,'archive')}}>Archivar en su lugar</Button>}<Button className="bg-red-700 text-white hover:bg-red-800" disabled={deleteBusy} onClick={saveDeleteTask}>{deleteBusy?'Comprobando…':'Eliminar definitivamente'}</Button></div></div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!historyTask} onOpenChange={open=>{if(!open)setHistoryTask(null)}}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Historial de la actividad</DialogTitle><DialogDescription>{historyTask?.title} · Solo consulta</DialogDescription></DialogHeader>
+          {historyTask&&<TaskTimeline key={historyTask.id} taskId={historyTask.id} defaultOpen/>}
         </DialogContent>
       </Dialog>
     </Layout>
