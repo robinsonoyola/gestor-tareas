@@ -60,6 +60,7 @@ run('Configuración pública del frontend', process.execPath, ['tests/runtime-co
 run('Confirmación de cambios de cuenta', process.execPath, ['tests/account-security.mjs'])
 run('Validación de recuperación de contraseña', process.execPath, ['tests/password-recovery.mjs'])
 run('Aislamiento de preferencias locales', process.execPath, ['tests/scoped-storage.mjs'])
+run('Cierre seguro de sesión', process.execPath, ['tests/session-security.mjs'])
 run('Línea base de dependencias', process.execPath, ['tests/dependency-baseline.mjs'])
 run('Integridad del bloqueo de dependencias', process.execPath, ['tests/lockfile-integrity.mjs'])
 run('Inventario de dependencias de producción', process.execPath, ['scripts/build-dependency-inventory.mjs'])

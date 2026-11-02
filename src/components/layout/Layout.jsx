@@ -27,6 +27,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import Sidebar from './Sidebar'
 import OrganizationSelector from './OrganizationSelector'
 import SectionNavigation from './SectionNavigation'
+import { toast } from 'sonner'
 
 export default function Layout({ children }) {
   const { userData, signOut } = useAuth()
@@ -43,8 +44,12 @@ export default function Layout({ children }) {
   }, [theme])
 
   const handleLogout = async () => {
-    await signOut()
-    navigate('/login')
+    try {
+      await signOut()
+      navigate('/login', { replace: true })
+    } catch (error) {
+      toast.error(error?.message || 'No se pudo cerrar la sesión.')
+    }
   }
 
   const getInitials = (name) => {
