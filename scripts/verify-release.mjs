@@ -63,6 +63,7 @@ run('Análisis estático del código', process.execPath, ['node_modules/eslint/b
 run('Accesibilidad y uso táctil', process.execPath, ['tests/accessibility-baseline.mjs'])
 run('Exportaciones e informes', process.execPath, ['tests/report-export.mjs'])
 run('Compilación del frontend', process.execPath, ['node_modules/vite/bin/vite.js', 'build'])
+run('Presupuesto de carga móvil', process.execPath, ['tests/frontend-budget.mjs'])
 run('Manifiesto de la entrega', process.execPath, ['scripts/build-release-manifest.mjs'])
 run('Integridad de la entrega', process.execPath, ['tests/release-manifest.mjs'])
 
