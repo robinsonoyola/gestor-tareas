@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useState} from 'react'
+import {useCallback,useEffect,useMemo,useState} from 'react'
 import {Link,useNavigate} from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import {Card,CardContent} from '@/components/ui/card'
@@ -16,8 +16,8 @@ const label=value=>new Date(value+'T12:00:00Z').toLocaleDateString('es-ES',{week
 
 export default function TeamCalendar(){
  const navigate=useNavigate(),[start,setStart]=useState(()=>monday(workDate())),[area,setArea]=useState(''),[search,setSearch]=useState(''),[data,setData]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),end=add(start,6)
- const load=async()=>{setBusy(true);setError('');try{setData(await workRpc('work_team_calendar',{p_start:start,p_end:end,p_area:area||null}))}catch(e){setError(e.message.includes('work_team_calendar')?'Falta activar el calendario conjunto en ASE Work - Pruebas.':e.message)}finally{setBusy(false)}}
- useEffect(()=>{load()},[start,area])
+ const load=useCallback(async()=>{setBusy(true);setError('');try{setData(await workRpc('work_team_calendar',{p_start:start,p_end:end,p_area:area||null}))}catch(e){setError(e.message.includes('work_team_calendar')?'Falta activar el calendario conjunto en ASE Work - Pruebas.':e.message)}finally{setBusy(false)}},[start,end,area])
+ useEffect(()=>{load()},[load])
  const days=useMemo(()=>Array.from({length:7},(_,index)=>add(start,index)),[start])
  const people=(data?.employees||[]).filter(person=>person.full_name.toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')))
  const open=(person,date)=>navigate(`/admin/planning?employee=${person.id}&date=${date}`)

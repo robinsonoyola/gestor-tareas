@@ -109,7 +109,6 @@ ok('NFC completes only on confirmation',(await db.query(`SELECT checkout_time IS
 const automatic=(await request(null,null,`SELECT public.work_station_identify_v2('${s.token}','00123','pin',NULL) v`,'anon'))[0].v;
 ok('five digit code identifies without selecting a name',Boolean(automatic.ticket)&&automatic.employee==='Worker A');
 await denied('same company cannot assign an existing personal code',ADMIN,OA,`SELECT public.work_pin_settings('${SHARED}','00123')`);
-const badBefore=(await db.query(`SELECT attempts FROM public.work_pin_attempts WHERE station_id='${s.id}'`)).rows[0]?.attempts;
 const badAuto=(await request(null,null,`SELECT public.work_station_identify_v2('${s.token}','99999','pin',NULL) v`,'anon'))[0].v;
 ok('unknown automatic code fails without employee data',Boolean(badAuto.error)&&!badAuto.employee&&!badAuto.ticket);
 await denied('employee cannot choose a station key',A,OA,`SELECT public.work_create_station('Forbidden','Custom-Station-456')`);

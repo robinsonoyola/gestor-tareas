@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react'
+import {useCallback,useEffect,useState} from 'react'
 import {workRpc} from '@/lib/workflow'
 import {Button} from '@/components/ui/button'
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog'
@@ -8,8 +8,8 @@ const stateName={pending:'Pendiente',in_progress:'En progreso',completed:'Comple
 
 export default function TaskSubtasks({task,tasks,onClose}){
  const [items,setItems]=useState([]),[selected,setSelected]=useState(''),[busy,setBusy]=useState(true),[error,setError]=useState('')
- const load=async()=>{setBusy(true);setError('');try{setItems(await workRpc('work_task_subtask_directory',{p_task:task.id}))}catch(e){setError(e.message?.includes('work_task_subtask_directory')?'Falta activar las subtareas en Supabase.':e.message)}finally{setBusy(false)}}
- useEffect(()=>{load()},[task.id])
+ const load=useCallback(async()=>{setBusy(true);setError('');try{setItems(await workRpc('work_task_subtask_directory',{p_task:task.id}))}catch(e){setError(e.message?.includes('work_task_subtask_directory')?'Falta activar las subtareas en Supabase.':e.message)}finally{setBusy(false)}},[task.id])
+ useEffect(()=>{load()},[load])
  const change=async(action,child)=>{setBusy(true);setError('');try{await workRpc('work_manage_task_subtask',{p_action:action,p_parent:task.id,p_child:child});setSelected('');await load()}catch(e){setError(e.message);setBusy(false)}}
  const linked=new Set(items.map(item=>item.id)),available=tasks.filter(item=>!item.archived_at&&item.id!==task.id&&!linked.has(item.id))
  return <Dialog open onOpenChange={open=>!open&&onClose()}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Subtareas de {task.title}</DialogTitle><DialogDescription>Son actividades independientes. Conservan responsables, planificación, estado y fichajes propios.</DialogDescription></DialogHeader><div className="space-y-4">

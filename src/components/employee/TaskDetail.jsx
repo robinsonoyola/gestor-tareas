@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useCallback, useState, useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -45,13 +45,7 @@ export default function TaskDetail({ task, open, onClose }) {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  useEffect(() => {
-    if (task?.id && open) {
-      fetchCheckins()
-    }
-  }, [task?.id, open])
-
-  const fetchCheckins = async () => {
+  const fetchCheckins = useCallback(async () => {
     if (!task?.id) return
 
     try {
@@ -77,7 +71,13 @@ export default function TaskDetail({ task, open, onClose }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [task?.id])
+
+  useEffect(() => {
+    if (task?.id && open) {
+      fetchCheckins()
+    }
+  }, [task?.id, open, fetchCheckins])
 
   // Cálculo de métricas de progreso
   const taskMetrics = useMemo(() => {

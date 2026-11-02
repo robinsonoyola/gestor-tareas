@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export function useTasks(userId = null) {
@@ -6,11 +6,7 @@ export function useTasks(userId = null) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    fetchTasks()
-  }, [userId])
-
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -75,7 +71,11 @@ export function useTasks(userId = null) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId])
+
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
 
   return {
     tasks,

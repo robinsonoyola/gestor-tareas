@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useState} from 'react'
+import {useCallback,useEffect,useMemo,useState} from 'react'
 import {Link} from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import {Card,CardContent,CardHeader,CardTitle} from '@/components/ui/card'
@@ -15,8 +15,8 @@ export default function EmployeeAbsences(){
  const today=workDate(),[start,setStart]=useState(today),[end,setEnd]=useState(()=>addDays(today,90)),[data,setData]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[editing,setEditing]=useState(null)
  const empty=useMemo(()=>({id:null,user_id:'',kind:'vacation',start_date:today,end_date:today,note:''}),[today])
  const [form,setForm]=useState(empty)
- const load=async()=>{setError('');try{setData(await workRpc('work_absence_directory',{p_start:start,p_end:end}))}catch(e){setError(e.message.includes('work_absence_directory')?'Activa primero la actualización de ausencias en ASE Work - Pruebas.':e.message)}}
- useEffect(()=>{load()},[start,end])
+ const load=useCallback(async()=>{setError('');try{setData(await workRpc('work_absence_directory',{p_start:start,p_end:end}))}catch(e){setError(e.message.includes('work_absence_directory')?'Activa primero la actualización de ausencias en ASE Work - Pruebas.':e.message)}},[start,end])
+ useEffect(()=>{load()},[load])
  useEffect(()=>{if(!form.user_id&&data?.people?.length)setForm(value=>({...value,user_id:data.people[0].id}))},[data,form.user_id])
  const save=async e=>{e.preventDefault();setBusy(true);setError('');try{await workRpc('work_save_absence',{p_id:form.id,p_user:form.user_id,p_kind:form.kind,p_start:form.start_date,p_end:form.end_date,p_note:form.note||null});setForm({...empty,user_id:form.user_id});setEditing(null);await load()}catch(e){setError(e.message)}finally{setBusy(false)}}
  const edit=item=>{setEditing(item.id);setForm({id:item.id,user_id:item.user_id,kind:item.kind,start_date:item.start_date,end_date:item.end_date,note:item.note||''});window.scrollTo({top:0,behavior:'smooth'})}

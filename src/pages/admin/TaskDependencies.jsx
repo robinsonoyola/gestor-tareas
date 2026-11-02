@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react'
+import {useCallback,useEffect,useState} from 'react'
 import {workRpc} from '@/lib/workflow'
 import {Button} from '@/components/ui/button'
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog'
@@ -8,8 +8,8 @@ const stateName={pending:'Pendiente',active:'En curso',paused:'Pausada',blocked:
 
 export default function TaskDependencies({task,tasks,onClose}){
  const [items,setItems]=useState([]),[selected,setSelected]=useState(''),[busy,setBusy]=useState(true),[error,setError]=useState('')
- const load=async()=>{setBusy(true);setError('');try{setItems(await workRpc('work_task_dependency_directory',{p_task:task.id}))}catch(e){setError(e.message?.includes('work_task_dependency_directory')?'Falta activar las dependencias en Supabase.':e.message)}finally{setBusy(false)}}
- useEffect(()=>{load()},[task.id])
+ const load=useCallback(async()=>{setBusy(true);setError('');try{setItems(await workRpc('work_task_dependency_directory',{p_task:task.id}))}catch(e){setError(e.message?.includes('work_task_dependency_directory')?'Falta activar las dependencias en Supabase.':e.message)}finally{setBusy(false)}},[task.id])
+ useEffect(()=>{load()},[load])
  const change=async(action,prerequisite)=>{setBusy(true);setError('');try{await workRpc('work_manage_task_dependency',{p_action:action,p_task:task.id,p_prerequisite:prerequisite});setSelected('');await load()}catch(e){setError(e.message);setBusy(false)}}
  const linked=new Set(items.map(item=>item.id)),available=tasks.filter(item=>!item.archived_at&&item.id!==task.id&&!linked.has(item.id))
  return <Dialog open onOpenChange={open=>!open&&onClose()}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Dependencias de {task.title}</DialogTitle><DialogDescription>Selecciona qué actividades deben completarse antes de permitir el inicio de esta tarea.</DialogDescription></DialogHeader><div className="space-y-4">
