@@ -21,4 +21,7 @@ for (const marker of ['name="description"', 'name="theme-color"', '/ase-icon.svg
 }
 if (html.includes('<link href="/src/index.css"')) throw new Error('El CSS se estaba cargando dos veces')
 
-console.log(JSON.stringify({ passed: true, debugLogs: 0, unusedTemplateAssets: 0, metadata: true }))
+const vite = fs.readFileSync(path.join(root, 'vite.config.ts'), 'utf8')
+if (!vite.includes("drop: ['console', 'debugger']")) throw new Error('La compilación comercial conserva registros de consola')
+
+console.log(JSON.stringify({ passed: true, debugLogs: 0, productionConsole: false, unusedTemplateAssets: 0, metadata: true }))

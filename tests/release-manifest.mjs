@@ -15,6 +15,7 @@ for (const item of manifest.frontendFiles) {
   const file = path.join(root, 'dist', ...item.file.split('/'))
   const content = fs.readFileSync(file)
   if (content.length !== item.bytes || sha256(content) !== item.sha256) throw new Error(`El recurso no coincide: ${item.file}`)
+  if (item.file.endsWith('.js') && /\bconsole\.(log|debug|info|warn|error)\s*\(/.test(content.toString('utf8'))) throw new Error(`El recurso publicado conserva registros de consola: ${item.file}`)
 }
 
 const database = fs.readFileSync(path.join(root, 'deployment', 'generated', 'manifest.json'))
