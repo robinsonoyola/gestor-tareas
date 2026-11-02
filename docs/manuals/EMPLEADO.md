@@ -35,3 +35,9 @@ Al terminar, ASE Work mostrará la siguiente actividad permitida.
 ## Seguridad
 
 No compartas contraseña, PIN, tarjeta personal ni códigos de acceso. Si pierdes una tarjeta o detectas un fichaje incorrecto, avisa a administración; no intentes borrar el historial.
+
+En `Mi cuenta` puedes cambiar tu correo o contraseña. ASE Work te pedirá la contraseña actual y comprobará que la sesión corresponde a tu cuenta. La contraseña nueva debe tener al menos 8 caracteres, coincidir con su confirmación y ser diferente de la anterior.
+
+Si no recuerdas la contraseña, utiliza `¿La has olvidado?` en el acceso. El mensaje no confirma si un correo está registrado. Abre únicamente el enlace completo recibido y elige la contraseña tú mismo; administración no necesita conocerla.
+
+`Cerrar sesión` cierra ASE Work en el navegador actual. Si aparece un error, la aplicación no afirmará que la sesión terminó: comprueba la conexión y vuelve a intentarlo antes de dejar un dispositivo compartido.

@@ -29,6 +29,8 @@ Utiliza `Repeticiones` para trabajos periódicos. Una regla por área deja cada 
 
 No completes manualmente una actividad para ocultar un bloqueo. Resuelve o reasigna la incidencia y conserva el historial.
 
+Las vistas guardadas del tablero son preferencias locales. Se conservan únicamente para la combinación de cuenta, empresa y dispositivo actual; no se comparten con otros administradores ni conceden permisos.
+
 ## Archivar y eliminar
 
 Archiva una actividad cuando deba conservarse para consulta pero ya no pueda generar trabajo nuevo. Restaurarla vuelve a permitir su uso. La eliminación permanente solo está disponible para actividades realmente sin uso ni historial.
@@ -46,3 +48,5 @@ Las tarjetas personales identifican empleados. Las tarjetas asociadas a tareas c
 5. Fallos visibles de automatización.
 
 No compartas contraseñas, claves de punto, tokens ni enlaces administrativos por canales públicos.
+
+No pidas la contraseña de un empleado. Si la ha olvidado, debe usar la recuperación desde el acceso. Los cambios de correo o contraseña de la cuenta propia exigen confirmar la contraseña actual. Al terminar en un equipo compartido, usa `Cerrar sesión` y verifica que aparezca la pantalla de acceso.

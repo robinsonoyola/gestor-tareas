@@ -18,6 +18,8 @@ Una actividad urgente se destaca visualmente, pero no se adelanta sola. Modifica
 
 Usa el tablero para revisar pendientes, en curso, pausadas, bloqueadas, en revisión, completadas y canceladas. En móvil utiliza `Mover`; en ordenador también puede estar disponible el arrastre.
 
+Puedes guardar combinaciones de filtros como vistas del tablero. Se guardan solo para tu cuenta y la empresa activa en ese dispositivo; no cambian el tablero de otras personas ni amplían tus permisos.
+
 Cada cambio manual de estado debe tener un motivo. Completar una tarea puede exigir fichaje, pasos, evidencias o resultado, por lo que no todos los estados aparecen como transición directa.
 
 ## Incidencias
