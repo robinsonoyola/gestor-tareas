@@ -69,6 +69,23 @@ SELECT jsonb_build_object(
    JOIN pg_roles r ON r.oid=p.proowner
    WHERE n.nspname IN ('public','ase_private') AND p.prosecdef
   ),
+ 'rol_ejecutor_restringido',EXISTS(
+  SELECT 1 FROM pg_roles
+  WHERE rolname='ase_tenant_executor' AND NOT rolsuper AND NOT rolcreaterole AND NOT rolcreatedb
+   AND NOT rolcanlogin AND NOT rolreplication AND NOT rolbypassrls
+ ),
+ 'superficie_postgres_segura',(SELECT count(*)=7
+  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles owner ON owner.oid=p.proowner
+  WHERE n.nspname IN ('public','ase_private') AND p.prosecdef AND owner.rolname='postgres'
+   AND (has_function_privilege('anon',p.oid,'EXECUTE') OR has_function_privilege('authenticated',p.oid,'EXECUTE'))
+ ) AND NOT EXISTS(
+  SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles owner ON owner.oid=p.proowner
+  WHERE n.nspname IN ('public','ase_private') AND p.prosecdef AND owner.rolname='postgres'
+   AND (has_function_privilege('anon',p.oid,'EXECUTE') OR has_function_privilege('authenticated',p.oid,'EXECUTE'))
+   AND (NOT p.oid=ANY(ARRAY['ase_private.current_org()'::regprocedure,'ase_private.session_role()'::regprocedure,'ase_private.session_user_id()'::regprocedure,'public.mt_context()'::regprocedure,'public.mt_create_organization(text,text)'::regprocedure,'public.mt_prepare_email_change(uuid,text)'::regprocedure,'public.mt_resolve_task_access(text)'::regprocedure])
+    OR NOT has_function_privilege('authenticated',p.oid,'EXECUTE')
+    OR (has_function_privilege('anon',p.oid,'EXECUTE') AND NOT p.oid=ANY(ARRAY['ase_private.session_role()'::regprocedure,'ase_private.session_user_id()'::regprocedure])))
+ ),
  'permisos_tablas_api_seguros',NOT EXISTS(
    SELECT 1 FROM information_schema.role_table_grants
    WHERE grantee='anon' AND table_schema IN ('public','storage','ase_private')

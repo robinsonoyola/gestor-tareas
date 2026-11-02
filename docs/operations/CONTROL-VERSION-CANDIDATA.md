@@ -13,6 +13,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - la lista cerrada de funciones de servicio para altas y cambios de correo;
 - depósito privado, RLS y lista cerrada de políticas para archivos y evidencias;
 - propiedad y configuración segura de todas las funciones privilegiadas;
+- rol ejecutor sin acceso directo ni privilegios elevados y lista cerrada de funciones propiedad de PostgreSQL expuestas al API;
 - ausencia de permisos directos anónimos o permisos peligrosos del API sobre tablas;
 - límite RLS propio para cada tabla que contiene datos de una empresa;
 - claves primarias en todas las tablas, restricciones validadas e índices íntegros;

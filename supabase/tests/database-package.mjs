@@ -219,6 +219,40 @@ try {
     ORDER BY r.rolname
   `)
   if (JSON.stringify(privilegedOwners.rows) !== JSON.stringify([{ owner: 'ase_tenant_executor', functions: 185 }, { owner: 'postgres', functions: 23 }])) throw new Error(`Propietarios privilegiados inesperados: ${JSON.stringify(privilegedOwners.rows)}`)
+
+  const executorRole = await db.query(`
+    SELECT NOT rolsuper AS not_superuser,
+      NOT rolcreaterole AS cannot_create_roles,
+      NOT rolcreatedb AS cannot_create_databases,
+      NOT rolcanlogin AS cannot_login,
+      NOT rolreplication AS cannot_replicate,
+      NOT rolbypassrls AS cannot_bypass_rls
+    FROM pg_roles
+    WHERE rolname='ase_tenant_executor'
+  `)
+  if (executorRole.rows.length !== 1 || !Object.values(executorRole.rows[0]).every(Boolean)) throw new Error(`El rol ejecutor conserva atributos elevados: ${JSON.stringify(executorRole.rows[0] || null)}`)
+
+  const postgresOwnedApiRoutines = await db.query(`
+    SELECT p.oid::regprocedure::text AS name,
+      has_function_privilege('anon',p.oid,'EXECUTE') AS anon,
+      has_function_privilege('authenticated',p.oid,'EXECUTE') AS authenticated
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid=p.pronamespace
+    JOIN pg_roles owner ON owner.oid=p.proowner
+    WHERE n.nspname IN ('public','ase_private') AND p.prosecdef AND owner.rolname='postgres'
+      AND (has_function_privilege('anon',p.oid,'EXECUTE') OR has_function_privilege('authenticated',p.oid,'EXECUTE'))
+    ORDER BY 1
+  `)
+  const expectedPostgresOwnedApiRoutines = [
+    { name: 'ase_private.current_org()', anon: false, authenticated: true },
+    { name: 'ase_private.session_role()', anon: true, authenticated: true },
+    { name: 'ase_private.session_user_id()', anon: true, authenticated: true },
+    { name: 'mt_context()', anon: false, authenticated: true },
+    { name: 'mt_create_organization(text,text)', anon: false, authenticated: true },
+    { name: 'mt_prepare_email_change(uuid,text)', anon: false, authenticated: true },
+    { name: 'mt_resolve_task_access(text)', anon: false, authenticated: true }
+  ]
+  if (JSON.stringify(postgresOwnedApiRoutines.rows) !== JSON.stringify(expectedPostgresOwnedApiRoutines)) throw new Error(`Superficie privilegiada de postgres inesperada: ${JSON.stringify(postgresOwnedApiRoutines.rows)}`)
   const unsafePrivilegedRoutines = await db.query(`
     SELECT p.oid::regprocedure::text AS name
     FROM pg_proc p
@@ -310,7 +344,7 @@ try {
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
+    isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, executorRoleRestricted: true, postgresOwnedApiRoutines: postgresOwnedApiRoutines.rows.length, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
   }))
 } finally {
   await db.close()
