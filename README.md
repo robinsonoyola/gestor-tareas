@@ -24,6 +24,8 @@ Los siguientes módulos empresariales no forman parte de esta entrega: ventas, f
 - Radix UI, Tailwind CSS y Lucide.
 - Pruebas PostgreSQL aisladas mediante PGlite.
 
+La compilación web fija la base ampliamente disponible de Vite 8: Safari/iOS 16.4, Chrome/Edge 111 y Firefox 114 o posteriores.
+
 ## Desarrollo local
 
 1. Instalar Node.js 20.19 o posterior compatible (22.13+ o 24+) y las dependencias con `npm install`.

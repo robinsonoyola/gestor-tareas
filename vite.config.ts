@@ -14,6 +14,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    target: 'baseline-widely-available',
     sourcemap: false,
     minify: 'terser',
     terserOptions: {
