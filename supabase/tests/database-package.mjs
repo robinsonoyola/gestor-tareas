@@ -477,12 +477,26 @@ try {
   `)
   if (unsafeTriggerFunctions.rows.length) throw new Error(`Activadores expuestos o con ruta insegura: ${JSON.stringify(unsafeTriggerFunctions.rows)}`)
 
+  const internalHelpersExposed = await db.query(`
+    SELECT helper::text AS name
+    FROM unnest(ARRAY[
+      'public.work_assert_admin()'::regprocedure,
+      'public.work_assert_permission(text)'::regprocedure,
+      'public.validate_nfc_checkin(character varying,uuid,uuid)'::regprocedure,
+      'public.work_execution_timing(uuid,timestamp with time zone)'::regprocedure,
+      'public.work_execution_eligibility(uuid,timestamp with time zone)'::regprocedure
+    ]) helper
+    WHERE has_function_privilege('anon',helper,'EXECUTE')
+       OR has_function_privilege('authenticated',helper,'EXECUTE')
+  `)
+  if (internalHelpersExposed.rows.length) throw new Error(`Ayudantes internos expuestos al navegador: ${JSON.stringify(internalHelpersExposed.rows)}`)
+
   console.log(JSON.stringify({
     passed: true,
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: { ...state, protectedBrowserOperations: true },
-    isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, executorRoleRestricted: true, unsafeRelationOwners: 0, unsafeRoleMemberships: 0, unsafeSchemaCreate: 0, unsafeSequencePrivileges: 0, unsafeTriggerFunctions: 0, authenticatedMutationTables: authenticatedMutations.rows.length, postgresOwnedApiRoutines: postgresOwnedApiRoutines.rows.length, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
+    isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, executorRoleRestricted: true, unsafeRelationOwners: 0, unsafeRoleMemberships: 0, unsafeSchemaCreate: 0, unsafeSequencePrivileges: 0, unsafeTriggerFunctions: 0, internalHelpersExposed: 0, authenticatedMutationTables: authenticatedMutations.rows.length, postgresOwnedApiRoutines: postgresOwnedApiRoutines.rows.length, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
   }))
 } finally {
   await db.close()

@@ -205,6 +205,17 @@ SELECT jsonb_build_object(
     OR has_function_privilege('authenticated',function_definition.oid,'EXECUTE')
    )
  ),
+ 'ayudantes_internos_cerrados',NOT EXISTS(
+  SELECT 1 FROM unnest(ARRAY[
+   'public.work_assert_admin()'::regprocedure,
+   'public.work_assert_permission(text)'::regprocedure,
+   'public.validate_nfc_checkin(character varying,uuid,uuid)'::regprocedure,
+   'public.work_execution_timing(uuid,timestamp with time zone)'::regprocedure,
+   'public.work_execution_eligibility(uuid,timestamp with time zone)'::regprocedure
+  ]) helper
+  WHERE has_function_privilege('anon',helper,'EXECUTE')
+     OR has_function_privilege('authenticated',helper,'EXECUTE')
+ ),
  'bucket_privado',(SELECT public IS FALSE FROM storage.buckets WHERE id='task-files'),
  'propietario_activo',EXISTS(SELECT 1 FROM public.organization_memberships WHERE role='owner' AND status='active'),
  'automatizaciones_activas',(SELECT count(*) FROM cron.job WHERE active AND jobname IN ('ase-work-recurrences','ase-work-deadline-notifications')),
