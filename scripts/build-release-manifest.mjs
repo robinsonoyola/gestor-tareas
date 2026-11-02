@@ -12,6 +12,8 @@ const operationalPaths = [
   'docs/manuals/EMPLEADO.md',
   'docs/operations/CONTROL-VERSION-CANDIDATA.md',
   'docs/operations/DESPLIEGUE-Y-RECUPERACION.md',
+  'docs/operations/NOTAS-VERSION-1.0.0-RC.1.md',
+  'docs/operations/VALIDACION-LOCAL-2026-11-02.md',
   'scripts/backup-database.ps1',
   'scripts/restore-database-test.ps1',
   'supabase/tests/verify-installed.sql',

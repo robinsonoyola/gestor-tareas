@@ -35,6 +35,8 @@ const required = [
   'docs/manuals/EMPLEADO.md',
   'docs/architecture/README.md',
   'docs/operations/DESPLIEGUE-Y-RECUPERACION.md',
+  'docs/operations/NOTAS-VERSION-1.0.0-RC.1.md',
+  'docs/operations/VALIDACION-LOCAL-2026-11-02.md',
   'supabase/tests/verify-installed.sql'
 ]
 const missing = required.filter(file => !fs.existsSync(path.join(root, file)))

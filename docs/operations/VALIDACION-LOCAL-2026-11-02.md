@@ -2,9 +2,10 @@
 
 ## Identidad comprobada
 
+- Versión: `1.0.0-rc.1`.
 - Rama: `pruebas/multitenancy-usabilidad-2026-10-22`.
-- Optimización de rutas: commit publicado `dc2e90e`.
-- Frontend SHA-256 conjunto: `DD681D39FF2B0AC911BB23E8E36BED74022FA1B061902FDDDB6248AB2D3689BE`.
+- Candidata identificada: commit publicado `3246c3c8`.
+- Frontend SHA-256 conjunto: `0889B8328A8169576B9198FF43A99524A245C7F35DD9A788EE8058814796E38D`.
 - Dirección local: `http://192.168.1.114:5174`.
 
 ## Resultado
