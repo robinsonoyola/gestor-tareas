@@ -31,6 +31,7 @@ export default class RouteErrorBoundary extends Component<Props, State> {
           >
             Recargar ASE Work
           </button>
+          <p className="mt-4 text-center text-xs text-muted-foreground">ASE Work v{import.meta.env.ASE_WORK_VERSION}</p>
         </section>
       </main>
     );

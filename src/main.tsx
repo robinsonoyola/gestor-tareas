@@ -12,6 +12,7 @@ function StartupProblem({ title, details }: { title: string; details: string[] }
         <h1 className="text-2xl font-semibold">{title}</h1>
         <p className="mt-3 text-muted-foreground">ASE Work no ha intentado conectarse. Revisa la configuración del entorno y vuelve a cargar.</p>
         {details.length > 0 && <ul className="mt-4 list-disc space-y-2 pl-5">{details.map(detail => <li key={detail}>{detail}</li>)}</ul>}
+        <p className="mt-5 text-center text-xs text-muted-foreground">ASE Work v{import.meta.env.ASE_WORK_VERSION}</p>
       </section>
     </main>
   )

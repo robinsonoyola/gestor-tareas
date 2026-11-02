@@ -160,7 +160,7 @@ export default function Login() {
             <ShieldCheck size={15} /> Tus datos viajan cifrados y protegidos
           </footer>
         </div>
-        <p className="ase-login-device-note">ASE Work · Gestión clara para equipos que avanzan</p>
+        <p className="ase-login-device-note">ASE Work v{import.meta.env.ASE_WORK_VERSION} · Gestión clara para equipos que avanzan</p>
       </section>
     </main>
   )
