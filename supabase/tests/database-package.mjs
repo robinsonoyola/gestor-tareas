@@ -175,12 +175,32 @@ try {
   const storageRls = await db.query(`SELECT c.relrowsecurity AS enabled FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='storage' AND c.relname='objects'`)
   if (storageRls.rows[0]?.enabled !== true) throw new Error('storage.objects no tiene RLS activo')
 
+  const privilegedOwners = await db.query(`
+    SELECT r.rolname AS owner,count(*)::integer AS functions
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid=p.pronamespace
+    JOIN pg_roles r ON r.oid=p.proowner
+    WHERE n.nspname IN ('public','ase_private') AND p.prosecdef
+    GROUP BY r.rolname
+    ORDER BY r.rolname
+  `)
+  if (JSON.stringify(privilegedOwners.rows) !== JSON.stringify([{ owner: 'ase_tenant_executor', functions: 185 }, { owner: 'postgres', functions: 23 }])) throw new Error(`Propietarios privilegiados inesperados: ${JSON.stringify(privilegedOwners.rows)}`)
+  const unsafePrivilegedRoutines = await db.query(`
+    SELECT p.oid::regprocedure::text AS name
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname IN ('public','ase_private') AND p.prosecdef
+      AND NOT ('search_path=""'=ANY(coalesce(p.proconfig,ARRAY[]::text[])))
+    ORDER BY 1
+  `)
+  if (unsafePrivilegedRoutines.rows.length) throw new Error(`Funciones privilegiadas sin search_path vacío: ${unsafePrivilegedRoutines.rows.map(routine => routine.name).join(', ')}`)
+
   console.log(JSON.stringify({
     passed: true,
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length }
+    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows }
   }))
 } finally {
   await db.close()

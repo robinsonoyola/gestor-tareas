@@ -58,6 +58,17 @@ SELECT jsonb_build_object(
     AND count(*) FILTER(WHERE roles&&ARRAY['anon','public']::name[])=0
    FROM pg_policies WHERE schemaname='storage' AND tablename='objects'
   ),
+ 'funciones_privilegiadas_seguras',(
+   SELECT count(*)=208
+    AND count(*) FILTER(WHERE r.rolname='ase_tenant_executor')=185
+    AND count(*) FILTER(WHERE r.rolname='postgres')=23
+    AND count(*) FILTER(WHERE r.rolname NOT IN ('ase_tenant_executor','postgres'))=0
+    AND count(*) FILTER(WHERE NOT ('search_path=""'=ANY(coalesce(p.proconfig,ARRAY[]::text[]))))=0
+   FROM pg_proc p
+   JOIN pg_namespace n ON n.oid=p.pronamespace
+   JOIN pg_roles r ON r.oid=p.proowner
+   WHERE n.nspname IN ('public','ase_private') AND p.prosecdef
+  ),
  'bucket_privado',(SELECT public IS FALSE FROM storage.buckets WHERE id='task-files'),
  'propietario_activo',EXISTS(SELECT 1 FROM public.organization_memberships WHERE role='owner' AND status='active'),
  'automatizaciones_activas',(SELECT count(*) FROM cron.job WHERE active AND jobname IN ('ase-work-recurrences','ase-work-deadline-notifications')),
