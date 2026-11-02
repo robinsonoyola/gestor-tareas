@@ -21,7 +21,14 @@ const retiredFrontend = [
   'src/pages/admin/QRGenerator.jsx',
   'src/pages/employee/TaskDetailPage.jsx',
   'src/components/auth/LoginForm.jsx',
-  'src/components/layout/Header.jsx'
+  'src/components/layout/Header.jsx',
+  'src/components/admin/TaskForm.jsx',
+  'src/components/admin/TaskCheckinMethodsConfig.tsx',
+  'src/components/ui/accordion.tsx',
+  'src/components/ui/calendar.tsx',
+  'src/components/ui/popover.tsx',
+  'src/components/ui/separator.tsx',
+  'src/components/ui/tabs.tsx'
 ]
 const restoredLegacy = retiredFrontend.filter(file => fs.existsSync(path.join(root, file)))
 if (restoredLegacy.length) throw new Error(`Se restauraron pantallas antiguas que ya no forman parte de ASE Work: ${restoredLegacy.join(', ')}`)
