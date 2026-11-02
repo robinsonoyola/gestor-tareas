@@ -19,7 +19,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 
 Un resultado apto significa que la versión candidata es internamente coherente. No acredita por sí solo el funcionamiento de servicios externos ni sustituye las pruebas manuales.
 
-El archivo `deployment/generated/release-manifest.json` identifica exactamente los recursos compilados y los paquetes asociados. Debe conservarse con la versión publicada para comprobar una entrega o preparar una vuelta atrás.
+El archivo `deployment/generated/release-manifest.json` identifica exactamente los recursos compilados, los paquetes asociados, los manuales y las utilidades de copia, restauración y verificación. Debe conservarse con la versión publicada para comprobar una entrega o preparar una vuelta atrás.
 
 ## Pruebas manuales que siguen separadas
 

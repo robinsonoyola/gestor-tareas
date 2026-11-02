@@ -265,5 +265,47 @@
       "bytes": 783,
       "sha256": "3BE1B67BE1D52957F113757C6F009B04AA430A4160B6EA700D6EDCC40FF557B6"
     }
+  ],
+  "operationalFiles": [
+    {
+      "file": "docs/manuals/ADMINISTRADOR.md",
+      "bytes": 2325,
+      "sha256": "B92975AB33C182F4595D51ED7578E61774959C5A42989B7234A0426CDCB626FC"
+    },
+    {
+      "file": "docs/manuals/ENCARGADO.md",
+      "bytes": 1747,
+      "sha256": "977997F16688B8A0A215C32859C7B8A837568B4C77145AD73B3372DE3C297200"
+    },
+    {
+      "file": "docs/manuals/EMPLEADO.md",
+      "bytes": 1470,
+      "sha256": "E6A18C939C3F06B585718C32E766E5E2495746574F1DD645FE2221BE50114EF1"
+    },
+    {
+      "file": "docs/operations/CONTROL-VERSION-CANDIDATA.md",
+      "bytes": 2088,
+      "sha256": "8DC12418BFE44F2E58D1D31F0EEB1043FEBA30D67ED5E2AFF407255F001A802F"
+    },
+    {
+      "file": "docs/operations/DESPLIEGUE-Y-RECUPERACION.md",
+      "bytes": 4678,
+      "sha256": "3BB1B955789BF1F73641A637131570DC2D4870FE086D825353D057AD91E0AC20"
+    },
+    {
+      "file": "scripts/backup-database.ps1",
+      "bytes": 1578,
+      "sha256": "E5C071701865F85C39C171D1EB3B45893185FDD1B9B945DAE4400D5D95D76C47"
+    },
+    {
+      "file": "scripts/restore-database-test.ps1",
+      "bytes": 2118,
+      "sha256": "6E05396889F7861F029AE85FDC7DA354D652154423B3D3F7495C416E446DE7EC"
+    },
+    {
+      "file": "supabase/tests/verify-installed.sql",
+      "bytes": 2720,
+      "sha256": "5A58AAE4F30FF82B95C247595B7B6F49E8FC8032447FF37774D963D545A21767"
+    }
   ]
 }
