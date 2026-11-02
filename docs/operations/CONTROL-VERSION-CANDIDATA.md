@@ -13,6 +13,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - la lista cerrada de funciones de servicio para altas y cambios de correo;
 - depósito privado, RLS y lista cerrada de políticas para archivos y evidencias;
 - propiedad y configuración segura de todas las funciones privilegiadas;
+- ausencia de permisos directos anónimos o permisos peligrosos del API sobre tablas;
 - paquetes de funciones administrativas;
 - funciones administrativas sin CORS abierto, secretos embebidos ni sesiones persistentes;
 - protecciones de copia y restauración;

@@ -195,12 +195,29 @@ try {
   `)
   if (unsafePrivilegedRoutines.rows.length) throw new Error(`Funciones privilegiadas sin search_path vacío: ${unsafePrivilegedRoutines.rows.map(routine => routine.name).join(', ')}`)
 
+  const anonymousTablePrivileges = await db.query(`
+    SELECT table_schema,table_name,privilege_type
+    FROM information_schema.role_table_grants
+    WHERE grantee='anon' AND table_schema IN ('public','storage','ase_private')
+    ORDER BY table_schema,table_name,privilege_type
+  `)
+  const dangerousApiPrivileges = await db.query(`
+    SELECT grantee,table_schema,table_name,privilege_type
+    FROM information_schema.role_table_grants
+    WHERE grantee IN ('anon','authenticated')
+      AND table_schema IN ('public','storage','ase_private')
+      AND privilege_type IN ('TRUNCATE','REFERENCES','TRIGGER')
+    ORDER BY grantee,table_schema,table_name,privilege_type
+  `)
+  if (anonymousTablePrivileges.rows.length) throw new Error(`El rol anónimo tiene permisos directos sobre tablas: ${JSON.stringify(anonymousTablePrivileges.rows)}`)
+  if (dangerousApiPrivileges.rows.length) throw new Error(`El API tiene permisos peligrosos sobre tablas: ${JSON.stringify(dangerousApiPrivileges.rows)}`)
+
   console.log(JSON.stringify({
     passed: true,
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows }
+    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0 }
   }))
 } finally {
   await db.close()

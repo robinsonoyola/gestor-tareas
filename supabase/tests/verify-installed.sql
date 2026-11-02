@@ -69,6 +69,15 @@ SELECT jsonb_build_object(
    JOIN pg_roles r ON r.oid=p.proowner
    WHERE n.nspname IN ('public','ase_private') AND p.prosecdef
   ),
+ 'permisos_tablas_api_seguros',NOT EXISTS(
+   SELECT 1 FROM information_schema.role_table_grants
+   WHERE grantee='anon' AND table_schema IN ('public','storage','ase_private')
+  ) AND NOT EXISTS(
+   SELECT 1 FROM information_schema.role_table_grants
+   WHERE grantee IN ('anon','authenticated')
+     AND table_schema IN ('public','storage','ase_private')
+     AND privilege_type IN ('TRUNCATE','REFERENCES','TRIGGER')
+  ),
  'bucket_privado',(SELECT public IS FALSE FROM storage.buckets WHERE id='task-files'),
  'propietario_activo',EXISTS(SELECT 1 FROM public.organization_memberships WHERE role='owner' AND status='active'),
  'automatizaciones_activas',(SELECT count(*) FROM cron.job WHERE active AND jobname IN ('ase-work-recurrences','ase-work-deadline-notifications')),
