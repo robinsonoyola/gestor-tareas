@@ -2,10 +2,7 @@
 let identity = null
 let organization = null
 let epoch = 0
-let mode = 'checking'
 const requests = new Set()
-export const tenantMode = () => mode === 'tenant'
-export const setTenantMode = value => { mode = value }
 export const currentOrganization = () => organization
 export function savedOrganization(userId) {
   try { return sessionStorage.getItem(`ase-organization:${userId}`) || null } catch { return null }

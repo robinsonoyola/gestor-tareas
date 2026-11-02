@@ -1,4 +1,4 @@
-import {tenantMode,currentOrganization} from '@/lib/organizationScope'
+import {currentOrganization} from '@/lib/organizationScope'
 import {MobileEmployees} from './MobileRecords'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
@@ -111,13 +111,7 @@ export default function EmployeeManager() {
   const fetchEmployees = async () => {
     try {
       setLoading(true)
-      let data
-      if(tenantMode())data=await workRpc('mt_employees')
-      else {
-        const response=await supabase.from('users').select('*').eq('is_admin',false).order('created_at',{ascending:false})
-        if(response.error)throw response.error
-        data=response.data
-      }
+      const data=await workRpc('mt_employees')
 
       setEmployees(data || [])
     } catch (error) {
@@ -216,11 +210,7 @@ export default function EmployeeManager() {
     if (!confirm) return
 
     try {
-      if(tenantMode())await workRpc('mt_delete_employee',{p_user:employeeId})
-      else {
-        const {error}=await supabase.from('users').delete().eq('id',employeeId)
-        if(error)throw error
-      }
+      await workRpc('mt_delete_employee',{p_user:employeeId})
 
       toast.success('✅ Empleado eliminado')
       fetchEmployees()

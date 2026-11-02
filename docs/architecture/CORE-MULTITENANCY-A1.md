@@ -81,6 +81,8 @@ No hay rollback automático que elimine empresas nuevas. Para recuperar un ensay
 
 ## 7. Frontend
 
+La versión candidata exige el contexto multiempresa. Si `mt_context` no existe o la base está incompleta, el acceso se detiene con un mensaje de actualización; no se activa el antiguo flujo de perfiles globales. Las altas, bajas, consulta de empleados y recuperación administrativa utilizan siempre las funciones multiempresa auditadas.
+
 El servidor devuelve las organizaciones activas de la identidad. Una sola se selecciona automáticamente; varias requieren contexto válido y permiten cambiarlo. La preferencia se guarda por identidad en sessionStorage, independiente de otras pestañas. No es autorización.
 
 El cliente envía x-ase-organization-id, pero el servidor vuelve a comprobar membresía y organización activas. La tablet usa su cliente anónimo separado y deriva la empresa de la credencial del punto; no depende de la selección del administrador.

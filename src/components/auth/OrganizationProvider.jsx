@@ -1,6 +1,6 @@
 import {createContext,useCallback,useContext,useEffect,useRef,useState} from 'react'
 import {supabase} from '@/lib/supabase'
-import {savedOrganization,setOrganizationScope,setTenantMode} from '@/lib/organizationScope'
+import {savedOrganization,setOrganizationScope} from '@/lib/organizationScope'
 
 const Context=createContext(null)
 export const useOrganization=()=>useContext(Context)
@@ -37,9 +37,7 @@ export default function OrganizationProvider({children}) {
       let result=await supabase.rpc('mt_context')
       if(!alive.current||request!==generation.current)return null
       if(['PGRST202','42883'].includes(result.error?.code)) {
-        setTenantMode('legacy')
-        setState(previous=>({...previous,mode:'legacy',user,loading:false}))
-        return {legacy:true}
+        throw new Error('Falta actualizar la base de datos multiempresa de ASE Work.')
       }
       if(result.error)throw result.error
       const list=result.data?.organizations || []
@@ -53,7 +51,6 @@ export default function OrganizationProvider({children}) {
       if(!alive.current||request!==generation.current)return null
       selected=result.data.active_organization_id
       setOrganizationScope(user.id,selected)
-      setTenantMode('tenant')
       let permissions={permissions:[],role:null}
       if(selected) {
         step='los permisos'
@@ -68,7 +65,8 @@ export default function OrganizationProvider({children}) {
       return next
     } catch(error) {
       if(alive.current && request===generation.current) {
-        setState(previous=>({...previous,mode:'tenant',loading:false,error:'No se pudo verificar la empresa y sus permisos. Vuelve a intentarlo.',userData:null,permissions:[],activeOrganizationId:null}))
+        const missing=String(error?.message||'').includes('Falta actualizar la base de datos')
+        setState(previous=>({...previous,mode:'tenant',loading:false,error:missing?error.message:'No se pudo verificar la empresa y sus permisos. Vuelve a intentarlo.',userData:null,permissions:[],activeOrganizationId:null}))
       }
       throw error
     } finally {clearTimeout(deadline)}

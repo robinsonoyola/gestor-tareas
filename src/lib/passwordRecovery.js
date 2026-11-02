@@ -1,4 +1,3 @@
-import {tenantMode} from './organizationScope'
 import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
@@ -13,25 +12,10 @@ export async function requestPasswordReset(email) {
 }
 
 export async function requestEmployeePasswordReset(employeeId) {
-  if(tenantMode()){
-    const {data:email,error}=await supabase.rpc('mt_employee_reset_target',{p_user:employeeId})
-    if(error||!email)throw new Error('No se pudo comprobar el empleado en esta empresa.')
-    await requestPasswordReset(email)
-    return email
-  }
-
-  const { data: identity, error: authError } = await supabase.auth.getUser()
-  if (authError || !identity?.user) throw new Error('Inicia sesión como administrador.')
-  const { data: actor, error: actorError } = await supabase.from('users')
-    .select('is_admin').eq('id', identity.user.id).single()
-  if (actorError || actor?.is_admin !== true) throw new Error('Solo administradores pueden usar esta opción.')
-  const { data: employee, error: employeeError } = await supabase.from('users')
-    .select('id, email, is_admin').eq('id', employeeId).single()
-  if (employeeError || !employee?.email || employee.is_admin !== false) {
-    throw new Error('No se pudo comprobar el empleado y su email guardado.')
-  }
-  await requestPasswordReset(employee.email)
-  return employee.email
+  const {data:email,error}=await supabase.rpc('mt_employee_reset_target',{p_user:employeeId})
+  if(error||!email)throw new Error('No se pudo comprobar el empleado en esta empresa.')
+  await requestPasswordReset(email)
+  return email
 }
 
 export function recoveryCredentials(href) {

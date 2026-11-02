@@ -33,6 +33,11 @@ const retiredFrontend = [
 const restoredLegacy = retiredFrontend.filter(file => fs.existsSync(path.join(root, file)))
 if (restoredLegacy.length) throw new Error(`Se restauraron pantallas antiguas que ya no forman parte de ASE Work: ${restoredLegacy.join(', ')}`)
 
+const activeSource = sourceFiles(path.join(root, 'src')).map(file => fs.readFileSync(file, 'utf8')).join('\n')
+for (const marker of ['useLegacyAuth', "mode==='legacy'", 'tenantMode()']) {
+  if (activeSource.includes(marker)) throw new Error(`El frontend conserva una ruta heredada no segura: ${marker}`)
+}
+
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8')
 for (const marker of ['name="description"', 'name="theme-color"', 'name="mobile-web-app-capable"', 'name="apple-mobile-web-app-capable"', 'name="apple-mobile-web-app-title"', '/ase-icon.svg']) {
   if (!html.includes(marker)) throw new Error(`El documento inicial no incluye ${marker}`)
