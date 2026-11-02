@@ -12,8 +12,11 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - protecciones de copia y restauración;
 - exportaciones CSV y Excel;
 - compilación final del frontend.
+- manifiesto SHA-256 del frontend, base de datos y funciones que forman la entrega.
 
 Un resultado apto significa que la versión candidata es internamente coherente. No acredita por sí solo el funcionamiento de servicios externos ni sustituye las pruebas manuales.
+
+El archivo `deployment/generated/release-manifest.json` identifica exactamente los recursos compilados y los paquetes asociados. Debe conservarse con la versión publicada para comprobar una entrega o preparar una vuelta atrás.
 
 ## Pruebas manuales que siguen separadas
 

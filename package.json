@@ -14,6 +14,7 @@
     "package:functions": "node scripts/build-edge-package.mjs",
     "test:functions-package": "node scripts/build-edge-package.mjs --check",
     "test:operations-package": "node tests/operations-package.mjs",
+    "package:release": "npm run build && node scripts/build-release-manifest.mjs",
     "test:release": "node scripts/verify-release.mjs"
   },
   "dependencies": {

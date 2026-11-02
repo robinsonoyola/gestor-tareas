@@ -1,0 +1,54 @@
+{
+  "format": 1,
+  "component": "ase-work-task-manager-candidate",
+  "databaseManifestSha256": "098F0C4247B484D58E09FA0492C8F323BA0D2AD743D40B372D163E7FD55FAFFC",
+  "functionsManifestSha256": "B46B4783F5D4E2CA438287C1B71F485FA071E86FF5B39F5E137044AC9A6753B8",
+  "frontendSha256": "01F422D898CDD29E9761E1DD3380019BFBAAA12E6EBDE50168A4D6563B4AAAEE",
+  "frontendFiles": [
+    {
+      "file": "_redirects",
+      "bytes": 61,
+      "sha256": "A8ACBEC4C7F88E93E3CCCC9CED7FEFC98377F459546CB60E2C125E2D27BA79D1"
+    },
+    {
+      "file": "ase-icon.svg",
+      "bytes": 22166,
+      "sha256": "D7224533F86688A16C36EF37D878C81B0B320BEDE5AE0B182BEF3025550986B9"
+    },
+    {
+      "file": "assets/index-CNQZYXYu.css",
+      "bytes": 109507,
+      "sha256": "1C6C9327DD5BDA2A4EAAD82E00F63EDE8378084946FCBC97B3625C2D28E5B9CC"
+    },
+    {
+      "file": "assets/index-DQMduXfx.js",
+      "bytes": 687956,
+      "sha256": "0B683801EB38126461551C5C1B107EAC9423F2D3978122EABDA27B4B3AE9B160"
+    },
+    {
+      "file": "assets/react-vendor-tJzoQgdt.js",
+      "bytes": 176031,
+      "sha256": "89CC0DF8146E9714B9C5DC2002BD6D46AC1D9A2F1122D49004D07C69DC74B4D5"
+    },
+    {
+      "file": "assets/supabase-vendor-AHrORlhy.js",
+      "bytes": 183811,
+      "sha256": "CA1F1010C0D49B108D0C82FB20CC32702B408BC31282370B2949BAE2BCA07576"
+    },
+    {
+      "file": "assets/ui-vendor-DNzhDXt1.js",
+      "bytes": 63001,
+      "sha256": "AB296E1B58F79D39DE8309281AAE2A746E067E0E1243FDF037A90F236ECB056B"
+    },
+    {
+      "file": "index.html",
+      "bytes": 708,
+      "sha256": "4A6703CBED5018462E68D94EDF8633CE2FE1D4B17F47891B1AA856561EE4D574"
+    },
+    {
+      "file": "vite.svg",
+      "bytes": 1497,
+      "sha256": "4A748AFD443918BB16591C834C401DAE33E87861AB5DBAD0811C3A3B4A9214FB"
+    }
+  ]
+}
