@@ -10,6 +10,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - las 68 migraciones y una instalación nueva aislada;
 - paquetes de funciones administrativas;
 - protecciones de copia y restauración;
+- rutas esenciales, menús y carga diferida de pantallas;
 - exportaciones CSV y Excel;
 - compilación final del frontend.
 - manifiesto SHA-256 del frontend, base de datos y funciones que forman la entrega.

@@ -50,6 +50,7 @@ run('Paquete e instalación de base de datos', process.execPath, ['supabase/test
 run('Funciones administrativas', process.execPath, ['scripts/build-edge-package.mjs'])
 run('Copias y restauración', process.execPath, ['tests/operations-package.mjs'])
 run('Recuperación de pantallas', process.execPath, ['tests/route-recovery.mjs'])
+run('Integridad de navegación', process.execPath, ['tests/navigation-integrity.mjs'])
 run('Hosting y caché', process.execPath, ['tests/hosting-config.mjs'])
 run('Configuración pública del frontend', process.execPath, ['tests/runtime-config.mjs'])
 run('Higiene del frontend', process.execPath, ['tests/frontend-hygiene.mjs'])
