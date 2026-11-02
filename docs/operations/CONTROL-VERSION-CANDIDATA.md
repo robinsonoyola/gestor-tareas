@@ -7,6 +7,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - ausencia de copias, claves y archivos de entorno rastreados por Git;
 - entregables de instalación, automatización, diagnóstico, funciones y manuales;
 - aislamiento multiempresa sintético;
+- migraciones transaccionales, sin permisos públicos, referencias de producción ni funciones privilegiadas inseguras;
 - las 68 migraciones y una instalación nueva aislada;
 - paquetes de funciones administrativas;
 - funciones administrativas sin CORS abierto, secretos embebidos ni sesiones persistentes;

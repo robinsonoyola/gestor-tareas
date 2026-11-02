@@ -46,6 +46,7 @@ for (const marker of ['work_task_archive_events', 'work_planning_assignments(uui
 }
 
 run('Seguridad multiempresa sintética', process.execPath, ['supabase/tests/security.mjs'])
+run('Higiene de migraciones SQL', process.execPath, ['tests/migration-hygiene.mjs'])
 run('Generación del paquete de base de datos', process.execPath, ['scripts/build-database-package.mjs'])
 run('Paquete e instalación de base de datos', process.execPath, ['supabase/tests/database-package.mjs'])
 run('Funciones administrativas', process.execPath, ['scripts/build-edge-package.mjs'])
