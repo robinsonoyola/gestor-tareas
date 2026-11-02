@@ -7990,4 +7990,12 @@ WHERE NOT EXISTS(
 ON CONFLICT(task_id) DO NOTHING;
 
 NOTIFY pgrst,'reload schema';
+
+-- ==== 20261102001400_close_trigger_api_execution.sql ====
+-- ASE Work: trigger functions are internal database machinery, never browser RPCs.
+
+REVOKE ALL ON FUNCTION public.work_guard_required_result() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.work_guard_required_result() TO ase_tenant_executor;
+
+NOTIFY pgrst,'reload schema';
 COMMIT;

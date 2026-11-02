@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const directory = path.join(root, 'supabase', 'migrations')
 const files = fs.readdirSync(directory).filter(file => file.endsWith('.sql')).sort()
-if (files.length !== 77 || files.some(file => !/^\d{14}_[a-z0-9_]+\.sql$/.test(file))) throw new Error('El inventario o nombre de las migraciones no es el esperado')
+if (files.length !== 78 || files.some(file => !/^\d{14}_[a-z0-9_]+\.sql$/.test(file))) throw new Error('El inventario o nombre de las migraciones no es el esperado')
 
 let privilegedFunctions = 0
 for (const file of files) {

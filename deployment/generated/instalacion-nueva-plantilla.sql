@@ -11392,5 +11392,13 @@ WHERE NOT EXISTS(
 ON CONFLICT(task_id) DO NOTHING;
 
 NOTIFY pgrst,'reload schema';
+
+-- ==== 20261102001400_close_trigger_api_execution.sql ====
+-- ASE Work: trigger functions are internal database machinery, never browser RPCs.
+
+REVOKE ALL ON FUNCTION public.work_guard_required_result() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.work_guard_required_result() TO ase_tenant_executor;
+
+NOTIFY pgrst,'reload schema';
 DO $finish$ DECLARE c ase_install_config%ROWTYPE; owner_id uuid; org_id uuid; BEGIN SELECT * INTO c FROM ase_install_config; SELECT id INTO STRICT owner_id FROM auth.users WHERE lower(email)=lower(c.owner_email); SELECT organization_id INTO STRICT org_id FROM public.organization_memberships WHERE user_id=owner_id AND status='active'; UPDATE public.organization_memberships SET role='owner' WHERE organization_id=org_id AND user_id=owner_id; UPDATE public.organizations SET name=c.company_name,slug=c.company_slug WHERE id=org_id; END $finish$;
 COMMIT;

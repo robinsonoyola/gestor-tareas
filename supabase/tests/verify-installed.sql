@@ -191,6 +191,20 @@ SELECT jsonb_build_object(
      AND NOT EXISTS(SELECT 1 FROM generate_subscripts(c.conkey,1) position WHERE i.indkey[position-1]<>c.conkey[position])
    )
  ),
+ 'activadores_seguros',NOT EXISTS(
+  SELECT 1
+  FROM pg_trigger trigger_definition
+  JOIN pg_class relation ON relation.oid=trigger_definition.tgrelid
+  JOIN pg_namespace relation_schema ON relation_schema.oid=relation.relnamespace
+  JOIN pg_proc function_definition ON function_definition.oid=trigger_definition.tgfoid
+  WHERE NOT trigger_definition.tgisinternal
+   AND relation_schema.nspname IN ('public','ase_private')
+   AND (
+    NOT ('search_path=""'=ANY(coalesce(function_definition.proconfig,ARRAY[]::text[])))
+    OR has_function_privilege('anon',function_definition.oid,'EXECUTE')
+    OR has_function_privilege('authenticated',function_definition.oid,'EXECUTE')
+   )
+ ),
  'bucket_privado',(SELECT public IS FALSE FROM storage.buckets WHERE id='task-files'),
  'propietario_activo',EXISTS(SELECT 1 FROM public.organization_memberships WHERE role='owner' AND status='active'),
  'automatizaciones_activas',(SELECT count(*) FROM cron.job WHERE active AND jobname IN ('ase-work-recurrences','ase-work-deadline-notifications')),

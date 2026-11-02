@@ -459,12 +459,30 @@ try {
   `)
   if (foreignKeysWithoutIndex.rows.length) throw new Error(`Claves foráneas sin índice de apoyo: ${foreignKeysWithoutIndex.rows.map(item => `${item.source_table}.${item.constraint_name}`).join(', ')}`)
 
+  const unsafeTriggerFunctions = await db.query(`
+    SELECT DISTINCT function_schema.nspname AS schema_name,function_definition.proname AS function_name
+    FROM pg_trigger trigger_definition
+    JOIN pg_class relation ON relation.oid=trigger_definition.tgrelid
+    JOIN pg_namespace relation_schema ON relation_schema.oid=relation.relnamespace
+    JOIN pg_proc function_definition ON function_definition.oid=trigger_definition.tgfoid
+    JOIN pg_namespace function_schema ON function_schema.oid=function_definition.pronamespace
+    WHERE NOT trigger_definition.tgisinternal
+      AND relation_schema.nspname IN ('public','ase_private')
+      AND (
+        NOT ('search_path=""'=ANY(coalesce(function_definition.proconfig,ARRAY[]::text[])))
+        OR has_function_privilege('anon',function_definition.oid,'EXECUTE')
+        OR has_function_privilege('authenticated',function_definition.oid,'EXECUTE')
+      )
+    ORDER BY function_schema.nspname,function_definition.proname
+  `)
+  if (unsafeTriggerFunctions.rows.length) throw new Error(`Activadores expuestos o con ruta insegura: ${JSON.stringify(unsafeTriggerFunctions.rows)}`)
+
   console.log(JSON.stringify({
     passed: true,
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: { ...state, protectedBrowserOperations: true },
-    isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, executorRoleRestricted: true, unsafeRelationOwners: 0, unsafeRoleMemberships: 0, unsafeSchemaCreate: 0, unsafeSequencePrivileges: 0, authenticatedMutationTables: authenticatedMutations.rows.length, postgresOwnedApiRoutines: postgresOwnedApiRoutines.rows.length, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
+    isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, executorRoleRestricted: true, unsafeRelationOwners: 0, unsafeRoleMemberships: 0, unsafeSchemaCreate: 0, unsafeSequencePrivileges: 0, unsafeTriggerFunctions: 0, authenticatedMutationTables: authenticatedMutations.rows.length, postgresOwnedApiRoutines: postgresOwnedApiRoutines.rows.length, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
   }))
 } finally {
   await db.close()
