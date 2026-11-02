@@ -55,6 +55,8 @@ Si la transacción SQL falla antes de `COMMIT`, no continuar con fragmentos: cor
 
 Recoger fecha, entorno, organización técnica, ruta, código de error y un identificador de operación. No pedir contraseñas, JWT, service_role, contenido de archivos laborales ni volcados completos de clientes para resolver un problema ordinario.
 
+Ejecutar `deployment/generated/comprobar-salud.sql` en el editor SQL del entorno afectado. Este diagnóstico solo devuelve contadores y estados técnicos. Permite revisar las dos automatizaciones, sus fallos durante las últimas 24 horas, recurrencias con error, fichajes abiertos durante más de 24 horas, empresas sin propietario y la configuración privada del almacenamiento.
+
 ## Prueba de humo posterior
 
 - Login y selección de empresa.

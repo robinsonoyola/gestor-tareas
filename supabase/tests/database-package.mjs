@@ -68,8 +68,10 @@ try {
   const template = fs.readFileSync(`${root}deployment/generated/instalacion-nueva-plantilla.sql`, 'utf8')
   const automation = fs.readFileSync(`${root}deployment/generated/activar-automatizaciones.sql`, 'utf8')
   const verification = fs.readFileSync(`${root}deployment/generated/verificar-instalacion.sql`, 'utf8')
+  const healthCheck = fs.readFileSync(`${root}deployment/generated/comprobar-salud.sql`, 'utf8')
   if (!automation.includes("ase-work-recurrences") || !automation.includes("ase-work-deadline-notifications") || !automation.includes('cron.unschedule')) throw new Error('Paquete de automatización incompleto')
   if (!verification.includes("'ASE Work listo'") || !verification.includes('Automatizaciones horarias incompletas')) throw new Error('Verificador alojado incompleto')
+  if (!healthCheck.includes("'fichajes_abiertos_mas_24h'") || !healthCheck.includes("'recurrencias_con_error'") || !healthCheck.includes("'fallos_24h'") || !healthCheck.includes('No muestra nombres, correos, títulos ni contenido')) throw new Error('Diagnóstico operativo incompleto')
   const configured = template
     .replaceAll('__ASE_OWNER_EMAIL__', 'owner@example.test')
     .replaceAll('__ASE_COMPANY_NAME__', 'Empresa Nueva')
