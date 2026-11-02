@@ -10,10 +10,6 @@ export default defineConfig([
     'dist',
     'deployment/generated',
     'supabase/tests/*-results.json',
-    'src/App.js',
-    'src/pages/QRGenerator.jsx',
-    'src/components/auth/LoginForm.jsx',
-    'src/components/layout/Header.jsx',
     'src/components/ui/*.d.ts',
   ]),
   {

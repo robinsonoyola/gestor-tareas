@@ -15,6 +15,17 @@ const debug = sourceFiles(path.join(root, 'src')).filter(file => /console\.(log|
 if (debug.length) throw new Error(`Quedan registros de depuración: ${debug.map(file => path.relative(root, file)).join(', ')}`)
 if (fs.existsSync(path.join(root, 'public', 'vite.svg')) || fs.existsSync(path.join(root, 'src', 'assets', 'react.svg'))) throw new Error('Quedan recursos de plantilla sin usar')
 
+const retiredFrontend = [
+  'src/App.js',
+  'src/pages/QRGenerator.jsx',
+  'src/pages/admin/QRGenerator.jsx',
+  'src/pages/employee/TaskDetailPage.jsx',
+  'src/components/auth/LoginForm.jsx',
+  'src/components/layout/Header.jsx'
+]
+const restoredLegacy = retiredFrontend.filter(file => fs.existsSync(path.join(root, file)))
+if (restoredLegacy.length) throw new Error(`Se restauraron pantallas antiguas que ya no forman parte de ASE Work: ${restoredLegacy.join(', ')}`)
+
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8')
 for (const marker of ['name="description"', 'name="theme-color"', '/ase-icon.svg']) {
   if (!html.includes(marker)) throw new Error(`El documento inicial no incluye ${marker}`)
@@ -24,4 +35,4 @@ if (html.includes('<link href="/src/index.css"')) throw new Error('El CSS se est
 const vite = fs.readFileSync(path.join(root, 'vite.config.ts'), 'utf8')
 if (!vite.includes("drop: ['console', 'debugger']")) throw new Error('La compilación comercial conserva registros de consola')
 
-console.log(JSON.stringify({ passed: true, debugLogs: 0, productionConsole: false, unusedTemplateAssets: 0, metadata: true }))
+console.log(JSON.stringify({ passed: true, debugLogs: 0, productionConsole: false, unusedTemplateAssets: 0, retiredFrontend: retiredFrontend.length, metadata: true }))
