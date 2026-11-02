@@ -1,11 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { normalizeRecoveryEmail, recoveryCredentials, validateRecoveryPassword } from '@/lib/passwordRecoveryValidation'
+
+export { recoveryCredentials, validateRecoveryPassword }
 
 export async function requestPasswordReset(email) {
-  const normalizedEmail = String(email || '').trim().toLowerCase()
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) || normalizedEmail.length > 254) {
-    throw new Error('Introduce un email válido.')
-  }
+  const normalizedEmail = normalizeRecoveryEmail(email)
   const redirectTo = new URL('/reset-password', window.location.origin).href
   const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo })
   if (error) throw error
@@ -16,21 +16,6 @@ export async function requestEmployeePasswordReset(employeeId) {
   if(error||!email)throw new Error('No se pudo comprobar el empleado en esta empresa.')
   await requestPasswordReset(email)
   return email
-}
-
-export function recoveryCredentials(href) {
-  const url = new URL(href)
-  const hash = new URLSearchParams(url.hash.slice(1))
-  if (url.searchParams.has('error') || hash.has('error') || hash.has('error_code')) {
-    throw new Error('El enlace no es válido o ha expirado. Solicita uno nuevo.')
-  }
-  if (url.searchParams.get('type') === 'recovery' && url.searchParams.get('token_hash')) {
-    return { tokenHash: url.searchParams.get('token_hash') }
-  }
-  if (hash.get('type') === 'recovery' && hash.get('access_token') && hash.get('refresh_token')) {
-    return { accessToken: hash.get('access_token'), refreshToken: hash.get('refresh_token') }
-  }
-  throw new Error('Abre el enlace completo del correo de recuperación. Esta página por sí sola no permite cambiar la contraseña.')
 }
 
 export async function initializePasswordRecovery(href) {
@@ -48,7 +33,3 @@ export async function initializePasswordRecovery(href) {
   return { client, user: result.data.user }
 }
 
-export function validateRecoveryPassword(password, confirmation) {
-  if (password.length < 8) throw new Error('Usa una contraseña de al menos 8 caracteres.')
-  if (password !== confirmation) throw new Error('Las contraseñas no coinciden.')
-}

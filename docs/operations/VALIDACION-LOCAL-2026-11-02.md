@@ -5,7 +5,7 @@
 - Versión: `1.0.0-rc.1`.
 - Rama: `pruebas/multitenancy-usabilidad-2026-10-22`.
 - Candidata identificada: commit publicado `3246c3c8`.
-- Frontend SHA-256 conjunto: `A13FF4AAC0730E87965A12B37CFFB3C2CFE45AD19D30BE4209539D15E592944E`.
+- Frontend SHA-256 conjunto: `EA461B3A5FCB5768F1927C996AA305910366156CE5DA814FD86638D3172D8CC6`.
 - Dirección local: `http://192.168.1.114:5174`.
 
 ## Resultado
