@@ -11252,5 +11252,17 @@ BEGIN
   );
  END LOOP;
 END $indexes$;
+
+-- ==== 20261102001000_secure_default_privileges.sql ====
+-- ASE Work: future functions start private instead of executable by PUBLIC.
+
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+ REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA ase_private
+ REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES FOR ROLE ase_tenant_executor IN SCHEMA public
+ REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES FOR ROLE ase_tenant_executor IN SCHEMA ase_private
+ REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 DO $finish$ DECLARE c ase_install_config%ROWTYPE; owner_id uuid; org_id uuid; BEGIN SELECT * INTO c FROM ase_install_config; SELECT id INTO STRICT owner_id FROM auth.users WHERE lower(email)=lower(c.owner_email); SELECT organization_id INTO STRICT org_id FROM public.organization_memberships WHERE user_id=owner_id AND status='active'; UPDATE public.organization_memberships SET role='owner' WHERE organization_id=org_id AND user_id=owner_id; UPDATE public.organizations SET name=c.company_name,slug=c.company_slug WHERE id=org_id; END $finish$;
 COMMIT;

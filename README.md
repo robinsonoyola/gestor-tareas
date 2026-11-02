@@ -42,7 +42,7 @@ Ejecutar:
 npm run test:release
 ```
 
-Este control valida seguridad multiempresa sintética, las 73 migraciones, aislamiento de tablas, funciones y esquema privado, instalación nueva, funciones administrativas, recuperación, exportaciones y compilación. Las pruebas reales aplazadas se enumeran en `docs/operations/CONTROL-VERSION-CANDIDATA.md`.
+Este control valida seguridad multiempresa sintética, las 74 migraciones, aislamiento de tablas, funciones y esquema privado, instalación nueva, funciones administrativas, recuperación, exportaciones y compilación. Las pruebas reales aplazadas se enumeran en `docs/operations/CONTROL-VERSION-CANDIDATA.md`.
 
 ## Instalación y operación
 

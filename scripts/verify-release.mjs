@@ -41,7 +41,7 @@ const missing = required.filter(file => !fs.existsSync(path.join(root, file)))
 if (missing.length) throw new Error(`Faltan entregables de la versión: ${missing.join(', ')}`)
 
 const hostedVerification = fs.readFileSync(path.join(root, 'supabase/tests/verify-installed.sql'), 'utf8')
-for (const marker of ['work_task_archive_events', 'work_planning_assignments(uuid)', 'automatizaciones_activas', 'empresas_sin_propietario', 'esquema_privado_seguro', 'superficie_anonima_segura', 'superficie_servicio_segura', 'almacenamiento_rls_seguro', 'funciones_privilegiadas_seguras', 'rol_ejecutor_restringido', 'propiedad_relaciones_segura', 'membresias_roles_seguras', 'esquemas_y_secuencias_seguros', 'superficie_postgres_segura', 'permisos_tablas_api_seguros', 'limites_empresa_completos', 'estructura_tablas_valida', 'integridad_relacional_empresa', 'indices_claves_foraneas', 'TRANSACTION READ ONLY']) {
+for (const marker of ['work_task_archive_events', 'work_planning_assignments(uuid)', 'automatizaciones_activas', 'empresas_sin_propietario', 'esquema_privado_seguro', 'superficie_anonima_segura', 'superficie_servicio_segura', 'almacenamiento_rls_seguro', 'funciones_privilegiadas_seguras', 'rol_ejecutor_restringido', 'propiedad_relaciones_segura', 'membresias_roles_seguras', 'esquemas_y_secuencias_seguros', 'privilegios_predeterminados_seguros', 'superficie_postgres_segura', 'permisos_tablas_api_seguros', 'limites_empresa_completos', 'estructura_tablas_valida', 'integridad_relacional_empresa', 'indices_claves_foraneas', 'TRANSACTION READ ONLY']) {
   if (!hostedVerification.includes(marker)) throw new Error(`La verificación alojada no incluye ${marker}`)
 }
 

@@ -98,6 +98,20 @@ SELECT jsonb_build_object(
   WHERE grantee IN ('anon','authenticated') AND object_type='SEQUENCE'
    AND object_schema IN ('public','ase_private','storage')
  ),
+ 'privilegios_predeterminados_seguros',(SELECT count(*)=4
+  FROM pg_default_acl default_acl
+  JOIN pg_roles owner ON owner.oid=default_acl.defaclrole
+  JOIN pg_namespace n ON n.oid=default_acl.defaclnamespace
+  WHERE default_acl.defaclobjtype='f' AND owner.rolname IN ('postgres','ase_tenant_executor')
+   AND n.nspname IN ('public','ase_private')
+ ) AND NOT EXISTS(
+  SELECT 1 FROM pg_default_acl default_acl
+  JOIN pg_roles owner ON owner.oid=default_acl.defaclrole
+  JOIN pg_namespace n ON n.oid=default_acl.defaclnamespace
+  CROSS JOIN LATERAL aclexplode(default_acl.defaclacl) permission
+  WHERE default_acl.defaclobjtype='f' AND owner.rolname IN ('postgres','ase_tenant_executor')
+   AND n.nspname IN ('public','ase_private') AND permission.grantee=0 AND permission.privilege_type='EXECUTE'
+ ),
  'superficie_postgres_segura',(SELECT count(*)=7
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles owner ON owner.oid=p.proowner
   WHERE n.nspname IN ('public','ase_private') AND p.prosecdef AND owner.rolname='postgres'
