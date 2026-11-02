@@ -48,17 +48,11 @@ export default function TaskCheckinMethodsConfig() {
         .select('id, title, description, archived_at')
         .is('archived_at', null)
 
-      console.log('📋 Tareas obtenidas:', tasksData)
-      console.log('❌ Error tareas:', tasksError)
-
       if (tasksError) throw tasksError
 
       const { data: configsData, error: configsError } = await supabase
         .from('task_checkin_config')
         .select('*')
-
-      console.log('⚙️ Configs obtenidas:', configsData)
-      console.log('❌ Error configs:', configsError)
 
       if (configsError) throw configsError
 
@@ -74,8 +68,8 @@ export default function TaskCheckinMethodsConfig() {
       })
       setConfigs(configsMap)
 
-    } catch (error) {
-      console.error('❌ Error completo:', error)
+    } catch {
+      console.error('ASE Work no pudo cargar la configuración de fichaje')
       toast.error('Error al cargar configuración')
     } finally {
       setLoading(false)

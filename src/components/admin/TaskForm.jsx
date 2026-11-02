@@ -72,7 +72,6 @@ export default function TaskForm({
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    console.log('📤 Enviando datos del formulario:', formData)
     onSubmit(formData)
   }
 

@@ -52,6 +52,7 @@ run('Copias y restauración', process.execPath, ['tests/operations-package.mjs']
 run('Recuperación de pantallas', process.execPath, ['tests/route-recovery.mjs'])
 run('Hosting y caché', process.execPath, ['tests/hosting-config.mjs'])
 run('Configuración pública del frontend', process.execPath, ['tests/runtime-config.mjs'])
+run('Higiene del frontend', process.execPath, ['tests/frontend-hygiene.mjs'])
 run('Exportaciones e informes', process.execPath, ['tests/report-export.mjs'])
 run('Compilación del frontend', process.execPath, ['node_modules/vite/bin/vite.js', 'build'])
 run('Manifiesto de la entrega', process.execPath, ['scripts/build-release-manifest.mjs'])
