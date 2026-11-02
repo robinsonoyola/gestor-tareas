@@ -212,12 +212,26 @@ try {
   if (anonymousTablePrivileges.rows.length) throw new Error(`El rol anónimo tiene permisos directos sobre tablas: ${JSON.stringify(anonymousTablePrivileges.rows)}`)
   if (dangerousApiPrivileges.rows.length) throw new Error(`El API tiene permisos peligrosos sobre tablas: ${JSON.stringify(dangerousApiPrivileges.rows)}`)
 
+  const tenantBoundaries = await db.query(`
+    SELECT c.table_name,
+      EXISTS(
+        SELECT 1 FROM pg_policies p
+        WHERE p.schemaname='public' AND p.tablename=c.table_name
+          AND (coalesce(p.qual,'') LIKE '%current_org()%' OR coalesce(p.with_check,'') LIKE '%current_org()%')
+      ) AS protected
+    FROM information_schema.columns c
+    WHERE c.table_schema='public' AND c.column_name='organization_id'
+    ORDER BY c.table_name
+  `)
+  const unprotectedTenantTables = tenantBoundaries.rows.filter(table => !table.protected).map(table => table.table_name)
+  if (unprotectedTenantTables.length) throw new Error(`Tablas sin límite de empresa propio: ${unprotectedTenantTables.join(', ')}`)
+
   console.log(JSON.stringify({
     passed: true,
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0 }
+    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0 }
   }))
 } finally {
   await db.close()

@@ -11135,5 +11135,34 @@ GRANT EXECUTE ON FUNCTION ase_private.session_user_id(),ase_private.session_role
  TO anon,authenticated,ase_tenant_executor;
 
 NOTIFY pgrst,'reload schema';
+
+-- ==== 20261102000700_complete_tenant_boundaries.sql ====
+-- ASE Work: every organization-owned relation has its own tenant boundary.
+
+DROP POLICY IF EXISTS work_task_templates_executor ON public.work_task_templates;
+CREATE POLICY work_task_templates_executor ON public.work_task_templates TO ase_tenant_executor
+ USING(organization_id=ase_private.current_org()) WITH CHECK(organization_id=ase_private.current_org());
+
+DROP POLICY IF EXISTS work_task_template_events_executor ON public.work_task_template_events;
+CREATE POLICY work_task_template_events_executor ON public.work_task_template_events TO ase_tenant_executor
+ USING(organization_id=ase_private.current_org()) WITH CHECK(organization_id=ase_private.current_org());
+
+DROP POLICY IF EXISTS work_task_subtasks_executor ON public.work_task_subtasks;
+CREATE POLICY work_task_subtasks_executor ON public.work_task_subtasks TO ase_tenant_executor
+ USING(organization_id=ase_private.current_org()) WITH CHECK(organization_id=ase_private.current_org());
+
+DROP POLICY IF EXISTS work_task_subtask_events_executor ON public.work_task_subtask_events;
+CREATE POLICY work_task_subtask_events_executor ON public.work_task_subtask_events TO ase_tenant_executor
+ USING(organization_id=ase_private.current_org()) WITH CHECK(organization_id=ase_private.current_org());
+
+DROP POLICY IF EXISTS work_task_dependencies_executor ON public.work_task_dependencies;
+CREATE POLICY work_task_dependencies_executor ON public.work_task_dependencies TO ase_tenant_executor
+ USING(organization_id=ase_private.current_org()) WITH CHECK(organization_id=ase_private.current_org());
+
+DROP POLICY IF EXISTS work_task_dependency_events_executor ON public.work_task_dependency_events;
+CREATE POLICY work_task_dependency_events_executor ON public.work_task_dependency_events TO ase_tenant_executor
+ USING(organization_id=ase_private.current_org()) WITH CHECK(organization_id=ase_private.current_org());
+
+NOTIFY pgrst,'reload schema';
 DO $finish$ DECLARE c ase_install_config%ROWTYPE; owner_id uuid; org_id uuid; BEGIN SELECT * INTO c FROM ase_install_config; SELECT id INTO STRICT owner_id FROM auth.users WHERE lower(email)=lower(c.owner_email); SELECT organization_id INTO STRICT org_id FROM public.organization_memberships WHERE user_id=owner_id AND status='active'; UPDATE public.organization_memberships SET role='owner' WHERE organization_id=org_id AND user_id=owner_id; UPDATE public.organizations SET name=c.company_name,slug=c.company_slug WHERE id=org_id; END $finish$;
 COMMIT;

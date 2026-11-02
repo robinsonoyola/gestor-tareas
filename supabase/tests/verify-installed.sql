@@ -78,6 +78,15 @@ SELECT jsonb_build_object(
      AND table_schema IN ('public','storage','ase_private')
      AND privilege_type IN ('TRUNCATE','REFERENCES','TRIGGER')
   ),
+ 'limites_empresa_completos',NOT EXISTS(
+   SELECT 1 FROM information_schema.columns c
+   WHERE c.table_schema='public' AND c.column_name='organization_id'
+     AND NOT EXISTS(
+      SELECT 1 FROM pg_policies p
+      WHERE p.schemaname='public' AND p.tablename=c.table_name
+        AND (coalesce(p.qual,'') LIKE '%current_org()%' OR coalesce(p.with_check,'') LIKE '%current_org()%')
+     )
+  ),
  'bucket_privado',(SELECT public IS FALSE FROM storage.buckets WHERE id='task-files'),
  'propietario_activo',EXISTS(SELECT 1 FROM public.organization_memberships WHERE role='owner' AND status='active'),
  'automatizaciones_activas',(SELECT count(*) FROM cron.job WHERE active AND jobname IN ('ase-work-recurrences','ase-work-deadline-notifications')),
