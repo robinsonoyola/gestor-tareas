@@ -8,6 +8,9 @@ BEGIN
  IF NOT EXISTS(SELECT 1 FROM storage.buckets WHERE id='task-files' AND public IS FALSE) THEN failures:=array_append(failures,'El almacenamiento task-files no es privado'); END IF;
  IF has_schema_privilege('ase_tenant_executor','public','CREATE') OR has_schema_privilege('ase_tenant_executor','ase_private','CREATE') THEN failures:=array_append(failures,'El ejecutor conserva CREATE'); END IF;
  IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname IN ('anon','authenticated') AND (rolsuper OR rolbypassrls)) THEN failures:=array_append(failures,'Rol API con privilegios elevados'); END IF;
+ IF has_schema_privilege('public','ase_private','USAGE') THEN failures:=array_append(failures,'El esquema privado permite acceso público'); END IF;
+ IF EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='ase_private' AND c.relkind IN ('r','p','v','m') AND (has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE') OR has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE'))) THEN failures:=array_append(failures,'Hay relaciones privadas expuestas al API'); END IF;
+ IF EXISTS(SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='ase_private' AND has_function_privilege('public',p.oid,'EXECUTE')) THEN failures:=array_append(failures,'Hay funciones privadas expuestas a PUBLIC'); END IF;
  IF (SELECT count(*) FROM cron.job WHERE active AND jobname IN ('ase-work-recurrences','ase-work-deadline-notifications'))<>2 THEN failures:=array_append(failures,'Automatizaciones horarias incompletas'); END IF;
  IF cardinality(failures)>0 THEN RAISE EXCEPTION 'Instalación incompleta: %',array_to_string(failures,'; '); END IF;
 END $verify$;

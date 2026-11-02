@@ -11,6 +11,16 @@ SELECT jsonb_build_object(
  'ejecutor_seguro',(SELECT NOT rolcanlogin AND NOT rolbypassrls AND NOT rolsuper FROM pg_roles WHERE rolname='ase_tenant_executor'),
  'api_no_asume_ejecutor',NOT pg_has_role('authenticated','ase_tenant_executor','MEMBER') AND NOT pg_has_role('anon','ase_tenant_executor','MEMBER'),
  'ejecutor_sin_create',NOT has_schema_privilege('ase_tenant_executor','public','CREATE') AND NOT has_schema_privilege('ase_tenant_executor','ase_private','CREATE'),
+ 'esquema_privado_seguro',NOT has_schema_privilege('public','ase_private','USAGE')
+   AND NOT EXISTS(
+    SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='ase_private' AND c.relkind IN ('r','p','v','m')
+      AND (has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE') OR has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE'))
+   )
+   AND NOT EXISTS(
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname='ase_private' AND has_function_privilege('public',p.oid,'EXECUTE')
+   ),
  'bucket_privado',(SELECT public IS FALSE FROM storage.buckets WHERE id='task-files'),
  'propietario_activo',EXISTS(SELECT 1 FROM public.organization_memberships WHERE role='owner' AND status='active'),
  'automatizaciones_activas',(SELECT count(*) FROM cron.job WHERE active AND jobname IN ('ase-work-recurrences','ase-work-deadline-notifications')),

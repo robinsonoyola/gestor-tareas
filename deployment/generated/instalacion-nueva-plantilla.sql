@@ -11121,5 +11121,19 @@ REVOKE ALL ON FUNCTION public.work_execution_schedule_defaults() FROM PUBLIC,ano
 GRANT EXECUTE ON FUNCTION public.work_execution_schedule_defaults() TO ase_tenant_executor;
 
 NOTIFY pgrst,'reload schema';
+
+-- ==== 20261102000600_lock_private_schema_execution.sql ====
+-- ASE Work: the private schema is deny-by-default for API roles.
+
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA ase_private FROM PUBLIC,anon,authenticated;
+
+-- Policies need the organization context for authenticated requests.
+GRANT EXECUTE ON FUNCTION ase_private.current_org() TO authenticated,ase_tenant_executor;
+
+-- Hosted Auth is exposed only through these identity helpers.
+GRANT EXECUTE ON FUNCTION ase_private.session_user_id(),ase_private.session_role()
+ TO anon,authenticated,ase_tenant_executor;
+
+NOTIFY pgrst,'reload schema';
 DO $finish$ DECLARE c ase_install_config%ROWTYPE; owner_id uuid; org_id uuid; BEGIN SELECT * INTO c FROM ase_install_config; SELECT id INTO STRICT owner_id FROM auth.users WHERE lower(email)=lower(c.owner_email); SELECT organization_id INTO STRICT org_id FROM public.organization_memberships WHERE user_id=owner_id AND status='active'; UPDATE public.organization_memberships SET role='owner' WHERE organization_id=org_id AND user_id=owner_id; UPDATE public.organizations SET name=c.company_name,slug=c.company_slug WHERE id=org_id; END $finish$;
 COMMIT;

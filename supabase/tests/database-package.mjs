@@ -70,12 +70,56 @@ try {
   `)
   if (routines.rows.length) throw new Error(`Funciones ejecutables por PUBLIC: ${routines.rows.map(routine => routine.name).join(', ')}`)
 
+  const privateSchema = await db.query(`
+    SELECT
+      NOT has_schema_privilege('public','ase_private','USAGE') AS public_blocked,
+      has_schema_privilege('anon','ase_private','USAGE') AS anon_context,
+      has_schema_privilege('authenticated','ase_private','USAGE') AS authenticated_context
+  `)
+  if (!Object.values(privateSchema.rows[0]).every(Boolean)) throw new Error(`Acceso incorrecto al esquema privado: ${JSON.stringify(privateSchema.rows[0])}`)
+
+  const exposedPrivateRelations = await db.query(`
+    SELECT c.relname AS name
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='ase_private' AND c.relkind IN ('r','p','v','m')
+      AND (has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE')
+        OR has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE'))
+    ORDER BY c.relname
+  `)
+  if (exposedPrivateRelations.rows.length) throw new Error(`Relaciones privadas expuestas al API: ${exposedPrivateRelations.rows.map(relation => relation.name).join(', ')}`)
+
+  const publicPrivateRoutines = await db.query(`
+    SELECT p.proname AS name
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname='ase_private'
+      AND has_function_privilege('public',p.oid,'EXECUTE')
+    ORDER BY 1
+  `)
+  if (publicPrivateRoutines.rows.length) throw new Error(`Funciones privadas expuestas a PUBLIC: ${publicPrivateRoutines.rows.map(routine => routine.name).join(', ')}`)
+
+  const apiPrivateRoutines = await db.query(`
+    SELECT p.proname AS name,
+      has_function_privilege('anon',p.oid,'EXECUTE') AS anon,
+      has_function_privilege('authenticated',p.oid,'EXECUTE') AS authenticated
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname='ase_private'
+      AND (has_function_privilege('anon',p.oid,'EXECUTE') OR has_function_privilege('authenticated',p.oid,'EXECUTE'))
+    ORDER BY p.proname
+  `)
+  const anonRoutines = apiPrivateRoutines.rows.filter(routine => routine.anon).map(routine => routine.name)
+  const authenticatedRoutines = apiPrivateRoutines.rows.filter(routine => routine.authenticated).map(routine => routine.name)
+  if (JSON.stringify(anonRoutines) !== JSON.stringify(['session_role','session_user_id'])) throw new Error(`Funciones privadas anónimas inesperadas: ${anonRoutines.join(', ')}`)
+  if (JSON.stringify(authenticatedRoutines) !== JSON.stringify(['current_org','session_role','session_user_id'])) throw new Error(`Funciones privadas autenticadas inesperadas: ${authenticatedRoutines.join(', ')}`)
+
   console.log(JSON.stringify({
     passed: true,
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0 }
+    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length }
   }))
 } finally {
   await db.close()
