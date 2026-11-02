@@ -33,9 +33,16 @@ const retiredFrontend = [
 const restoredLegacy = retiredFrontend.filter(file => fs.existsSync(path.join(root, file)))
 if (restoredLegacy.length) throw new Error(`Se restauraron pantallas antiguas que ya no forman parte de ASE Work: ${restoredLegacy.join(', ')}`)
 
-const activeSource = sourceFiles(path.join(root, 'src')).map(file => fs.readFileSync(file, 'utf8')).join('\n')
+const activeFiles = sourceFiles(path.join(root, 'src'))
+const activeSource = activeFiles.map(file => fs.readFileSync(file, 'utf8')).join('\n')
 for (const marker of ['useLegacyAuth', "mode==='legacy'", 'tenantMode()']) {
   if (activeSource.includes(marker)) throw new Error(`El frontend conserva una ruta heredada no segura: ${marker}`)
+}
+
+const directTableWrite = /supabase\s*\.from\s*\([^)]*\)[\s\S]{0,600}?\.(?:insert|update|upsert|delete)\s*\(/
+const directTableWrites = activeFiles.filter(file => directTableWrite.test(fs.readFileSync(file, 'utf8')))
+if (directTableWrites.length) {
+  throw new Error(`El navegador intenta escribir directamente en tablas: ${directTableWrites.map(file => path.relative(root, file)).join(', ')}`)
 }
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8')
@@ -48,4 +55,4 @@ const vite = fs.readFileSync(path.join(root, 'vite.config.ts'), 'utf8')
 if (!vite.includes('drop_console: true') || !vite.includes('drop_debugger: true')) throw new Error('La compilación comercial conserva registros de consola o debugger')
 if (!vite.includes("target: 'baseline-widely-available'")) throw new Error('La compatibilidad mínima de navegadores no está fijada')
 
-console.log(JSON.stringify({ passed: true, debugLogs: 0, productionConsole: false, unusedTemplateAssets: 0, retiredFrontend: retiredFrontend.length, metadata: true }))
+console.log(JSON.stringify({ passed: true, debugLogs: 0, productionConsole: false, directTableWrites: 0, unusedTemplateAssets: 0, retiredFrontend: retiredFrontend.length, metadata: true }))

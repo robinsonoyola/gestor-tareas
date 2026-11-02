@@ -19,6 +19,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - funciones futuras privadas por defecto para ambos propietarios y esquemas operativos;
 - ausencia de permisos directos anónimos o permisos peligrosos del API sobre tablas;
 - ninguna escritura directa autenticada desde el navegador; las mutaciones operativas pasan por funciones con permisos y ámbito de empresa;
+- barrera de código que impide reintroducir llamadas de escritura directa a tablas desde una pantalla;
 - límite RLS propio para cada tabla que contiene datos de una empresa;
 - claves primarias en todas las tablas, restricciones validadas e índices íntegros;
 - claves foráneas compuestas que impiden relaciones entre empresas;
