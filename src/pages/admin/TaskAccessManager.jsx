@@ -47,6 +47,7 @@ import {
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase'
+import { workRpc } from '@/lib/workflow'
 
 export default function TaskAccessManager() {
   const [query]=useSearchParams()
@@ -210,12 +211,7 @@ export default function TaskAccessManager() {
     if (!confirm) return
 
     try {
-      const { error } = await supabase
-        .from('task_access_codes')
-        .update({ is_active: false })
-        .eq('id', codeId)
-
-      if (error) throw error
+      await workRpc('work_set_task_access_active', {p_id: codeId, p_active: false})
 
       toast.success('✅ Código desactivado')
       await fetchAccessCodes()
@@ -228,12 +224,7 @@ export default function TaskAccessManager() {
 
   const activateCode = async (codeId) => {
     try {
-      const { error } = await supabase
-        .from('task_access_codes')
-        .update({ is_active: true })
-        .eq('id', codeId)
-
-      if (error) throw error
+      await workRpc('work_set_task_access_active', {p_id: codeId, p_active: true})
 
       toast.success('✅ Código activado')
       await fetchAccessCodes()

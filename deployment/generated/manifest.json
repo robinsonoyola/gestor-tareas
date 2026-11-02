@@ -1,9 +1,9 @@
 {
   "format": 1,
   "purpose": "legacy-upgrade",
-  "migrationCount": 75,
+  "migrationCount": 76,
   "firstMigration": "20261022000100_core_multitenancy_a1.sql",
-  "lastMigration": "20261102001100_minimize_authenticated_writes.sql",
+  "lastMigration": "20261102001200_close_browser_table_writes.sql",
   "migrations": [
     "20261022000100_core_multitenancy_a1.sql",
     "20261022000200_work_usability.sql",
@@ -79,11 +79,12 @@
     "20261102000800_complete_tenant_foreign_keys.sql",
     "20261102000900_index_foreign_keys.sql",
     "20261102001000_secure_default_privileges.sql",
-    "20261102001100_minimize_authenticated_writes.sql"
+    "20261102001100_minimize_authenticated_writes.sql",
+    "20261102001200_close_browser_table_writes.sql"
   ],
-  "combinedSqlSha256": "388BE282B22FC1E7C9C78E1FBC5539EC46CDDEAE8178CC2880D35712FF64EA5F",
-  "freshInstallTemplateSha256": "6DDAEB65733FE7A4772D4D2203D5659BF31224A8305C63381187D48132134DF1",
+  "combinedSqlSha256": "DBECEFA6B24A9ADB17EF975CFB686EC3335EFA0DEDF515D9DBE44A5936935615",
+  "freshInstallTemplateSha256": "5560E23E042D4DE011879CCBB22A81CF7549106D5BA48D6C7ECE7A45EF77E43F",
   "automationSha256": "29AA1AC2044159EE6FF168DC0CAF204C3F24E46921073B354690CA91A01900A6",
-  "verificationSha256": "EBE8174BF60EFF1F09FD6FCA6121D79C839BA6007303E0E63748DD1AC9BC2464",
+  "verificationSha256": "38BC939E1D753F8D2B607664612A34E7B31CB3545B8396AB5BE61D847B9D9BFE",
   "healthCheckSha256": "8952426E30DEF4730B6916FDC377D8D48C7B89EC05405A0F7FC7A44EE8648DD0"
 }

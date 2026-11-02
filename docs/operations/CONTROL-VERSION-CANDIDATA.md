@@ -8,7 +8,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - entregables de instalación, automatización, diagnóstico, funciones y manuales;
 - aislamiento multiempresa sintético;
 - migraciones transaccionales, sin permisos públicos, referencias de producción ni funciones privilegiadas inseguras;
-- las 75 migraciones, el aislamiento RLS de todas las tablas y el cierre del esquema privado;
+- las 76 migraciones, el aislamiento RLS de todas las tablas y el cierre del esquema privado;
 - la lista cerrada de funciones anónimas necesarias para los puntos de fichaje;
 - la lista cerrada de funciones de servicio para altas y cambios de correo;
 - depósito privado, RLS y lista cerrada de políticas para archivos y evidencias;
@@ -18,7 +18,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - esquemas operativos sin permiso de creación para roles del servicio y secuencias no expuestas directamente al navegador;
 - funciones futuras privadas por defecto para ambos propietarios y esquemas operativos;
 - ausencia de permisos directos anónimos o permisos peligrosos del API sobre tablas;
-- escrituras directas autenticadas limitadas a las seis operaciones que sigue usando la interfaz;
+- ninguna escritura directa autenticada desde el navegador; las mutaciones operativas pasan por funciones con permisos y ámbito de empresa;
 - límite RLS propio para cada tabla que contiene datos de una empresa;
 - claves primarias en todas las tablas, restricciones validadas e índices íntegros;
 - claves foráneas compuestas que impiden relaciones entre empresas;

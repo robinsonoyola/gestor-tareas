@@ -1,6 +1,7 @@
 import {normalizeTaskCardUid} from '@/lib/taskCardNfc'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { workRpc } from '@/lib/workflow'
 import Layout from '@/components/layout/Layout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -87,17 +88,13 @@ export default function NFCCardManager() {
         return
       }
 
-      const { error } = await supabase
-        .from('nfc_cards')
-        .insert({
-          card_uid: normalizeTaskCardUid(formData.card_uid),
-          card_name: formData.card_name.trim() || null,
-          task_id: !formData.task_id || formData.task_id === 'none' ? null : formData.task_id,
-          notes: formData.notes.trim() || null,
-          assigned_at: formData.task_id && formData.task_id !== 'none' ? new Date().toISOString() : null
-        })
-
-      if (error) throw error
+      await workRpc('work_manage_nfc_card', {
+        p_action: 'create', p_id: null,
+        p_uid: normalizeTaskCardUid(formData.card_uid),
+        p_name: formData.card_name.trim() || null,
+        p_task: !formData.task_id || formData.task_id === 'none' ? null : formData.task_id,
+        p_notes: formData.notes.trim() || null, p_active: null
+      })
 
       toast.success('✅ Tarjeta NFC creada')
       setIsCreateDialogOpen(false)
@@ -119,17 +116,12 @@ export default function NFCCardManager() {
     try {
       if (!selectedCard) return
 
-      const { error } = await supabase
-        .from('nfc_cards')
-        .update({
-          card_name: formData.card_name.trim() || null,
-          task_id: formData.task_id === 'none' ? null : formData.task_id || null,
-          notes: formData.notes.trim() || null,
-          assigned_at: formData.task_id && formData.task_id !== 'none' ? new Date().toISOString() : null
-        })
-        .eq('id', selectedCard.id)
-
-      if (error) throw error
+      await workRpc('work_manage_nfc_card', {
+        p_action: 'edit', p_id: selectedCard.id, p_uid: null,
+        p_name: formData.card_name.trim() || null,
+        p_task: formData.task_id === 'none' ? null : formData.task_id || null,
+        p_notes: formData.notes.trim() || null, p_active: null
+      })
 
       toast.success('✅ Tarjeta actualizada')
       setIsEditDialogOpen(false)
@@ -144,12 +136,10 @@ export default function NFCCardManager() {
 
   const handleToggleActive = async (card: NFCCard) => {
     try {
-      const { error } = await supabase
-        .from('nfc_cards')
-        .update({ is_active: !card.is_active })
-        .eq('id', card.id)
-
-      if (error) throw error
+      await workRpc('work_manage_nfc_card', {
+        p_action: 'state', p_id: card.id, p_uid: null, p_name: null,
+        p_task: null, p_notes: null, p_active: !card.is_active
+      })
 
       toast.success(card.is_active ? 'Tarjeta desactivada' : 'Tarjeta activada')
       fetchData()
@@ -164,12 +154,10 @@ export default function NFCCardManager() {
     if (!confirm('¿Estás seguro de eliminar esta tarjeta NFC?')) return
 
     try {
-      const { error } = await supabase
-        .from('nfc_cards')
-        .delete()
-        .eq('id', cardId)
-
-      if (error) throw error
+      await workRpc('work_manage_nfc_card', {
+        p_action: 'delete', p_id: cardId, p_uid: null, p_name: null,
+        p_task: null, p_notes: null, p_active: null
+      })
 
       toast.success('Tarjeta eliminada')
       fetchData()

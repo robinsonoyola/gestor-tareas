@@ -218,7 +218,7 @@ try {
     GROUP BY r.rolname
     ORDER BY r.rolname
   `)
-  if (JSON.stringify(privilegedOwners.rows) !== JSON.stringify([{ owner: 'ase_tenant_executor', functions: 185 }, { owner: 'postgres', functions: 23 }])) throw new Error(`Propietarios privilegiados inesperados: ${JSON.stringify(privilegedOwners.rows)}`)
+  if (JSON.stringify(privilegedOwners.rows) !== JSON.stringify([{ owner: 'ase_tenant_executor', functions: 189 }, { owner: 'postgres', functions: 23 }])) throw new Error(`Propietarios privilegiados inesperados: ${JSON.stringify(privilegedOwners.rows)}`)
 
   const executorRole = await db.query(`
     SELECT NOT rolsuper AS not_superuser,
@@ -331,12 +331,7 @@ try {
     GROUP BY table_schema,table_name
     ORDER BY table_schema,table_name
   `)
-  const expectedAuthenticatedMutations = [
-    { table_schema: 'public', table_name: 'nfc_cards', privileges: 'DELETE,INSERT,UPDATE' },
-    { table_schema: 'public', table_name: 'task_access_codes', privileges: 'UPDATE' },
-    { table_schema: 'public', table_name: 'task_checkin_config', privileges: 'UPDATE' },
-    { table_schema: 'public', table_name: 'tasks', privileges: 'UPDATE' }
-  ]
+  const expectedAuthenticatedMutations = []
   if (JSON.stringify(authenticatedMutations.rows) !== JSON.stringify(expectedAuthenticatedMutations)) throw new Error(`Superficie de escritura autenticada inesperada: ${JSON.stringify(authenticatedMutations.rows)}`)
 
   const tenantBoundaries = await db.query(`

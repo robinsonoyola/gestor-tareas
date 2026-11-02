@@ -59,8 +59,8 @@ SELECT jsonb_build_object(
    FROM pg_policies WHERE schemaname='storage' AND tablename='objects'
   ),
  'funciones_privilegiadas_seguras',(
-   SELECT count(*)=208
-    AND count(*) FILTER(WHERE r.rolname='ase_tenant_executor')=185
+   SELECT count(*)=212
+    AND count(*) FILTER(WHERE r.rolname='ase_tenant_executor')=189
     AND count(*) FILTER(WHERE r.rolname='postgres')=23
     AND count(*) FILTER(WHERE r.rolname NOT IN ('ase_tenant_executor','postgres'))=0
     AND count(*) FILTER(WHERE NOT ('search_path=""'=ANY(coalesce(p.proconfig,ARRAY[]::text[]))))=0
@@ -133,18 +133,10 @@ SELECT jsonb_build_object(
      AND table_schema IN ('public','storage','ase_private')
      AND privilege_type IN ('TRUNCATE','REFERENCES','TRIGGER')
   ),
- 'escrituras_autenticadas_minimas',(SELECT count(*)=6
-  FROM information_schema.role_table_grants
-  WHERE grantee='authenticated' AND table_schema IN ('public','ase_private')
-   AND privilege_type IN ('INSERT','UPDATE','DELETE')
- ) AND NOT EXISTS(
+ 'escrituras_autenticadas_minimas',NOT EXISTS(
   SELECT 1 FROM information_schema.role_table_grants
   WHERE grantee='authenticated' AND table_schema IN ('public','ase_private')
    AND privilege_type IN ('INSERT','UPDATE','DELETE')
-   AND NOT (
-    (table_schema='public' AND table_name='nfc_cards' AND privilege_type IN ('INSERT','UPDATE','DELETE'))
-    OR (table_schema='public' AND table_name IN ('task_access_codes','task_checkin_config','tasks') AND privilege_type='UPDATE')
-   )
  ),
  'limites_empresa_completos',NOT EXISTS(
    SELECT 1 FROM information_schema.columns c

@@ -35,7 +35,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { MapPin, Edit, Trash2, Info, AlertTriangle } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { workRpc } from '@/lib/workflow'
 
 export default function GPSLocations() {
   const { tasks, loading: tasksLoading, fetchTasks } = useTasks()
@@ -67,16 +67,10 @@ export default function GPSLocations() {
     if (!taskToDelete) return
 
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({
-          expected_latitude: null,
-          expected_longitude: null,
-          location_radius: 50
-        })
-        .eq('id', taskToDelete.id)
-
-      if (error) throw error
+      await workRpc('work_set_task_location', {
+        p_task: taskToDelete.id, p_latitude: null,
+        p_longitude: null, p_radius: 50
+      })
 
       toast.success('Ubicación GPS eliminada correctamente')
       await fetchTasks()
@@ -113,16 +107,10 @@ export default function GPSLocations() {
     }
 
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({
-          expected_latitude: lat,
-          expected_longitude: lng,
-          location_radius: radius
-        })
-        .eq('id', selectedTask.id)
-
-      if (error) throw error
+      await workRpc('work_set_task_location', {
+        p_task: selectedTask.id, p_latitude: lat,
+        p_longitude: lng, p_radius: radius
+      })
 
       toast.success('Ubicación GPS configurada correctamente')
       setIsDialogOpen(false)

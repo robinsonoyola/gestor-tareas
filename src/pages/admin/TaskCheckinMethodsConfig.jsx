@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { workRpc } from '@/lib/workflow'
 import Layout from '@/components/layout/Layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -70,17 +71,10 @@ export default function TaskCheckinMethodsConfig() {
       setSaving(true)
       const config = configs[taskId]
 
-      const { error } = await supabase
-        .from('task_checkin_config')
-        .update({
-          nfc_enabled: config.nfc_enabled,
-          qr_enabled: config.qr_enabled,
-          manual_enabled: config.manual_enabled,
-          updated_at: new Date().toISOString()
-        })
-        .eq('task_id', taskId)
-
-      if (error) throw error
+      await workRpc('work_save_checkin_methods', {
+        p_task: taskId, p_nfc: config.nfc_enabled,
+        p_qr: config.qr_enabled, p_manual: config.manual_enabled
+      })
 
       toast.success('✅ Configuración guardada')
     } catch (error) {
@@ -96,20 +90,12 @@ export default function TaskCheckinMethodsConfig() {
       setSaving(true)
 
       const updates = Object.entries(configs).map(([taskId, config]) => ({
-        task_id: taskId,
-        nfc_enabled: config.nfc_enabled,
-        qr_enabled: config.qr_enabled,
-        manual_enabled: config.manual_enabled,
-        updated_at: new Date().toISOString()
+        p_task: taskId, p_nfc: config.nfc_enabled,
+        p_qr: config.qr_enabled, p_manual: config.manual_enabled
       }))
 
       for (const update of updates) {
-        const { error } = await supabase
-          .from('task_checkin_config')
-          .update(update)
-          .eq('task_id', update.task_id)
-
-        if (error) throw error
+        await workRpc('work_save_checkin_methods', update)
       }
 
       toast.success('✅ Todas las configuraciones guardadas')
