@@ -88,6 +88,16 @@ SELECT jsonb_build_object(
   WHERE member_role.rolname IN ('anon','authenticated','service_role','ase_tenant_executor')
    AND granted_role.rolname IN ('postgres','service_role','ase_tenant_executor')
  ),
+ 'esquemas_y_secuencias_seguros',NOT EXISTS(
+  SELECT 1 FROM pg_roles role CROSS JOIN pg_namespace n
+  WHERE role.rolname IN ('anon','authenticated','service_role','ase_tenant_executor')
+   AND n.nspname IN ('public','ase_private','storage')
+   AND has_schema_privilege(role.rolname,n.oid,'CREATE')
+ ) AND NOT EXISTS(
+  SELECT 1 FROM information_schema.role_usage_grants
+  WHERE grantee IN ('anon','authenticated') AND object_type='SEQUENCE'
+   AND object_schema IN ('public','ase_private','storage')
+ ),
  'superficie_postgres_segura',(SELECT count(*)=7
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles owner ON owner.oid=p.proowner
   WHERE n.nspname IN ('public','ase_private') AND p.prosecdef AND owner.rolname='postgres'

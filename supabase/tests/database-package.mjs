@@ -254,6 +254,27 @@ try {
   `)
   if (unsafeRoleMemberships.rows.length) throw new Error(`Membresías privilegiadas inesperadas: ${JSON.stringify(unsafeRoleMemberships.rows)}`)
 
+  const unsafeSchemaCreate = await db.query(`
+    SELECT role.rolname AS role_name,n.nspname AS schema_name
+    FROM pg_roles role
+    CROSS JOIN pg_namespace n
+    WHERE role.rolname IN ('anon','authenticated','service_role','ase_tenant_executor')
+      AND n.nspname IN ('public','ase_private','storage')
+      AND has_schema_privilege(role.rolname,n.oid,'CREATE')
+    ORDER BY role.rolname,n.nspname
+  `)
+  if (unsafeSchemaCreate.rows.length) throw new Error(`Roles con permiso de crear objetos en esquemas operativos: ${JSON.stringify(unsafeSchemaCreate.rows)}`)
+
+  const unsafeSequencePrivileges = await db.query(`
+    SELECT grantee,object_schema,object_name,privilege_type
+    FROM information_schema.role_usage_grants
+    WHERE grantee IN ('anon','authenticated')
+      AND object_type='SEQUENCE'
+      AND object_schema IN ('public','ase_private','storage')
+    ORDER BY grantee,object_schema,object_name,privilege_type
+  `)
+  if (unsafeSequencePrivileges.rows.length) throw new Error(`El API conserva acceso directo a secuencias: ${JSON.stringify(unsafeSequencePrivileges.rows)}`)
+
   const postgresOwnedApiRoutines = await db.query(`
     SELECT p.oid::regprocedure::text AS name,
       has_function_privilege('anon',p.oid,'EXECUTE') AS anon,
@@ -366,7 +387,7 @@ try {
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, executorRoleRestricted: true, unsafeRelationOwners: 0, unsafeRoleMemberships: 0, postgresOwnedApiRoutines: postgresOwnedApiRoutines.rows.length, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
+    isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, executorRoleRestricted: true, unsafeRelationOwners: 0, unsafeRoleMemberships: 0, unsafeSchemaCreate: 0, unsafeSequencePrivileges: 0, postgresOwnedApiRoutines: postgresOwnedApiRoutines.rows.length, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
   }))
 } finally {
   await db.close()

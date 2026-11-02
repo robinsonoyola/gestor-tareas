@@ -15,6 +15,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - propiedad y configuración segura de todas las funciones privilegiadas;
 - rol ejecutor sin acceso directo ni privilegios elevados y lista cerrada de funciones propiedad de PostgreSQL expuestas al API;
 - ninguna relación propiedad del ejecutor o de los roles del API y ausencia de herencias privilegiadas entre ellos;
+- esquemas operativos sin permiso de creación para roles del servicio y secuencias no expuestas directamente al navegador;
 - ausencia de permisos directos anónimos o permisos peligrosos del API sobre tablas;
 - límite RLS propio para cada tabla que contiene datos de una empresa;
 - claves primarias en todas las tablas, restricciones validadas e índices íntegros;
