@@ -70,9 +70,10 @@ export default function NFCCardManager() {
       const taskNames = new Map(tasksData.map(task => [task.id,task]))
       setCards((cardResponse.data || []).map(card => ({...card,task:taskNames.get(card.task_id) || null})))
       setTasks(tasksData.filter(task => !task.archived_at))
-    } catch (error: any) {
-      console.error('Error al cargar tarjetas NFC:', error?.code || 'unknown')
-      setLoadError(error?.message || 'No se pudieron cargar las tarjetas y tareas. Vuelve a intentarlo.')
+    } catch (error: unknown) {
+      const failure = error as {code?: string; message?: string}
+      console.error('Error al cargar tarjetas NFC:', failure.code || 'unknown')
+      setLoadError(failure.message || 'No se pudieron cargar las tarjetas y tareas. Vuelve a intentarlo.')
       toast.error('No se pudieron cargar las tarjetas NFC')
     } finally {
       setLoading(false)
@@ -103,12 +104,13 @@ export default function NFCCardManager() {
       resetForm()
       fetchData()
 
-    } catch (error: any) {
-      console.error('Error:', error)
-      if (error.code === '23505') {
+    } catch (error: unknown) {
+      const failure = error as {code?: string; message?: string}
+      console.error('Error:', failure)
+      if (failure.code === '23505') {
         toast.error('Esta tarjeta NFC ya está registrada')
       } else {
-        toast.error(error.message?.startsWith('El UID') ? error.message : 'Error al crear tarjeta')
+        toast.error(failure.message?.startsWith('El UID') ? failure.message : 'Error al crear tarjeta')
       }
     }
   }

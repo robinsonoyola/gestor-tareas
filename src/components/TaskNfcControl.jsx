@@ -1,4 +1,4 @@
-import {useEffect,useRef,useState} from 'react'
+import {useCallback,useEffect,useRef,useState} from 'react'
 import {NfcIcon} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {supabase} from '@/lib/supabase'
@@ -6,8 +6,9 @@ import {readTaskCardUid} from '@/lib/taskCardNfc'
 export default function TaskNfcControl({taskId,userId,activeCheckin,checkinStatus,onChanged,onFinished,beforeFinish}) {
  const [stage,setStage]=useState('idle'),[error,setError]=useState('')
  const controller=useRef(null),generation=useRef(0),sending=useRef(false),timer=useRef(null)
- const cancel=()=>{generation.current++;clearTimeout(timer.current);controller.current?.abort();controller.current=null;setStage('idle');setError('')}
- useEffect(()=>{cancel();return()=>{generation.current++;clearTimeout(timer.current);controller.current?.abort()}},[taskId,userId,activeCheckin?.id])
+ const invalidate=useCallback(()=>{generation.current++;clearTimeout(timer.current);controller.current?.abort();controller.current=null},[])
+ const cancel=useCallback(()=>{invalidate();setStage('idle');setError('')},[invalidate])
+ useEffect(()=>{cancel();return invalidate},[taskId,userId,activeCheckin?.id,cancel,invalidate])
  const scan=async()=>{
   if(sending.current||!taskId||!userId||checkinStatus!=='ready')return
   cancel();const request=generation.current,abort=new AbortController();controller.current=abort

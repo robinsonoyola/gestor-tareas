@@ -9,7 +9,7 @@ const read=()=>{try{const value=JSON.parse(localStorage.getItem(storageKey)||'[]
 
 export default function BoardSavedViews({value,onApply}){
  const [items,setItems]=useState(read),[selected,setSelected]=useState(''),[name,setName]=useState(''),[message,setMessage]=useState('')
- useEffect(()=>{try{localStorage.setItem(storageKey,JSON.stringify(items))}catch{}},[items])
+ useEffect(()=>{try{localStorage.setItem(storageKey,JSON.stringify(items))}catch{/* The view remains available for this session. */}},[items])
  const save=()=>{const clean=name.trim().replace(/\s+/g,' ');if(clean.length<2||clean.length>40){setMessage('Escribe un nombre de 2 a 40 caracteres.');return}const existing=items.find(item=>item.name.toLocaleLowerCase('es')===clean.toLocaleLowerCase('es'));const entry={id:existing?.id||randomId(),name:clean,filters:value};setItems(current=>[entry,...current.filter(item=>item.id!==entry.id)].slice(0,12));setSelected(entry.id);setName('');setMessage('Vista guardada en este dispositivo.')}
  const apply=id=>{setSelected(id);const item=items.find(value=>value.id===id);if(item){onApply(item.filters);setMessage(`Vista aplicada: ${item.name}.`)}}
  const remove=()=>{if(!selected)return;const item=items.find(value=>value.id===selected);if(!item||!window.confirm(`¿Eliminar la vista “${item.name}”?`))return;setItems(current=>current.filter(value=>value.id!==selected));setSelected('');setMessage('Vista eliminada.')}

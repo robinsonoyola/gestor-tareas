@@ -1,6 +1,6 @@
 import {ImportanceBadge} from '@/components/TaskImportance'
 import {ScheduleText} from '@/components/planning/ExecutionSchedule'
-import {useEffect, useRef, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import {supabase} from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useTasks } from '@/hooks/useTasks'
@@ -25,6 +25,7 @@ export default function EmployeeDashboard() {
   const [day, setDay] = useState(null)
   const [dayError, setDayError] = useState('')
   const dayRequest=useRef(0)
+  const invalidateDay=useCallback(()=>{dayRequest.current++},[])
   const loadDay = async () => {
     const request=++dayRequest.current
     try {
@@ -40,8 +41,8 @@ export default function EmployeeDashboard() {
     const refresh=async()=>{if(!live||running)return;running=true;try{await loadDay()}finally{running=false}}
     refresh();const onFocus=()=>{if(!document.hidden)refresh()};const interval=setInterval(onFocus,10000)
     window.addEventListener('focus',onFocus)
-    return()=>{live=false;dayRequest.current++;clearInterval(interval);window.removeEventListener('focus',onFocus)}
-  },[userData?.id])
+    return()=>{live=false;invalidateDay();clearInterval(interval);window.removeEventListener('focus',onFocus)}
+  },[userData?.id,invalidateDay])
   const queue = day?.items || []
   const allTasks = (day ? queue : tasks.map(t=>({task_id:t.id,title:t.title,state:'unplanned',can_start:false}))).map(item => ({...tasks.find(t => t.id===item.task_id),...item,id:item.task_id,executionId:item.plan_id||null,
     status:item.state==='active'?'in_progress':item.state==='completed'?'completed':'pending'}))

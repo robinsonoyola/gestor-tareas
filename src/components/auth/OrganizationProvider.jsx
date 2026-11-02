@@ -9,6 +9,7 @@ export default function OrganizationProvider({children}) {
   const generation=useRef(0)
   const alive=useRef(true)
   const identity=useRef(null)
+  const invalidate=useCallback(()=>{generation.current++},[])
   const refresh=useCallback(async (identityOverride=undefined) => {
     const request=++generation.current
     let step='la sesión'
@@ -105,8 +106,8 @@ export default function OrganizationProvider({children}) {
     })
     const timer=setInterval(run,30000)
     window.addEventListener('focus',run)
-    return()=>{alive.current=false;generation.current++;subscription.unsubscribe();clearInterval(timer);window.removeEventListener('focus',run)}
-  },[refresh])
+    return()=>{alive.current=false;invalidate();subscription.unsubscribe();clearInterval(timer);window.removeEventListener('focus',run)}
+  },[refresh,invalidate])
   return <Context.Provider value={{...state,refresh,selectOrganization}}>
     {children}
   </Context.Provider>

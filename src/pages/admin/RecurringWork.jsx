@@ -1,4 +1,4 @@
-import {useEffect,useRef,useState} from 'react'
+import {useCallback,useEffect,useRef,useState} from 'react'
 import {Link} from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import {useAuth} from '@/hooks/useAuth'
@@ -18,8 +18,9 @@ export default function RecurringWork(){
  const [items,setItems]=useState([]),[employees,setEmployees]=useState([]),[tasks,setTasks]=useState([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[open,setOpen]=useState(false),[editing,setEditing]=useState(false),[form,setForm]=useState(initial),[filter,setFilter]=useState(''),[message,setMessage]=useState('')
  const [automated,setAutomated]=useState(false),[areas,setAreas]=useState([]),[catalog,setCatalog]=useState([]),[assignees,setAssignees]=useState({})
  const serial=useRef(0)
+ const invalidate=useCallback(()=>{serial.current++},[])
  const load=async()=>{const n=++serial.current;setLoading(true);setError('');try{const [data,people]=await Promise.all([call('work_recurrence_list'),call('work_employee_directory')]);if(n===serial.current){setAreas(Array.isArray(data?.areas)?data.areas:[]);setCatalog(Array.isArray(data?.tasks)?data.tasks:[]);setAutomated(data?.automation_ready===true);setItems(Array.isArray(data?.items)?data.items:[]);setEmployees(Array.isArray(people)?people:[])}}catch(e){if(n===serial.current)setError(e.message.includes('work_recurrence')?'Falta activar las repeticiones en Supabase.':e.message)}finally{if(n===serial.current)setLoading(false)}}
- useEffect(()=>{load();return()=>{serial.current++}},[])
+ useEffect(()=>{load();return invalidate},[invalidate])
  useEffect(()=>{let live=true;setTasks([]);if(form.user&&open)call('work_planning_assignments',{p_user:form.user}).then(rows=>{if(live)setTasks(rows||[])}).catch(e=>{if(live)setError(e.message)});return()=>{live=false}},[form.user,open])
  const update=(key,value)=>setForm(previous=>({...previous,[key]:value,...(['user','target'].includes(key)?{task:''}:{})}))
  const action=async(fn)=>{if(busy)return;setBusy(true);setError('');setMessage('');try{await fn();await load()}catch(e){setError(e.message)}finally{setBusy(false)}}

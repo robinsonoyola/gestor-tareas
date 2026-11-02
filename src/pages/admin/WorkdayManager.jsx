@@ -1,7 +1,7 @@
 import {ScheduleEditor,ScheduleText} from '@/components/planning/ExecutionSchedule'
 import PlanningScopeOverview from '@/components/planning/PlanningScopeOverview'
 import PersonalPinManager from '@/components/PersonalPinManager'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import PlanningCalendar from './PlanningCalendar'
 import { useSearchParams } from 'react-router-dom'
 import { Link } from 'react-router-dom'
@@ -53,6 +53,7 @@ export default function WorkdayManager({section='planning'}) {
   const reviewDay = value => { reviewRequested.current=true; updatePeriod('day',value); if (value===date && !loading) { reviewRequested.current=false; requestAnimationFrame(focusDay) } }
   useEffect(()=>{if(reviewRequested.current && overview && !loading){reviewRequested.current=false;requestAnimationFrame(focusDay)}},[overview,loading])
   const serial = useRef(0)
+  const invalidate = useCallback(()=>{serial.current++},[])
   useEffect(() => {
     workRpc('work_employee_directory').then(data => {
       setEmployees(data); setUser(current=>data.some(e=>e.id===current)?current:data[0]?.id || '')
@@ -76,7 +77,7 @@ export default function WorkdayManager({section='planning'}) {
     } catch (e) { if (request === serial.current) setError(e.message + '. Si faltan las funciones work_, instala primero el SQL del modo tablet.') }
     finally { if (request === serial.current) setLoading(false) }
   }
-  useEffect(() => { load(); return () => { serial.current++ } }, [user,date,section,planningScope])
+  useEffect(() => { load(); return invalidate }, [user,date,section,planningScope,invalidate])
   const action = async (fn) => {
     if (busy) return
     setBusy(true); setError('')

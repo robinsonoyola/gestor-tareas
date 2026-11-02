@@ -298,7 +298,7 @@ export default function Reports() {
       });
     return list;
   }, [data, sort]);
-  const dimensions = [
+  const dimensions = useMemo(() => [
     ...config.columns.filter(([key]) =>
       [
         "employee",
@@ -318,7 +318,7 @@ export default function Reports() {
       ["report_month", "Mes"],
       ["report_year", "Año"],
     ],
-  ];
+  ], [config]);
   const measures = [
     ["rows", "Cantidad de registros"],
     ...(["checkins", "productivity"].includes(kind)
@@ -340,7 +340,7 @@ export default function Reports() {
         columnValues:
           columnField === "report_month" ? monthsBetween(start, end) : [],
       }),
-    [rows, rowField, columnField, metric, kind, start, end],
+    [rows, rowField, columnField, metric, kind, start, end, dimensions],
   );
   useEffect(() => setPivotPage(0), [rowField, columnField, metric, data]);
   const changeKind = (key, nextIndicator = defaultIndicator[key]) => {
