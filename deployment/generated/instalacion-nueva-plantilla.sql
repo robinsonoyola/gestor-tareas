@@ -11355,5 +11355,42 @@ GRANT EXECUTE ON FUNCTION public.work_manage_nfc_card(text,uuid,text,text,uuid,t
 REVOKE INSERT,UPDATE,DELETE ON TABLE public.nfc_cards,public.task_access_codes,public.task_checkin_config,public.tasks FROM authenticated;
 
 NOTIFY pgrst,'reload schema';
+
+-- ==== 20261102001300_fix_task_checkin_config_trigger.sql ====
+-- ASE Work: new tasks inherit their organization in the automatic check-in configuration.
+
+CREATE OR REPLACE FUNCTION public.create_task_checkin_config()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO ''
+AS $function$
+BEGIN
+  INSERT INTO public.task_checkin_config(
+    organization_id,task_id,nfc_enabled,qr_enabled,manual_enabled
+  ) VALUES(
+    NEW.organization_id,NEW.id,false,true,true
+  )
+  ON CONFLICT(task_id) DO NOTHING;
+  RETURN NEW;
+END
+$function$;
+
+ALTER FUNCTION public.create_task_checkin_config() OWNER TO ase_tenant_executor;
+REVOKE ALL ON FUNCTION public.create_task_checkin_config() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.create_task_checkin_config() TO ase_tenant_executor;
+
+INSERT INTO public.task_checkin_config(
+  organization_id,task_id,nfc_enabled,qr_enabled,manual_enabled
+)
+SELECT task.organization_id,task.id,false,true,true
+FROM public.tasks task
+WHERE NOT EXISTS(
+  SELECT 1
+  FROM public.task_checkin_config config
+  WHERE config.organization_id=task.organization_id AND config.task_id=task.id
+)
+ON CONFLICT(task_id) DO NOTHING;
+
+NOTIFY pgrst,'reload schema';
 DO $finish$ DECLARE c ase_install_config%ROWTYPE; owner_id uuid; org_id uuid; BEGIN SELECT * INTO c FROM ase_install_config; SELECT id INTO STRICT owner_id FROM auth.users WHERE lower(email)=lower(c.owner_email); SELECT organization_id INTO STRICT org_id FROM public.organization_memberships WHERE user_id=owner_id AND status='active'; UPDATE public.organization_memberships SET role='owner' WHERE organization_id=org_id AND user_id=owner_id; UPDATE public.organizations SET name=c.company_name,slug=c.company_slug WHERE id=org_id; END $finish$;
 COMMIT;

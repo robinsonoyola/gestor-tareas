@@ -18,6 +18,32 @@ const db = new PGlite({ extensions: { pgcrypto } })
 const owner = '00000000-0000-0000-0000-000000000001'
 const worker = '00000000-0000-0000-0000-000000000002'
 
+async function request(actor, organization, sql) {
+  await db.exec('BEGIN')
+  try {
+    await db.exec('SET LOCAL ROLE authenticated')
+    await db.query(
+      `SELECT set_config('request.jwt.claim.sub',$1,true),set_config('request.jwt.claim.role','authenticated',true),set_config('request.headers',$2,true)`,
+      [actor, organization ? JSON.stringify({'x-ase-organization-id': organization}) : '{}']
+    )
+    const result = await db.query(sql)
+    await db.exec('COMMIT')
+    return result.rows
+  } catch (error) {
+    await db.exec('ROLLBACK')
+    throw error
+  }
+}
+
+async function mustReject(actor, organization, sql) {
+  try {
+    await request(actor, organization, sql)
+    return null
+  } catch (error) {
+    return error.code || 'ERROR'
+  }
+}
+
 try {
   await db.exec(fs.readFileSync(`${root}supabase/tests/bootstrap.sql`, 'utf8'))
   await db.exec(fs.readFileSync(`${root}supabase/baseline/20261022_installed_public.sql`, 'utf8'))
@@ -50,6 +76,46 @@ try {
   `, [owner])
   const state = final.rows[0]
   if (!Object.values(state).every(Boolean)) throw new Error(`Estado final incompleto: ${JSON.stringify(state)}`)
+
+  const organizationA = (await db.query(`SELECT organization_id AS id FROM public.organization_memberships WHERE user_id=$1 AND role IN ('owner','admin') AND status='active'`, [owner])).rows[0].id
+  const organizationB = (await request(worker, null, `SELECT public.mt_create_organization('Empresa B','empresa-b') AS id`))[0].id
+  const taskA = '00000000-0000-0000-0000-000000000101'
+  const taskB = '00000000-0000-0000-0000-000000000102'
+  await db.exec(`
+    INSERT INTO public.tasks(id,organization_id,title,status,schedule_type) VALUES
+      ('${taskA}','${organizationA}','Operación A','pending','daily'),
+      ('${taskB}','${organizationB}','Operación B','pending','daily');
+  `)
+  await request(owner, organizationA, `SELECT public.generate_task_access_code('${taskA}')`)
+  await request(worker, organizationB, `SELECT public.generate_task_access_code('${taskB}')`)
+  const accessA = (await db.query(`SELECT id FROM public.task_access_codes WHERE organization_id=$1 AND task_id=$2`, [organizationA, taskA])).rows[0].id
+  const accessB = (await db.query(`SELECT id FROM public.task_access_codes WHERE organization_id=$1 AND task_id=$2`, [organizationB, taskB])).rows[0].id
+
+  const card = (await request(owner, organizationA, `SELECT public.work_manage_nfc_card('create',NULL,'AA:BB:CC:DD','Recepción','${taskA}','Prueba',NULL) AS id`))[0].id
+  await request(owner, organizationA, `SELECT public.work_manage_nfc_card('state','${card}',NULL,NULL,NULL,NULL,false)`)
+  await request(owner, organizationA, `SELECT public.work_manage_nfc_card('edit','${card}',NULL,'Recepción principal','${taskA}','Actualizada',NULL)`)
+  await request(owner, organizationA, `SELECT public.work_set_task_access_active('${accessA}',false)`)
+  await request(owner, organizationA, `SELECT public.work_save_checkin_methods('${taskA}',true,false,true)`)
+  await request(owner, organizationA, `SELECT public.work_set_task_location('${taskA}',40.4168,-3.7038,75)`)
+  const ownOperations = await db.query(`SELECT
+    (SELECT card_uid='aabbccdd' AND card_name='Recepción principal' AND is_active IS FALSE FROM public.nfc_cards WHERE id='${card}') AS card,
+    (SELECT is_active IS FALSE FROM public.task_access_codes WHERE id='${accessA}') AS access,
+    (SELECT nfc_enabled AND NOT qr_enabled AND manual_enabled FROM public.task_checkin_config WHERE task_id='${taskA}') AS methods,
+    (SELECT expected_latitude=40.4168 AND expected_longitude=-3.7038 AND location_radius=75 FROM public.tasks WHERE id='${taskA}') AS location`)
+  if (!Object.values(ownOperations.rows[0]).every(Boolean)) throw new Error(`Las operaciones protegidas no guardan correctamente: ${JSON.stringify(ownOperations.rows[0])}`)
+
+  const rejectedRequests = [
+    [owner, organizationA, `SELECT public.work_manage_nfc_card('create',NULL,'11223344','Ajena','${taskB}',NULL,NULL)`],
+    [owner, organizationA, `SELECT public.work_set_task_access_active('${accessB}',false)`],
+    [owner, organizationA, `SELECT public.work_save_checkin_methods('${taskB}',true,true,true)`],
+    [owner, organizationA, `SELECT public.work_set_task_location('${taskB}',1,1,50)`],
+    [worker, organizationA, `SELECT public.work_manage_nfc_card('delete','${card}',NULL,NULL,NULL,NULL,NULL)`]
+  ]
+  const crossTenantRejected = []
+  for (const [actor, organization, sql] of rejectedRequests) crossTenantRejected.push(await mustReject(actor, organization, sql))
+  const expectedRejections = new Set(['42501', '23503', '23514', 'P0001'])
+  if (!crossTenantRejected.every(code => expectedRejections.has(code))) throw new Error(`Una operación protegida aceptó otra empresa o falló de forma inesperada: ${JSON.stringify(crossTenantRejected)}`)
+  await request(owner, organizationA, `SELECT public.work_manage_nfc_card('delete','${card}',NULL,NULL,NULL,NULL,NULL)`)
 
   const tables = await db.query(`
     SELECT c.relname AS name,c.relrowsecurity AS rls
@@ -397,7 +463,7 @@ try {
     passed: true,
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
-    checks: state,
+    checks: { ...state, protectedBrowserOperations: true },
     isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, executorRoleRestricted: true, unsafeRelationOwners: 0, unsafeRoleMemberships: 0, unsafeSchemaCreate: 0, unsafeSequencePrivileges: 0, authenticatedMutationTables: authenticatedMutations.rows.length, postgresOwnedApiRoutines: postgresOwnedApiRoutines.rows.length, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
   }))
 } finally {
