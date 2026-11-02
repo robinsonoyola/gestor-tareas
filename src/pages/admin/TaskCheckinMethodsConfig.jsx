@@ -9,10 +9,8 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { Settings, Save, NfcIcon, QrCode, Hand, Search } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 
 export default function TaskCheckinMethodsConfig() {
-  const navigate = useNavigate()
   const [tasks, setTasks] = useState([])
   const [search, setSearch] = useState('')
   const [configs, setConfigs] = useState({})

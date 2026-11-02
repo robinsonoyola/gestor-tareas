@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import Layout from '@/components/layout/Layout'
@@ -12,7 +11,6 @@ import { User, Mail, Lock, Info } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 export default function EmployeeSettings() {
-  const navigate = useNavigate()
   const { userData } = useAuth()
 
   // Estados para cambio de email

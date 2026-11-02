@@ -20,12 +20,10 @@ import {
   Info,
   CheckCircle
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import QRCodeStyling from 'qr-code-styling'
 
 export default function QRGenerator() {
-  const navigate = useNavigate()
   const [tasks, setTasks] = useState([])
   const [selectedTask, setSelectedTask] = useState(null)
   const [qrCode, setQrCode] = useState(null)

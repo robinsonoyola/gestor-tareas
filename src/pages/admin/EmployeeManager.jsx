@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -32,7 +31,6 @@ import {
   Mail,
   Phone,
   CheckCircle,
-  XCircle,
   AlertCircle
 } from 'lucide-react'
 import { format } from 'date-fns'
@@ -104,7 +102,7 @@ export default function EmployeeManager() {
     try {
       const data = await workRpc('work_roles_overview')
       setRoles(data.roles); setAssignments(data.assignments); setRolesReady(true); setRoleError('')
-    } catch(e) { setRolesReady(false); setRoleError('No se pudieron cargar los roles. Comprueba que instalaste 15-ROLES-DE-EMPLEADOS.sql en Supabase.') }
+    } catch { setRolesReady(false); setRoleError('No se pudieron cargar los roles. Comprueba que instalaste 15-ROLES-DE-EMPLEADOS.sql en Supabase.') }
   }
   const roleIdFor = id => assignments.find(a=>a.user_id===id)?.role_id || ''
   const roleNameFor = id => roles.find(r=>r.id===roleIdFor(id))?.name || 'Sin rol'

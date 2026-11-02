@@ -428,7 +428,7 @@ export default function ReportCharts({
                 strokeWidth="3"
                 points={days
                   .map(
-                    ([day, value], index) =>
+                    ([, value], index) =>
                       `${60 + index * ((width - 100) / Math.max(1, days.length - 1))},${180 - (value / maxDay) * 140}`,
                   )
                   .join(" ")}

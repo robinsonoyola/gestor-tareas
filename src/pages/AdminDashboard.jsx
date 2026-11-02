@@ -48,11 +48,7 @@ import {
   Edit, 
   Copy,
   Trash2, 
-  Calendar,
-  Users,
-  CheckSquare,
-  QrCode,
-  MapPin
+  CheckSquare
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'

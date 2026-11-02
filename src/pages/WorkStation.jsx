@@ -60,7 +60,7 @@ export default function WorkStation() {
     try {
       const data = await stationRpc(extras?'work_station_day_v2':'work_station_day', {p_station: station, p_ticket: ticket})
       if (request === generation.current) setDay(data)
-    } catch (e) {
+    } catch {
       if (request === generation.current) setDayError('No se pudo consultar la lista. Si falta work_station_day, instala la actualización del resumen de tablet.')
     } finally { if (request === generation.current) setDayLoading(false) }
   }

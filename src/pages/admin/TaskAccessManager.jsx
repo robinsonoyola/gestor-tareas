@@ -39,7 +39,6 @@ import {
   Copy,
   ExternalLink,
   Trash2,
-  Calendar,
   CheckCircle,
   AlertCircle,
   Plus,

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import Layout from '@/components/layout/Layout'
 import { useTasks } from '@/hooks/useTasks'
@@ -39,7 +38,6 @@ import { MapPin, Edit, Trash2, Info, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 export default function GPSLocations() {
-  const navigate = useNavigate()
   const { tasks, loading: tasksLoading, fetchTasks } = useTasks()
   const activeTasks = tasks.filter(task => !task.archived_at)
   const [isDialogOpen, setIsDialogOpen] = useState(false)

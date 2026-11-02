@@ -87,11 +87,6 @@ const stamp = (value) =>
   value
     ? new Date(value).toLocaleString("es-ES", { timeZone: "Europe/Madrid" })
     : "—";
-const normalize = (value) =>
-  String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es");
 const isoDay = (date) => date.toISOString().slice(0, 10);
 const rangeFor = (kind, anchor) => {
   const d = new Date(`${anchor}T12:00:00`),

@@ -16,7 +16,7 @@ export function PlanningCalendarView({mode='month',setMode=()=>{},rows=[],error=
  const selected=new Date((date||workDate())+'T12:00:00Z'),anchor=new Date(selected)
  if(mode==='month')anchor.setUTCDate(1)
  anchor.setUTCDate(anchor.getUTCDate()-((anchor.getUTCDay()+6)%7))
- const count=mode==='week'?7:42,start=iso(anchor),end=iso(new Date(anchor.getTime()+(count-1)*86400000))
+ const count=mode==='week'?7:42
  const current=rows.find(r=>r.day===date)
  return <Card><CardHeader><div className="flex flex-wrap justify-between items-center gap-3"><CardTitle>Calendario del empleado</CardTitle><div className="flex gap-2"><Button variant={mode==='week'?'default':'outline'} onClick={()=>setMode('week')}>Semana</Button><Button variant={mode==='month'?'default':'outline'} onClick={()=>setMode('month')}>Mes</Button></div></div></CardHeader><CardContent>
  <p className="text-sm text-gray-500 mb-4">{selected.toLocaleDateString('es-ES',{month:'long',year:'numeric',timeZone:'UTC'})} · Pulsa una fecha para consultar su planificación.</p>

@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { CreditCard, Plus, Power, PowerOff, Trash2, Edit, Search} from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 
 interface NFCCard {
   id: string
@@ -35,7 +34,6 @@ interface Task {
 }
 
 export default function NFCCardManager() {
-  const navigate = useNavigate()
   const [cards, setCards] = useState<NFCCard[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
