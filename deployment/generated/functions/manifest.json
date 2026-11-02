@@ -1,0 +1,17 @@
+{
+  "format": 1,
+  "functions": {
+    "create-employee": {
+      "file": "create-employee/index.ts",
+      "sha256": "11ADDE6BD132A9E50C1ED2095DD1BBFB56A2AD11B2C01AFB424886F4AB1A3E09",
+      "verifyJwtAtGateway": false,
+      "verifiesJwtInCode": true
+    },
+    "update-employee-email": {
+      "file": "update-employee-email/index.ts",
+      "sha256": "B073401BA6A55FF98A6D2DC855B6E9002A4BE85AB9184A16D222FC41DEAB8BAF",
+      "verifyJwtAtGateway": false,
+      "verifiesJwtInCode": true
+    }
+  }
+}

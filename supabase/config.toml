@@ -1,0 +1,5 @@
+[functions.create-employee]
+verify_jwt = false
+
+[functions.update-employee-email]
+verify_jwt = false

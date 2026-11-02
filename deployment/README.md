@@ -40,3 +40,18 @@ Este archivo sirve únicamente para actualizar una copia de la base heredada cap
 El instalador se detiene si queda un marcador sin sustituir, el correo no corresponde exactamente a un usuario Auth o el identificador de empresa no es válido. Al terminar, ese usuario queda como propietario activo.
 
 Las automatizaciones se instalan aparte porque `pg_cron` es una capacidad del alojamiento y no existe en todos los PostgreSQL. El verificador exige ambas en el despliegue comercial de Supabase.
+
+## Funciones de administración
+
+Generar los archivos únicos que se pueden pegar o desplegar en Supabase:
+
+```powershell
+npm run package:functions
+npm run test:functions-package
+```
+
+Los resultados quedan en `deployment/generated/functions`. Deben desplegarse con los nombres exactos `create-employee` y `update-employee-email`.
+
+Ambas funciones llevan `verify_jwt = false` en `supabase/config.toml` porque el gateway heredado no acepta todos los JWT actuales. Esto no las deja abiertas: el código exige Bearer token, lo valida con Supabase Auth, obtiene `mt_context` y confirma que el actor sea administrador activo de la empresa seleccionada. No se debe eliminar esa comprobación interna.
+
+Configurar `ALLOWED_ORIGINS` únicamente con los dominios HTTPS reales del frontend. `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` deben proceder de los secretos automáticos de Supabase; nunca de variables `VITE_*` ni de archivos publicados.
