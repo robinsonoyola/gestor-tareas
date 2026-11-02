@@ -66,6 +66,10 @@ try {
   await freshDb.exec(fs.readFileSync(`${root}supabase/tests/bootstrap.sql`, 'utf8'))
   await freshDb.exec(`INSERT INTO auth.users(id,email,raw_user_meta_data,email_confirmed_at) VALUES('${owner}','owner@example.test','{"full_name":"Empresa Nueva"}',now())`)
   const template = fs.readFileSync(`${root}deployment/generated/instalacion-nueva-plantilla.sql`, 'utf8')
+  const automation = fs.readFileSync(`${root}deployment/generated/activar-automatizaciones.sql`, 'utf8')
+  const verification = fs.readFileSync(`${root}deployment/generated/verificar-instalacion.sql`, 'utf8')
+  if (!automation.includes("ase-work-recurrences") || !automation.includes("ase-work-deadline-notifications") || !automation.includes('cron.unschedule')) throw new Error('Paquete de automatización incompleto')
+  if (!verification.includes("'ASE Work listo'") || !verification.includes('Automatizaciones horarias incompletas')) throw new Error('Verificador alojado incompleto')
   const configured = template
     .replaceAll('__ASE_OWNER_EMAIL__', 'owner@example.test')
     .replaceAll('__ASE_COMPANY_NAME__', 'Empresa Nueva')
