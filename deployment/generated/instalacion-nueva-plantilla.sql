@@ -11113,5 +11113,13 @@ REVOKE CREATE ON SCHEMA public FROM ase_tenant_executor;
 REVOKE ALL ON FUNCTION public.work_planning_assignments(uuid),public.work_recurrence_list() FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.work_planning_assignments(uuid),public.work_recurrence_list() TO authenticated,ase_tenant_executor;
 NOTIFY pgrst,'reload schema';
+
+-- ==== 20261102000500_lock_trigger_function_execution.sql ====
+-- ASE Work: trigger helpers are internal and must not be callable through the API.
+
+REVOKE ALL ON FUNCTION public.work_execution_schedule_defaults() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.work_execution_schedule_defaults() TO ase_tenant_executor;
+
+NOTIFY pgrst,'reload schema';
 DO $finish$ DECLARE c ase_install_config%ROWTYPE; owner_id uuid; org_id uuid; BEGIN SELECT * INTO c FROM ase_install_config; SELECT id INTO STRICT owner_id FROM auth.users WHERE lower(email)=lower(c.owner_email); SELECT organization_id INTO STRICT org_id FROM public.organization_memberships WHERE user_id=owner_id AND status='active'; UPDATE public.organization_memberships SET role='owner' WHERE organization_id=org_id AND user_id=owner_id; UPDATE public.organizations SET name=c.company_name,slug=c.company_slug WHERE id=org_id; END $finish$;
 COMMIT;

@@ -51,11 +51,31 @@ try {
   const state = final.rows[0]
   if (!Object.values(state).every(Boolean)) throw new Error(`Estado final incompleto: ${JSON.stringify(state)}`)
 
+  const tables = await db.query(`
+    SELECT c.relname AS name,c.relrowsecurity AS rls
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND c.relkind IN ('r','p')
+    ORDER BY c.relname
+  `)
+  const withoutRls = tables.rows.filter(table => !table.rls).map(table => table.name)
+  if (withoutRls.length) throw new Error(`Tablas públicas sin aislamiento RLS: ${withoutRls.join(', ')}`)
+
+  const routines = await db.query(`
+    SELECT p.oid::regprocedure::text AS name
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname='public' AND has_function_privilege('public',p.oid,'EXECUTE')
+    ORDER BY 1
+  `)
+  if (routines.rows.length) throw new Error(`Funciones ejecutables por PUBLIC: ${routines.rows.map(routine => routine.name).join(', ')}`)
+
   console.log(JSON.stringify({
     passed: true,
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
-    checks: state
+    checks: state,
+    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0 }
   }))
 } finally {
   await db.close()

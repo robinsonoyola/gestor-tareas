@@ -7711,4 +7711,12 @@ REVOKE CREATE ON SCHEMA public FROM ase_tenant_executor;
 REVOKE ALL ON FUNCTION public.work_planning_assignments(uuid),public.work_recurrence_list() FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.work_planning_assignments(uuid),public.work_recurrence_list() TO authenticated,ase_tenant_executor;
 NOTIFY pgrst,'reload schema';
+
+-- ==== 20261102000500_lock_trigger_function_execution.sql ====
+-- ASE Work: trigger helpers are internal and must not be callable through the API.
+
+REVOKE ALL ON FUNCTION public.work_execution_schedule_defaults() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.work_execution_schedule_defaults() TO ase_tenant_executor;
+
+NOTIFY pgrst,'reload schema';
 COMMIT;
