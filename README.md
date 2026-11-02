@@ -26,7 +26,7 @@ Los siguientes módulos empresariales no forman parte de esta entrega: ventas, f
 
 ## Desarrollo local
 
-1. Instalar Node.js LTS y las dependencias con `npm install`.
+1. Instalar Node.js 20.19 o posterior compatible (22.13+ o 24+) y las dependencias con `npm install`.
 2. Crear un `.env` local con `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` del entorno autorizado.
 3. Iniciar con `npm run dev -- --host 0.0.0.0`.
 

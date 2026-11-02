@@ -285,8 +285,8 @@
     },
     {
       "file": "docs/operations/CONTROL-VERSION-CANDIDATA.md",
-      "bytes": 2466,
-      "sha256": "FD5264C37B2F5692EA0BA149D7528C24DCDCBD9DCD2BF2A490E7560FE7FE4D33"
+      "bytes": 2546,
+      "sha256": "C2CCFB4CA6BC8B518C7BAA5248DFCC5C55BC9230AA85EB553CE7DB32958B5516"
     },
     {
       "file": "docs/operations/DESPLIEGUE-Y-RECUPERACION.md",
@@ -314,13 +314,13 @@
     "inputs": [
       {
         "file": "package.json",
-        "bytes": 2196,
-        "sha256": "D6BC0BBD7897F1B8AE0E51B9119DCFB19E6B97B99CCA98674AF9D1D458089A6A"
+        "bytes": 2259,
+        "sha256": "BC66913D7A03C8C923006FF64379B33FAF2CB7ECD505FA36F61ED870507889C1"
       },
       {
         "file": "package-lock.json",
-        "bytes": 190101,
-        "sha256": "03F3B091F23EACF356481F28E63C828E9C5E076575624C9C6A977FC15DB48EEE"
+        "bytes": 191408,
+        "sha256": "3F06E5BC5DB6C35EE7040E4CD2BA28AF511E6E478E35B174B493F37CE59D8F7F"
       },
       {
         "file": "vite.config.ts",

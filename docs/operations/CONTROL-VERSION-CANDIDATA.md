@@ -13,6 +13,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - rutas esenciales, menús y carga diferida de pantallas;
 - ausencia de pantallas y componentes desconectados del arranque real;
 - versiones mínimas corregidas de las dependencias críticas de producción y compilación;
+- versión de Node compatible declarada y comprobada antes de una instalación;
 - inventario verificable de las dependencias incluidas en producción, con versión, licencia e integridad;
 - rechazo de componentes con licencia desconocida o fuera de la lista comercial revisada;
 - exportaciones CSV y Excel;
