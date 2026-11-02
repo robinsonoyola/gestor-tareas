@@ -153,12 +153,34 @@ try {
   ].sort()
   if (JSON.stringify(serviceApi) !== JSON.stringify(expectedServiceApi)) throw new Error(`Superficie de servicio inesperada: ${serviceApi.join(', ')}`)
 
+  const storagePolicies = await db.query(`
+    SELECT policyname,cmd,permissive,roles::text AS roles
+    FROM pg_policies
+    WHERE schemaname='storage' AND tablename='objects'
+    ORDER BY policyname
+  `)
+  const storagePolicySurface = storagePolicies.rows.map(policy => `${policy.policyname}:${policy.cmd}:${policy.permissive}:${policy.roles}`)
+  const expectedStoragePolicySurface = [
+    'incident_upload:INSERT:PERMISSIVE:{authenticated}',
+    'sec04_read_assigned_task_files:SELECT:PERMISSIVE:{authenticated}',
+    'sec04_upload_own_assigned_task_files:INSERT:PERMISSIVE:{authenticated}',
+    'task_files_insert:INSERT:PERMISSIVE:{authenticated}',
+    'work_files_insert:INSERT:RESTRICTIVE:{authenticated}',
+    'work_files_read:SELECT:RESTRICTIVE:{authenticated}',
+    'work_incident_attachment_executor:SELECT:PERMISSIVE:{ase_tenant_executor}',
+    'work_incident_file_read:SELECT:PERMISSIVE:{authenticated}',
+    'work_upload_active_checkin:INSERT:RESTRICTIVE:{authenticated}'
+  ]
+  if (JSON.stringify(storagePolicySurface) !== JSON.stringify(expectedStoragePolicySurface)) throw new Error(`Políticas de almacenamiento inesperadas: ${storagePolicySurface.join(', ')}`)
+  const storageRls = await db.query(`SELECT c.relrowsecurity AS enabled FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='storage' AND c.relname='objects'`)
+  if (storageRls.rows[0]?.enabled !== true) throw new Error('storage.objects no tiene RLS activo')
+
   console.log(JSON.stringify({
     passed: true,
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi }
+    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length }
   }))
 } finally {
   await db.close()

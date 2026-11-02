@@ -11,6 +11,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - las 70 migraciones, el aislamiento RLS de todas las tablas y el cierre del esquema privado;
 - la lista cerrada de funciones anónimas necesarias para los puntos de fichaje;
 - la lista cerrada de funciones de servicio para altas y cambios de correo;
+- depósito privado, RLS y lista cerrada de políticas para archivos y evidencias;
 - paquetes de funciones administrativas;
 - funciones administrativas sin CORS abierto, secretos embebidos ni sesiones persistentes;
 - protecciones de copia y restauración;

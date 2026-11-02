@@ -48,6 +48,16 @@ SELECT jsonb_build_object(
    FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
    WHERE n.nspname='public' AND has_function_privilege('service_role',p.oid,'EXECUTE')
   ),
+ 'almacenamiento_rls_seguro',(
+   SELECT c.relrowsecurity
+   FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+   WHERE n.nspname='storage' AND c.relname='objects'
+  ) AND (
+   SELECT count(*)=9
+    AND count(*) FILTER(WHERE policyname<>ALL(ARRAY['incident_upload','sec04_read_assigned_task_files','sec04_upload_own_assigned_task_files','task_files_insert','work_files_insert','work_files_read','work_incident_attachment_executor','work_incident_file_read','work_upload_active_checkin']))=0
+    AND count(*) FILTER(WHERE roles&&ARRAY['anon','public']::name[])=0
+   FROM pg_policies WHERE schemaname='storage' AND tablename='objects'
+  ),
  'bucket_privado',(SELECT public IS FALSE FROM storage.buckets WHERE id='task-files'),
  'propietario_activo',EXISTS(SELECT 1 FROM public.organization_memberships WHERE role='owner' AND status='active'),
  'automatizaciones_activas',(SELECT count(*) FROM cron.job WHERE active AND jobname IN ('ase-work-recurrences','ase-work-deadline-notifications')),
