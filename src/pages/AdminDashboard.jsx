@@ -80,6 +80,9 @@ export default function AdminDashboard() {
   const [checklistTask,setChecklistTask]=useState(null)
   const [subtaskTask,setSubtaskTask]=useState(null)
   const [dependencyTask,setDependencyTask]=useState(null)
+  const [archiveRequest,setArchiveRequest]=useState(null)
+  const [archiveReason,setArchiveReason]=useState('')
+  const [archiveBusy,setArchiveBusy]=useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
   
   const [taskForm, setTaskForm] = useState({
@@ -213,20 +216,28 @@ export default function AdminDashboard() {
     }
   }
 
-  const handleArchiveTask = async (task,action) => {
+  const handleArchiveTask = (task,action) => {
+    setArchiveReason('')
+    setArchiveRequest({task,action})
+  }
+
+  const saveArchiveTask = async event => {
+    event.preventDefault()
+    if(!archiveRequest||archiveBusy||archiveReason.trim().length<5)return
+    const {task,action}=archiveRequest
     const verb=action==='archive'?'archivar':'restaurar'
-    const reason=window.prompt(`Motivo para ${verb} “${task.title}” (mínimo 5 caracteres):`)
-    if(reason===null)return
-    if(reason.trim().length<5){toast.error('Escribe un motivo de al menos 5 caracteres');return}
+    setArchiveBusy(true)
     try{
-      await workRpc('work_change_task_archive',{p_task:task.id,p_action:action,p_expected_version:task.version,p_reason:reason.trim(),p_request:crypto.randomUUID()})
+      await workRpc('work_change_task_archive',{p_task:task.id,p_action:action,p_expected_version:task.version,p_reason:archiveReason.trim(),p_request:crypto.randomUUID()})
       toast.success(action==='archive'?'Actividad archivada; su historial se conserva':'Actividad restaurada')
+      setArchiveRequest(null)
+      setArchiveReason('')
       await fetchTasks()
     }catch(error){
       const message=String(error?.message||'')
       toast.error(message.includes('work_change_task_archive')?'Falta activar el archivo de actividades en Supabase.':message||`No se pudo ${verb} la actividad`)
       if(message.includes('modificada por otra persona'))fetchTasks()
-    }
+    }finally{setArchiveBusy(false)}
   }
 
   const handleDuplicateTask = async task => {
@@ -509,6 +520,20 @@ export default function AdminDashboard() {
             {resultField('edit-task')}
 
             <Button type="submit" disabled={!can('tasks.edit')||savingTask} className="w-full">{savingTask?'Guardando…':'Guardar Cambios'}</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!archiveRequest} onOpenChange={open=>{if(!open&&!archiveBusy){setArchiveRequest(null);setArchiveReason('')}}}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{archiveRequest?.action==='archive'?'Archivar actividad':'Restaurar actividad'}</DialogTitle>
+            <DialogDescription>{archiveRequest?.task?.title}</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={saveArchiveTask}>
+            <p className="rounded-lg border bg-slate-50 p-3 text-sm text-gray-900">{archiveRequest?.action==='archive'?'La actividad saldrá del trabajo operativo, pero conservará fichajes, informes, proyectos e historial. No debe tener ejecuciones abiertas ni repeticiones activas.':'La actividad volverá al catálogo operativo. Sus datos e historial anteriores se mantienen.'}</p>
+            <div className="space-y-2"><Label htmlFor="archive-reason">Motivo obligatorio</Label><Textarea id="archive-reason" autoFocus maxLength={1000} disabled={archiveBusy} value={archiveReason} onChange={e=>setArchiveReason(e.target.value)} placeholder={archiveRequest?.action==='archive'?'Ej.: Actividad sustituida por un nuevo procedimiento':'Ej.: La actividad vuelve a utilizarse'}/><p className="text-xs text-gray-500">Mínimo 5 caracteres. Quedará visible en el historial completo.</p></div>
+            <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" disabled={archiveBusy} onClick={()=>{setArchiveRequest(null);setArchiveReason('')}}>Cancelar</Button><Button disabled={archiveBusy||archiveReason.trim().length<5}>{archiveBusy?'Guardando…':archiveRequest?.action==='archive'?'Archivar actividad':'Restaurar actividad'}</Button></div>
           </form>
         </DialogContent>
       </Dialog>
