@@ -1,0 +1,768 @@
+{
+  "format": 1,
+  "component": "ase-work-task-manager-candidate",
+  "scope": "production",
+  "lockfileVersion": 3,
+  "components": [
+    {
+      "name": "@floating-ui/core",
+      "version": "1.7.3",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-sGnvb5dmrJaKEZ+LDIpguvdX3bDlEllmv4/ClQ9awcmCZrlx5jQyyMWFM5kBI+EyNOCDDiKk8il0zeuX3Zlg/w=="
+    },
+    {
+      "name": "@floating-ui/dom",
+      "version": "1.7.4",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-OOchDgh4F2CchOX94cRVqhvy7b3AFb+/rQXyswmzmGakRfkMgoWVjfnLWkRirfLEfuD4ysVW16eXzwt3jHIzKA=="
+    },
+    {
+      "name": "@floating-ui/react-dom",
+      "version": "2.1.6",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-4JX6rEatQEvlmgU80wZyq9RT96HZJa88q8hp0pBd+LrczeDI4o6uA2M+uvxngVHo4Ihr8uibXxH6+70zhAFrVw=="
+    },
+    {
+      "name": "@floating-ui/utils",
+      "version": "0.2.10",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="
+    },
+    {
+      "name": "@radix-ui/number",
+      "version": "1.1.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-MkKCwxlXTgz6CFoJx3pCwn07GKp36+aZyu/u2Ln2VrA5DcdyCZkASEDBTd8x5whTQQL5CiYf4prXKLcgQdv29g=="
+    },
+    {
+      "name": "@radix-ui/primitive",
+      "version": "1.1.3",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-JTF99U/6XIjCBo0wqkU5sK10glYe27MRRsfwoiq5zzOEZLHU3A3KCMa5X/azekYRCJ0HlwI0crAXS/5dEHTzDg=="
+    },
+    {
+      "name": "@radix-ui/react-alert-dialog",
+      "version": "1.1.15",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-oTVLkEw5GpdRe29BqJ0LSDFWI3qu0vR1M0mUkOQWDIUnY/QIkLpgDMWuKxP94c2NAC2LGcgVhG1ImF3jkZ5wXw=="
+    },
+    {
+      "name": "@radix-ui/react-arrow",
+      "version": "1.1.7",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-F+M1tLhO+mlQaOWspE8Wstg+z6PwxwRd8oQ8IXceWz92kfAmalTRf0EjrouQeo7QssEPfCn05B4Ihs1K9WQ/7w=="
+    },
+    {
+      "name": "@radix-ui/react-avatar",
+      "version": "1.1.11",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-0Qk603AHGV28BOBO34p7IgD5m+V5Sg/YovfayABkoDDBM5d3NCx0Mp4gGrjzLGes1jV5eNOE1r3itqOR33VC6Q=="
+    },
+    {
+      "name": "@radix-ui/react-checkbox",
+      "version": "1.3.3",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-wBbpv+NQftHDdG86Qc0pIyXk5IR3tM8Vd0nWLKDcX8nNn4nXFOFwsKuqw2okA/1D/mpaAkmuyndrPJTYDNZtFw=="
+    },
+    {
+      "name": "@radix-ui/react-collection",
+      "version": "1.1.7",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-Fh9rGN0MoI4ZFUNyfFVNU4y9LUz93u9/0K+yLgA2bwRojxM8JU1DyvvMBabnZPBgMWREAJvU2jjVzq+LrFUglw=="
+    },
+    {
+      "name": "@radix-ui/react-compose-refs",
+      "version": "1.1.2",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-z4eqJvfiNnFMHIIvXP3CY57y2WJs5g2v3X0zm9mEJkrkNv4rDxu+sg9Jh8EkXyeqBkB7SOcboo9dMVqhyrACIg=="
+    },
+    {
+      "name": "@radix-ui/react-context",
+      "version": "1.1.2",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-jCi/QKUM2r1Ju5a3J64TH2A5SpKAgh0LpknyqdQ4m6DCV0xJ2HG1xARRwNGPQfi1SLdLWZ1OJz6F4OMBBNiGJA=="
+    },
+    {
+      "name": "@radix-ui/react-context",
+      "version": "1.1.3",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-ieIFACdMpYfMEjF0rEf5KLvfVyIkOz6PDGyNnP+u+4xQ6jny3VCgA4OgXOwNx2aUkxn8zx9fiVcM8CfFYv9Lxw=="
+    },
+    {
+      "name": "@radix-ui/react-dialog",
+      "version": "1.1.15",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-TCglVRtzlffRNxRMEyR36DGBLJpeusFcgMVD9PZEzAKnUs1lKCgX5u9BmC2Yg+LL9MgZDugFFs1Vl+Jp4t/PGw=="
+    },
+    {
+      "name": "@radix-ui/react-direction",
+      "version": "1.1.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-1UEWRX6jnOA2y4H5WczZ44gOOjTEmlqv1uNW4GAJEO5+bauCBhv8snY65Iw5/VOS/ghKN9gr2KjnLKxrsvoMVw=="
+    },
+    {
+      "name": "@radix-ui/react-dismissable-layer",
+      "version": "1.1.11",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-Nqcp+t5cTB8BinFkZgXiMJniQH0PsUt2k51FUhbdfeKvc4ACcG2uQniY/8+h1Yv6Kza4Q7lD7PQV0z0oicE0Mg=="
+    },
+    {
+      "name": "@radix-ui/react-dropdown-menu",
+      "version": "2.1.16",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-1PLGQEynI/3OX/ftV54COn+3Sud/Mn8vALg2rWnBLnRaGtJDduNW/22XjlGgPdpcIbiQxjKtb7BkcjP00nqfJw=="
+    },
+    {
+      "name": "@radix-ui/react-focus-guards",
+      "version": "1.1.3",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-0rFg/Rj2Q62NCm62jZw0QX7a3sz6QCQU0LpZdNrJX8byRGaGVTqbrW9jAoIAHyMQqsNpeZ81YgSizOt5WXq0Pw=="
+    },
+    {
+      "name": "@radix-ui/react-focus-scope",
+      "version": "1.1.7",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-t2ODlkXBQyn7jkl6TNaw/MtVEVvIGelJDCG41Okq/KwUsJBwQ4XVZsHAVUkK4mBv3ewiAS3PGuUWuY2BoK4ZUw=="
+    },
+    {
+      "name": "@radix-ui/react-id",
+      "version": "1.1.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-kGkGegYIdQsOb4XjsfM97rXsiHaBwco+hFI66oO4s9LU+PLAC5oJ7khdOVFxkhsmlbpUqDAvXw11CluXP+jkHg=="
+    },
+    {
+      "name": "@radix-ui/react-label",
+      "version": "2.1.8",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-FmXs37I6hSBVDlO4y764TNz1rLgKwjJMQ0EGte6F3Cb3f4bIuHB/iLa/8I9VKkmOy+gNHq8rql3j686ACVV21A=="
+    },
+    {
+      "name": "@radix-ui/react-menu",
+      "version": "2.1.16",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-72F2T+PLlphrqLcAotYPp0uJMr5SjP5SL01wfEspJbru5Zs5vQaSHb4VB3ZMJPimgHHCHG7gMOeOB9H3Hdmtxg=="
+    },
+    {
+      "name": "@radix-ui/react-popper",
+      "version": "1.2.8",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-0NJQ4LFFUuWkE7Oxf0htBKS6zLkkjBH+hM1uk7Ng705ReR8m/uelduy1DBo0PyBXPKVnBA6YBlU94MBGXrSBCw=="
+    },
+    {
+      "name": "@radix-ui/react-portal",
+      "version": "1.1.9",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-bpIxvq03if6UNwXZ+HTK71JLh4APvnXntDc6XOX8UVq4XQOVl7lwok0AvIl+b8zgCw3fSaVTZMpAPPagXbKmHQ=="
+    },
+    {
+      "name": "@radix-ui/react-presence",
+      "version": "1.1.5",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-/jfEwNDdQVBCNvjkGit4h6pMOzq8bHkopq458dPt2lMjx+eBQUohZNG9A7DtO/O5ukSbxuaNGXMjHicgwy6rQQ=="
+    },
+    {
+      "name": "@radix-ui/react-primitive",
+      "version": "2.1.3",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-m9gTwRkhy2lvCPe6QJp4d3G1TYEUHn/FzJUtq9MjH46an1wJU+GdoGC5VLof8RX8Ft/DlpshApkhswDLZzHIcQ=="
+    },
+    {
+      "name": "@radix-ui/react-primitive",
+      "version": "2.1.4",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-9hQc4+GNVtJAIEPEqlYqW5RiYdrr8ea5XQ0ZOnD6fgru+83kqT15mq2OCcbe8KnjRZl5vF3ks69AKz3kh1jrhg=="
+    },
+    {
+      "name": "@radix-ui/react-primitive",
+      "version": "2.1.4",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-9hQc4+GNVtJAIEPEqlYqW5RiYdrr8ea5XQ0ZOnD6fgru+83kqT15mq2OCcbe8KnjRZl5vF3ks69AKz3kh1jrhg=="
+    },
+    {
+      "name": "@radix-ui/react-roving-focus",
+      "version": "1.1.11",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-7A6S9jSgm/S+7MdtNDSb+IU859vQqJ/QAtcYQcfFC6W8RS4IxIZDldLR0xqCFZ6DCyrQLjLPsxtTNch5jVA4lA=="
+    },
+    {
+      "name": "@radix-ui/react-select",
+      "version": "2.2.6",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-I30RydO+bnn2PQztvo25tswPH+wFBjehVGtmagkU78yMdwTwVf12wnAOF+AeP8S2N8xD+5UPbGhkUfPyvT+mwQ=="
+    },
+    {
+      "name": "@radix-ui/react-slot",
+      "version": "1.2.3",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-aeNmHnBxbi2St0au6VBVC7JXFlhLlOnvIIlePNniyUNAClzmtAUEY8/pBiK3iHjufOlwA+c20/8jngo7xcrg8A=="
+    },
+    {
+      "name": "@radix-ui/react-slot",
+      "version": "1.2.3",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-aeNmHnBxbi2St0au6VBVC7JXFlhLlOnvIIlePNniyUNAClzmtAUEY8/pBiK3iHjufOlwA+c20/8jngo7xcrg8A=="
+    },
+    {
+      "name": "@radix-ui/react-slot",
+      "version": "1.2.3",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-aeNmHnBxbi2St0au6VBVC7JXFlhLlOnvIIlePNniyUNAClzmtAUEY8/pBiK3iHjufOlwA+c20/8jngo7xcrg8A=="
+    },
+    {
+      "name": "@radix-ui/react-slot",
+      "version": "1.2.3",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-aeNmHnBxbi2St0au6VBVC7JXFlhLlOnvIIlePNniyUNAClzmtAUEY8/pBiK3iHjufOlwA+c20/8jngo7xcrg8A=="
+    },
+    {
+      "name": "@radix-ui/react-slot",
+      "version": "1.2.3",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-aeNmHnBxbi2St0au6VBVC7JXFlhLlOnvIIlePNniyUNAClzmtAUEY8/pBiK3iHjufOlwA+c20/8jngo7xcrg8A=="
+    },
+    {
+      "name": "@radix-ui/react-slot",
+      "version": "1.2.3",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-aeNmHnBxbi2St0au6VBVC7JXFlhLlOnvIIlePNniyUNAClzmtAUEY8/pBiK3iHjufOlwA+c20/8jngo7xcrg8A=="
+    },
+    {
+      "name": "@radix-ui/react-slot",
+      "version": "1.2.4",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-Jl+bCv8HxKnlTLVrcDE8zTMJ09R9/ukw4qBs/oZClOfoQk/cOTbDn+NceXfV7j09YPVQUryJPHurafcSg6EVKA=="
+    },
+    {
+      "name": "@radix-ui/react-switch",
+      "version": "1.2.6",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-bByzr1+ep1zk4VubeEVViV592vu2lHE2BZY5OnzehZqOOgogN80+mNtCqPkhn2gklJqOpxWgPoYTSnhBCqpOXQ=="
+    },
+    {
+      "name": "@radix-ui/react-use-callback-ref",
+      "version": "1.1.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-FkBMwD+qbGQeMu1cOHnuGB6x4yzPjho8ap5WtbEJ26umhgqVXbhekKUQO+hZEL1vU92a3wHwdp0HAcqAUF5iDg=="
+    },
+    {
+      "name": "@radix-ui/react-use-controllable-state",
+      "version": "1.2.2",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-BjasUjixPFdS+NKkypcyyN5Pmg83Olst0+c6vGov0diwTEo6mgdqVR6hxcEgFuh4QrAs7Rc+9KuGJ9TVCj0Zzg=="
+    },
+    {
+      "name": "@radix-ui/react-use-effect-event",
+      "version": "0.0.2",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-Qp8WbZOBe+blgpuUT+lw2xheLP8q0oatc9UpmiemEICxGvFLYmHm9QowVZGHtJlGbS6A6yJ3iViad/2cVjnOiA=="
+    },
+    {
+      "name": "@radix-ui/react-use-escape-keydown",
+      "version": "1.1.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-Il0+boE7w/XebUHyBjroE+DbByORGR9KKmITzbR7MyQ4akpORYP/ZmbhAr0DG7RmmBqoOnZdy2QlvajJ2QA59g=="
+    },
+    {
+      "name": "@radix-ui/react-use-is-hydrated",
+      "version": "0.1.0",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-U+UORVEq+cTnRIaostJv9AGdV3G6Y+zbVd+12e18jQ5A3c0xL03IhnHuiU4UV69wolOQp5GfR58NW/EgdQhwOA=="
+    },
+    {
+      "name": "@radix-ui/react-use-layout-effect",
+      "version": "1.1.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-RbJRS4UWQFkzHTTwVymMTUv8EqYhOp8dOOviLj2ugtTiXRaRQS7GLGxZTLL1jWhMeoSCf5zmcZkqTl9IiYfXcQ=="
+    },
+    {
+      "name": "@radix-ui/react-use-previous",
+      "version": "1.1.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-2dHfToCj/pzca2Ck724OZ5L0EVrr3eHRNsG/b3xQJLA2hZpVCS99bLAX+hm1IHXDEnzU6by5z/5MIY794/a8NQ=="
+    },
+    {
+      "name": "@radix-ui/react-use-rect",
+      "version": "1.1.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-QTYuDesS0VtuHNNvMh+CjlKJ4LJickCMUAqjlE3+j8w+RlRpwyX3apEQKGFzbZGdo7XNG1tXa+bQqIE7HIXT2w=="
+    },
+    {
+      "name": "@radix-ui/react-use-size",
+      "version": "1.1.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-ewrXRDTAqAXlkl6t/fkXWNAhFX9I+CkKlw6zjEwk86RSPKwZr3xpBRso655aqYafwtnbpHLj6toFzmd6xdVptQ=="
+    },
+    {
+      "name": "@radix-ui/react-visually-hidden",
+      "version": "1.2.3",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-pzJq12tEaaIhqjbzpCuv/OypJY/BPavOofm+dbab+MHLajy277+1lLm6JFcGgF5eskJ6mquGirhXY2GD/8u8Ug=="
+    },
+    {
+      "name": "@radix-ui/rect",
+      "version": "1.1.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw=="
+    },
+    {
+      "name": "@supabase/auth-js",
+      "version": "2.86.0",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-3xPqMvBWC6Haqpr6hEWmSUqDq+6SA1BAEdbiaHdAZM9QjZ5uiQJ+6iD9pZOzOa6MVXZh4GmwjhC9ObIG0K1NcA=="
+    },
+    {
+      "name": "@supabase/functions-js",
+      "version": "2.86.0",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-AlOoVfeaq9XGlBFIyXTmb+y+CZzxNO4wWbfgRM6iPpNU5WCXKawtQYSnhivi3UVxS7GA0rWovY4d6cIAxZAojA=="
+    },
+    {
+      "name": "@supabase/postgrest-js",
+      "version": "2.86.0",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-QVf+wIXILcZJ7IhWhWn+ozdf8B+oO0Ulizh2AAPxD/6nQL+x3r9lJ47a+fpc/jvAOGXMbkeW534Kw6jz7e8iIA=="
+    },
+    {
+      "name": "@supabase/realtime-js",
+      "version": "2.86.0",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-dyS8bFoP29R/sj5zLi0AP3JfgG8ar1nuImcz5jxSx7UIW7fbFsXhUCVrSY2Ofo0+Ev6wiATiSdBOzBfWaiFyPA=="
+    },
+    {
+      "name": "@supabase/storage-js",
+      "version": "2.86.0",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-PM47jX/Mfobdtx7NNpoj9EvlrkapAVTQBZgGGslEXD6NS70EcGjhgRPBItwHdxZPM5GwqQ0cGMN06uhjeY2mHQ=="
+    },
+    {
+      "name": "@supabase/supabase-js",
+      "version": "2.86.0",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-BaC9sv5+HGNy1ulZwY8/Ev7EjfYYmWD4fOMw9bDBqTawEj6JHAiOHeTwXLRzVaeSay4p17xYLN2NSCoGgXMQnw=="
+    },
+    {
+      "name": "@types/node",
+      "version": "24.10.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ=="
+    },
+    {
+      "name": "@types/phoenix",
+      "version": "1.6.6",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-PIzZZlEppgrpoT2QgbnDU+MMzuR6BbCjllj0bM70lWoejMeNJAxCchxnv7J3XFkI8MpygtRpzXrIlmWUBclP5A=="
+    },
+    {
+      "name": "@types/prop-types",
+      "version": "15.7.15",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw=="
+    },
+    {
+      "name": "@types/react",
+      "version": "18.3.27",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-cisd7gxkzjBKU2GgdYrTdtQx1SORymWyaAFhaxQPK9bYO9ot3Y5OikQRvY0VYQtvwjeQnizCINJAenh/V7MK2w=="
+    },
+    {
+      "name": "@types/react-dom",
+      "version": "18.3.7",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-MEe3UeoENYVFXzoXEWsvcpg6ZvlrFNlOQ7EOsvhI3CfAXwzPfO8Qwuxd40nepsYKqyyVQnTdEfv68q91yLcKrQ=="
+    },
+    {
+      "name": "@types/ws",
+      "version": "8.18.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg=="
+    },
+    {
+      "name": "aria-hidden",
+      "version": "1.2.6",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA=="
+    },
+    {
+      "name": "class-variance-authority",
+      "version": "0.7.1",
+      "direct": true,
+      "optional": false,
+      "license": "Apache-2.0",
+      "integrity": "sha512-Ka+9Trutv7G8M6WT6SeiRWz792K5qEqIGEGzXKhAE6xOWAY6pPH8U+9IY3oCMv6kqTmLsv7Xh/2w2RigkePMsg=="
+    },
+    {
+      "name": "clsx",
+      "version": "2.1.1",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA=="
+    },
+    {
+      "name": "cookie",
+      "version": "1.1.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ=="
+    },
+    {
+      "name": "csstype",
+      "version": "3.2.3",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="
+    },
+    {
+      "name": "date-fns",
+      "version": "4.1.0",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg=="
+    },
+    {
+      "name": "detect-node-es",
+      "version": "1.1.0",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-ypdmJU/TbBby2Dxibuv7ZLW3Bs1QEmM7nHjEANfohJLvE0XVujisn1qPJcZxg+qDucsr+bP6fLD1rPS3AhJ7EQ=="
+    },
+    {
+      "name": "get-nonce",
+      "version": "1.0.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-FJhYRoDaiatfEkUK8HKlicmu/3SGFD51q3itKDGoSTysQJBnfOcxU5GxnhE1E6soB76MbT0MBtnKJuXyAx+96Q=="
+    },
+    {
+      "name": "iceberg-js",
+      "version": "0.8.0",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-kmgmea2nguZEvRqW79gDqNXyxA3OS5WIgMVffrHpqXV4F/J4UmNIw2vstixioLTNSkd5rFB8G0s3Lwzogm6OFw=="
+    },
+    {
+      "name": "js-tokens",
+      "version": "4.0.0",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="
+    },
+    {
+      "name": "loose-envify",
+      "version": "1.4.0",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q=="
+    },
+    {
+      "name": "lucide-react",
+      "version": "0.468.0",
+      "direct": true,
+      "optional": false,
+      "license": "ISC",
+      "integrity": "sha512-6koYRhnM2N0GGZIdXzSeiNwguv1gt/FAjZOiPl76roBi3xKEXa4WmfpxgQwTTL4KipXjefrnf3oV4IsYhi4JFA=="
+    },
+    {
+      "name": "qr-code-styling",
+      "version": "1.9.2",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-RgJaZJ1/RrXJ6N0j7a+pdw3zMBmzZU4VN2dtAZf8ZggCfRB5stEQ3IoDNGaNhYY3nnZKYlYSLl5YkfWN5dPutg=="
+    },
+    {
+      "name": "qrcode-generator",
+      "version": "1.5.2",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-pItrW0Z9HnDBnFmgiNrY1uxRdri32Uh9EjNYLPVC2zZ3ZRIIEqBoDgm4DkvDwNNDHTK7FNkmr8zAa77BYc9xNw=="
+    },
+    {
+      "name": "react",
+      "version": "18.3.1",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ=="
+    },
+    {
+      "name": "react-dom",
+      "version": "18.3.1",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw=="
+    },
+    {
+      "name": "react-remove-scroll",
+      "version": "2.7.2",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-Iqb9NjCCTt6Hf+vOdNIZGdTiH1QSqr27H/Ek9sv/a97gfueI/5h1s3yRi1nngzMUaOOToin5dI1dXKdXiF+u0Q=="
+    },
+    {
+      "name": "react-remove-scroll-bar",
+      "version": "2.3.8",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-9r+yi9+mgU33AKcj6IbT9oRCO78WriSj6t/cF8DWBZJ9aOGPOTEDvdUDz1FwKim7QXWwmHqtdHnRJfhAxEG46Q=="
+    },
+    {
+      "name": "react-router",
+      "version": "7.18.5",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-dTgvcXDOrLPrlLHrcZAqWveiK1hMSqN+rGAJzegP8HtmNkfRxOoshGWBNX3ZJ0cZjOHkRdlUJtaIhZMLLyGyPw=="
+    },
+    {
+      "name": "react-router-dom",
+      "version": "7.18.5",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-9HcfDMU6JJ/fp6gJZYGwNE6RknVGS4kBjH1HkNw959mCJi70TVwdipQWv2FEol9uGpi+SZTFtVpJPtEQfayeOw=="
+    },
+    {
+      "name": "react-style-singleton",
+      "version": "2.2.3",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-b6jSvxvVnyptAiLjbkWLE/lOnR4lfTtDAl+eUC7RZy+QQWc6wRzIV2CE6xBuMmDxc2qIihtDCZD5NPOFl7fRBQ=="
+    },
+    {
+      "name": "scheduler",
+      "version": "0.23.2",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ=="
+    },
+    {
+      "name": "set-cookie-parser",
+      "version": "2.7.3",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-irZHtTqurLna57KQG/s+fzOwv/J6XSH4cs8M/vsrY3uCaQ3S6+QJguAH0WdN47SXlk82voMZ4naWMQf8fdEoIg=="
+    },
+    {
+      "name": "sonner",
+      "version": "1.7.4",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-DIS8z4PfJRbIyfVFDVnK9rO3eYDtse4Omcm6bt0oEr5/jtLgysmjuBl1frJ9E/EQZrFmKx2A8m/s5s9CRXIzhw=="
+    },
+    {
+      "name": "tailwind-merge",
+      "version": "2.6.0",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-P+Vu1qXfzediirmHOC3xKGAYeZtPcV9g76X+xg2FD4tYgR71ewMA35Y3sCz3zhiN/dwefRpJX0yBcgwi1fXNQA=="
+    },
+    {
+      "name": "tailwindcss",
+      "version": "4.3.3",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ=="
+    },
+    {
+      "name": "tailwindcss-animate",
+      "version": "1.0.7",
+      "direct": true,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-bl6mpH3T7I3UFxuvDEXLxy/VuFxBk5bbzplh7tXI68mwMokNYd1t9qPBHlnyTwfa4JGC4zP516I1hYYtQ/vspA=="
+    },
+    {
+      "name": "tslib",
+      "version": "2.8.1",
+      "direct": false,
+      "optional": false,
+      "license": "0BSD",
+      "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="
+    },
+    {
+      "name": "undici-types",
+      "version": "7.16.0",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="
+    },
+    {
+      "name": "use-callback-ref",
+      "version": "1.3.3",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-jQL3lRnocaFtu3V00JToYz/4QkNWswxijDaCVNZRiRTO3HQDLsdu1ZtmIUvV4yPp+rvWm5j0y0TG/S61cuijTg=="
+    },
+    {
+      "name": "use-sidecar",
+      "version": "1.1.3",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-Fedw0aZvkhynoPYlA5WXrMCAMm+nSWdZt6lzJQ7Ok8S6Q+VsHmHpRWndVRJ8Be0ZbkfPc5LRYH+5XrzXcEeLRQ=="
+    },
+    {
+      "name": "use-sync-external-store",
+      "version": "1.6.0",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w=="
+    },
+    {
+      "name": "ws",
+      "version": "8.22.1",
+      "direct": false,
+      "optional": false,
+      "license": "MIT",
+      "integrity": "sha512-oyL6OPYme/CmiFvNuGzeoxCJ4nOrZE2O1FwM9MWM1AsGri6nLXB2pg+lNA8aLeXMSav0J6eIVS1j6vUPzUtK9g=="
+    }
+  ]
+}

@@ -29,6 +29,7 @@ const required = [
   'deployment/generated/verificar-instalacion.sql',
   'deployment/generated/comprobar-salud.sql',
   'deployment/generated/functions/manifest.json',
+  'deployment/generated/dependency-inventory.json',
   'docs/manuals/ADMINISTRADOR.md',
   'docs/manuals/ENCARGADO.md',
   'docs/manuals/EMPLEADO.md',
@@ -54,6 +55,8 @@ run('Integridad de navegación', process.execPath, ['tests/navigation-integrity.
 run('Hosting y caché', process.execPath, ['tests/hosting-config.mjs'])
 run('Configuración pública del frontend', process.execPath, ['tests/runtime-config.mjs'])
 run('Línea base de dependencias', process.execPath, ['tests/dependency-baseline.mjs'])
+run('Inventario de dependencias de producción', process.execPath, ['scripts/build-dependency-inventory.mjs'])
+run('Integridad del inventario de dependencias', process.execPath, ['tests/dependency-inventory.mjs'])
 run('Higiene del frontend', process.execPath, ['tests/frontend-hygiene.mjs'])
 run('Alcance del código fuente', process.execPath, ['tests/source-reachability.mjs'])
 run('Análisis estático del código', process.execPath, ['node_modules/eslint/bin/eslint.js', '.'])

@@ -41,6 +41,7 @@ const frontendFiles = filesBelow(dist)
 
 const databaseManifest = fs.readFileSync(path.join(generated, 'manifest.json'))
 const functionsManifest = fs.readFileSync(path.join(generated, 'functions', 'manifest.json'))
+const dependencyInventory = fs.readFileSync(path.join(generated, 'dependency-inventory.json'))
 const operationalFiles = operationalPaths.map(file => {
   const content = fs.readFileSync(path.join(root, ...file.split('/')))
   return { file, bytes: content.length, sha256: sha256(content) }
@@ -55,6 +56,7 @@ const manifest = {
   component: 'ase-work-task-manager-candidate',
   databaseManifestSha256: sha256(databaseManifest),
   functionsManifestSha256: sha256(functionsManifest),
+  dependencyInventorySha256: sha256(dependencyInventory),
   frontendSha256: sha256(frontendIdentity),
   frontendFiles,
   operationalFiles,

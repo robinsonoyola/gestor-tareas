@@ -49,8 +49,10 @@ for (const item of manifest.build.inputs) {
 
 const database = fs.readFileSync(path.join(root, 'deployment', 'generated', 'manifest.json'))
 const functions = fs.readFileSync(path.join(root, 'deployment', 'generated', 'functions', 'manifest.json'))
+const dependencies = fs.readFileSync(path.join(root, 'deployment', 'generated', 'dependency-inventory.json'))
 if (sha256(database) !== manifest.databaseManifestSha256) throw new Error('El paquete de base no coincide')
 if (sha256(functions) !== manifest.functionsManifestSha256) throw new Error('El paquete de funciones no coincide')
+if (sha256(dependencies) !== manifest.dependencyInventorySha256) throw new Error('El inventario de dependencias no coincide')
 
 const identity = manifest.frontendFiles.map(item => `${item.file}\0${item.sha256}`).join('\n')
 if (sha256(identity) !== manifest.frontendSha256) throw new Error('La identidad del frontend no coincide')

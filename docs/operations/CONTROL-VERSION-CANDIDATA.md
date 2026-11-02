@@ -13,6 +13,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - rutas esenciales, menús y carga diferida de pantallas;
 - ausencia de pantallas y componentes desconectados del arranque real;
 - versiones mínimas corregidas de las dependencias críticas de producción y compilación;
+- inventario verificable de las dependencias incluidas en producción, con versión, licencia e integridad;
 - exportaciones CSV y Excel;
 - compilación final del frontend.
 - manifiesto SHA-256 del frontend, base de datos y funciones que forman la entrega.
