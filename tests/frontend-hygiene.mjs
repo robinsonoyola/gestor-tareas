@@ -54,5 +54,6 @@ if (html.includes('<link href="/src/index.css"')) throw new Error('El CSS se est
 const vite = fs.readFileSync(path.join(root, 'vite.config.ts'), 'utf8')
 if (!vite.includes('drop_console: true') || !vite.includes('drop_debugger: true')) throw new Error('La compilación comercial conserva registros de consola o debugger')
 if (!vite.includes("target: 'baseline-widely-available'")) throw new Error('La compatibilidad mínima de navegadores no está fijada')
+if (!vite.includes('import.meta.env.ASE_WORK_VERSION') || !activeSource.includes('v{import.meta.env.ASE_WORK_VERSION}')) throw new Error('La interfaz no identifica la versión instalada')
 
-console.log(JSON.stringify({ passed: true, debugLogs: 0, productionConsole: false, directTableWrites: 0, unusedTemplateAssets: 0, retiredFrontend: retiredFrontend.length, metadata: true }))
+console.log(JSON.stringify({ passed: true, debugLogs: 0, productionConsole: false, directTableWrites: 0, unusedTemplateAssets: 0, retiredFrontend: retiredFrontend.length, metadata: true, visibleVersion: true }))

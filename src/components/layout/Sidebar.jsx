@@ -166,6 +166,9 @@ export default function Sidebar({ onClose }) {
             </p>
           </div>
         </div>
+        <p className="mt-3 text-center text-[11px] text-slate-500" title="Versión instalada de ASE Work">
+          ASE Work v{import.meta.env.ASE_WORK_VERSION}
+        </p>
       </div>
     </aside>
   )
