@@ -1,11 +1,6 @@
-import RecurringWork from "./pages/admin/RecurringWork";
-import PlanningBoard from "./pages/admin/PlanningBoard";
+import { lazy, Suspense } from "react";
 import LoginDestination from "./components/auth/LoginDestination";
-import Reports from "./pages/admin/Reports";
-import Incidents from "./pages/Incidents";
-import WorkAreas from "./pages/admin/WorkAreas";
 import { useOrganization } from "./components/auth/OrganizationProvider";
-import TaskCheckinMethodsConfig from "./pages/admin/TaskCheckinMethodsConfig";
 import {
   BrowserRouter,
   Routes,
@@ -17,25 +12,36 @@ import { Toaster } from "@/components/ui/sonner";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
-import Overview from "./pages/Overview";
-import CheckinHistory from "./pages/CheckinHistory";
-import AdminDashboard from "./pages/AdminDashboard";
-import GPSLocations from "./pages/admin/GPSLocations";
-import TaskAccessManager from "./pages/admin/TaskAccessManager";
-import EmployeeManager from "./pages/admin/EmployeeManager";
-import EmployeeAbsences from "./pages/admin/EmployeeAbsences";
-import EmployeeWorkHome from "./pages/EmployeeWorkHome";
-import EmployeeCurrentWork from "./pages/EmployeeCurrentWork";
-import EmployeeAbsences from "./pages/EmployeeAbsences";
-import RoleManager from "./pages/admin/RoleManager";
-import WorkdayManager from "./pages/admin/WorkdayManager";
-import TeamCalendar from "./pages/admin/TeamCalendar";
-import WorkStation from "./pages/WorkStation";
-import EmployeeSettings from "./pages/EmployeeSettings";
-import TaskAccessLogin from "./pages/employee/TaskAccessLogin";
-import TaskDetailWithActions from "./pages/employee/TaskDetailWithActions";
 import NotFound from "./pages/NotFound";
-import NFCCardManager from "./pages/admin/NFCCardManager";
+
+const RecurringWork = lazy(() => import("./pages/admin/RecurringWork"));
+const PlanningBoard = lazy(() => import("./pages/admin/PlanningBoard"));
+const Reports = lazy(() => import("./pages/admin/Reports"));
+const Incidents = lazy(() => import("./pages/Incidents"));
+const WorkAreas = lazy(() => import("./pages/admin/WorkAreas"));
+const TaskCheckinMethodsConfig = lazy(() => import("./pages/admin/TaskCheckinMethodsConfig"));
+const Overview = lazy(() => import("./pages/Overview"));
+const CheckinHistory = lazy(() => import("./pages/CheckinHistory"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const GPSLocations = lazy(() => import("./pages/admin/GPSLocations"));
+const TaskAccessManager = lazy(() => import("./pages/admin/TaskAccessManager"));
+const EmployeeManager = lazy(() => import("./pages/admin/EmployeeManager"));
+const AdminEmployeeAbsences = lazy(() => import("./pages/admin/EmployeeAbsences"));
+const EmployeeWorkHome = lazy(() => import("./pages/EmployeeWorkHome"));
+const EmployeeCurrentWork = lazy(() => import("./pages/EmployeeCurrentWork"));
+const EmployeeAbsences = lazy(() => import("./pages/EmployeeAbsences"));
+const RoleManager = lazy(() => import("./pages/admin/RoleManager"));
+const WorkdayManager = lazy(() => import("./pages/admin/WorkdayManager"));
+const TeamCalendar = lazy(() => import("./pages/admin/TeamCalendar"));
+const WorkStation = lazy(() => import("./pages/WorkStation"));
+const EmployeeSettings = lazy(() => import("./pages/EmployeeSettings"));
+const TaskAccessLogin = lazy(() => import("./pages/employee/TaskAccessLogin"));
+const TaskDetailWithActions = lazy(() => import("./pages/employee/TaskDetailWithActions"));
+const NFCCardManager = lazy(() => import("./pages/admin/NFCCardManager"));
+
+function RouteLoading() {
+  return <div role="status" className="min-h-screen bg-background p-6 text-foreground">Cargando ASE Work…</div>;
+}
 
 function StationNavigation({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -61,6 +67,7 @@ function App() {
   return (
     <BrowserRouter>
       <StationNavigation key={scopeKey}>
+        <Suspense fallback={<RouteLoading />}>
         <Routes>
           {/* ============================= */}
           {/*      RUTAS PÚBLICAS          */}
@@ -202,7 +209,7 @@ function App() {
             path="/admin/team/absences"
             element={
               <ProtectedRoute requireAdmin>
-                <EmployeeAbsences />
+                <AdminEmployeeAbsences />
               </ProtectedRoute>
             }
           />
@@ -366,6 +373,7 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </StationNavigation>
 
       <Toaster />
