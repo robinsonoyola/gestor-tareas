@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { User, Mail, Lock, Info } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { reauthenticateCurrentUser } from '@/lib/accountSecurity'
+import { reauthenticateCurrentUser, validateNewPassword } from '@/lib/accountSecurity'
 
 export default function EmployeeSettings() {
   const { userData } = useAuth()
@@ -85,17 +85,11 @@ export default function EmployeeSettings() {
     setLoadingPassword(true)
 
     try {
-      // Validar que la nueva contraseña tenga al menos 6 caracteres
-      if (passwordForm.newPassword.length < 6) {
-        toast.error('La contraseña debe tener al menos 6 caracteres')
-        return
-      }
-
-      // Validar que las contraseñas coincidan
-      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-        toast.error('Las contraseñas no coinciden')
-        return
-      }
+      validateNewPassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+        confirmation: passwordForm.confirmPassword,
+      })
 
       // Actualizar contraseña en Supabase Auth
       await reauthenticateCurrentUser(supabase, {
@@ -121,7 +115,7 @@ export default function EmployeeSettings() {
 
     } catch (error) {
       console.error('Error updating password:', error)
-      toast.error(error?.code?.startsWith('reauth_') ? error.message : 'No se pudo actualizar la contraseña. Inténtalo de nuevo.')
+      toast.error(error?.code?.startsWith('reauth_') || error?.code?.startsWith('password_') ? error.message : 'No se pudo actualizar la contraseña. Inténtalo de nuevo.')
     } finally {
       setLoadingPassword(false)
     }
@@ -254,7 +248,7 @@ export default function EmployeeSettings() {
             <Alert className="mb-4 bg-yellow-50 border-yellow-200">
               <Info className="h-4 w-4 text-yellow-600" />
               <AlertDescription className="text-yellow-800">
-                🔒 Tu nueva contraseña debe tener al menos 6 caracteres. Se recomienda usar una combinación de letras, números y símbolos.
+                🔒 Tu nueva contraseña debe tener al menos 8 caracteres. Se recomienda usar una combinación de letras, números y símbolos.
               </AlertDescription>
             </Alert>
 
@@ -285,7 +279,7 @@ export default function EmployeeSettings() {
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                   placeholder="Mínimo 8 caracteres"
                   required
-                  minLength={6}
+                  minLength={8}
                   className="border-gray-300"
                 />
               </div>
@@ -301,7 +295,7 @@ export default function EmployeeSettings() {
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                   placeholder="Repite la nueva contraseña"
                   required
-                  minLength={6}
+                  minLength={8}
                   className="border-gray-300"
                 />
               </div>

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { reauthenticateCurrentUser } from '../src/lib/accountSecurity.js'
+import { reauthenticateCurrentUser, validateNewPassword } from '../src/lib/accountSecurity.js'
 
 const calls = []
 const client = {
@@ -33,4 +33,9 @@ await assert.rejects(
   error => error.code === 'reauth_required',
 )
 
-console.log(JSON.stringify({ passed: true, checks: 4 }))
+assert.equal(validateNewPassword({ currentPassword: 'anterior1', newPassword: 'nueva-segura-2', confirmation: 'nueva-segura-2' }), true)
+assert.throws(() => validateNewPassword({ currentPassword: 'anterior1', newPassword: 'corta', confirmation: 'corta' }), error => error.code === 'password_too_short')
+assert.throws(() => validateNewPassword({ currentPassword: 'anterior1', newPassword: 'nueva-segura-2', confirmation: 'otra-segura-3' }), error => error.code === 'password_mismatch')
+assert.throws(() => validateNewPassword({ currentPassword: 'misma-segura', newPassword: 'misma-segura', confirmation: 'misma-segura' }), error => error.code === 'password_reused')
+
+console.log(JSON.stringify({ passed: true, checks: 8 }))

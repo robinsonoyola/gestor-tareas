@@ -14,3 +14,10 @@ export async function reauthenticateCurrentUser(client, { email, password, expec
 
   return data.user
 }
+
+export function validateNewPassword({ currentPassword, newPassword, confirmation }) {
+  if (!newPassword || newPassword.length < 8) throw accountError('La contraseña nueva debe tener al menos 8 caracteres.', 'password_too_short')
+  if (newPassword !== confirmation) throw accountError('Las contraseñas nuevas no coinciden.', 'password_mismatch')
+  if (currentPassword === newPassword) throw accountError('La contraseña nueva debe ser diferente de la actual.', 'password_reused')
+  return true
+}
