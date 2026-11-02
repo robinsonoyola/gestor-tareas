@@ -19,8 +19,6 @@ BEGIN
  END LOOP;
  RETURN NEW;
 END $function$;
-ALTER FUNCTION ase_private.guard_archived_task_reference() OWNER TO ase_tenant_executor;
-REVOKE ALL ON FUNCTION ase_private.guard_archived_task_reference() FROM PUBLIC,anon,authenticated,ase_tenant_executor;
 
 DO $block$
 DECLARE item record;trigger_name text;columns_sql text;
@@ -49,6 +47,9 @@ BEGIN
    trigger_name,columns_sql,item.table_name,array_to_string(ARRAY(SELECT quote_literal(x)FROM unnest(item.field_names)x),','));
  END LOOP;
 END $block$;
+
+ALTER FUNCTION ase_private.guard_archived_task_reference() OWNER TO ase_tenant_executor;
+REVOKE ALL ON FUNCTION ase_private.guard_archived_task_reference() FROM PUBLIC,anon,authenticated,ase_tenant_executor;
 
 CREATE OR REPLACE FUNCTION public.work_duplicate_task(p_task uuid,p_title text DEFAULT NULL) RETURNS uuid
 LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $function$
