@@ -8,6 +8,7 @@
 - La base y el frontend deben poder volver a su versión anterior.
 - Los archivos de clientes no se incluyen en repositorios ni registros de soporte.
 - La compilación comercial elimina mensajes de consola y puntos de depuración para no exponer respuestas o datos del cliente en el navegador.
+- El hosting restringe código y conexiones al propio sitio y a Supabase alojado. Si en el futuro se usa un dominio propio para la API, debe añadirse expresamente a `connect-src` antes de publicar.
 - El HTML se revalida siempre; los recursos versionados de `assets` pueden conservarse en caché. Esto evita mezclar versiones durante una publicación.
 
 ## Empresa nueva
