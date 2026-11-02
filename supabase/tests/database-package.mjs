@@ -252,12 +252,31 @@ try {
   if (nullableTenantColumns.rows.length) throw new Error(`Columnas de empresa que admiten NULL: ${nullableTenantColumns.rows.map(column => column.table_name).join(', ')}`)
   if (crossTenantForeignKeys.rows.length) throw new Error(`Relaciones sin clave compuesta de empresa: ${crossTenantForeignKeys.rows.map(relation => `${relation.source_table}->${relation.target_table}`).join(', ')}`)
 
+  const foreignKeysWithoutIndex = await db.query(`
+    SELECT source.relname AS source_table,c.conname AS constraint_name
+    FROM pg_constraint c
+    JOIN pg_class source ON source.oid=c.conrelid
+    JOIN pg_namespace source_schema ON source_schema.oid=source.relnamespace
+    WHERE c.contype='f' AND source_schema.nspname='public'
+      AND NOT EXISTS(
+        SELECT 1 FROM pg_index i
+        WHERE i.indrelid=c.conrelid AND i.indisvalid AND i.indisready AND i.indpred IS NULL
+          AND i.indnkeyatts>=cardinality(c.conkey)
+          AND NOT EXISTS(
+            SELECT 1 FROM generate_subscripts(c.conkey,1) position
+            WHERE i.indkey[position-1]<>c.conkey[position]
+          )
+      )
+    ORDER BY source.relname,c.conname
+  `)
+  if (foreignKeysWithoutIndex.rows.length) throw new Error(`Claves foráneas sin índice de apoyo: ${foreignKeysWithoutIndex.rows.map(item => `${item.source_table}.${item.constraint_name}`).join(', ')}`)
+
   console.log(JSON.stringify({
     passed: true,
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0 }
+    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
   }))
 } finally {
   await db.close()

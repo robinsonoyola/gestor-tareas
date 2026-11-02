@@ -102,6 +102,19 @@ SELECT jsonb_build_object(
    WHERE c.contype='f' AND source_schema.nspname='public' AND target_schema.nspname='public'
      AND NOT EXISTS(SELECT 1 FROM pg_constraint safe WHERE safe.contype='f' AND safe.conrelid=c.conrelid AND safe.confrelid=c.confrelid AND source_org.attnum=ANY(safe.conkey) AND target_org.attnum=ANY(safe.confkey))
   ),
+ 'indices_claves_foraneas',NOT EXISTS(
+  SELECT 1
+  FROM pg_constraint c
+  JOIN pg_class source ON source.oid=c.conrelid
+  JOIN pg_namespace source_schema ON source_schema.oid=source.relnamespace
+  WHERE c.contype='f' AND source_schema.nspname='public'
+   AND NOT EXISTS(
+    SELECT 1 FROM pg_index i
+    WHERE i.indrelid=c.conrelid AND i.indisvalid AND i.indisready AND i.indpred IS NULL
+     AND i.indnkeyatts>=cardinality(c.conkey)
+     AND NOT EXISTS(SELECT 1 FROM generate_subscripts(c.conkey,1) position WHERE i.indkey[position-1]<>c.conkey[position])
+   )
+ ),
  'bucket_privado',(SELECT public IS FALSE FROM storage.buckets WHERE id='task-files'),
  'propietario_activo',EXISTS(SELECT 1 FROM public.organization_memberships WHERE role='owner' AND status='active'),
  'automatizaciones_activas',(SELECT count(*) FROM cron.job WHERE active AND jobname IN ('ase-work-recurrences','ase-work-deadline-notifications')),
