@@ -90,7 +90,7 @@ try {
   if (exposedPrivateRelations.rows.length) throw new Error(`Relaciones privadas expuestas al API: ${exposedPrivateRelations.rows.map(relation => relation.name).join(', ')}`)
 
   const publicPrivateRoutines = await db.query(`
-    SELECT p.proname AS name
+    SELECT p.oid::regprocedure::text AS name
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid=p.pronamespace
     WHERE n.nspname='ase_private'
@@ -114,12 +114,35 @@ try {
   if (JSON.stringify(anonRoutines) !== JSON.stringify(['session_role','session_user_id'])) throw new Error(`Funciones privadas anónimas inesperadas: ${anonRoutines.join(', ')}`)
   if (JSON.stringify(authenticatedRoutines) !== JSON.stringify(['current_org','session_role','session_user_id'])) throw new Error(`Funciones privadas autenticadas inesperadas: ${authenticatedRoutines.join(', ')}`)
 
+  const anonymousPublicRoutines = await db.query(`
+    SELECT p.oid::regprocedure::text AS name
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname='public' AND has_function_privilege('anon',p.oid,'EXECUTE')
+    ORDER BY 1
+  `)
+  const anonymousApi = anonymousPublicRoutines.rows.map(routine => routine.name)
+  const expectedAnonymousApi = [
+    'work_station_checklist(text,uuid,uuid,boolean)',
+    'work_station_confirm(text,uuid,text)',
+    'work_station_confirm_v2(text,uuid,text)',
+    'work_station_day(text,uuid)',
+    'work_station_day_v2(text,uuid)',
+    'work_station_identify(text,text)',
+    'work_station_identify_result(text,text,text,uuid)',
+    'work_station_identify_v2(text,text,text,uuid)',
+    'work_station_people(text)',
+    'work_station_save_result(text,uuid,text)',
+    'work_usability_ready()'
+  ]
+  if (JSON.stringify(anonymousApi) !== JSON.stringify(expectedAnonymousApi)) throw new Error(`Superficie anónima inesperada: ${anonymousApi.join(', ')}`)
+
   console.log(JSON.stringify({
     passed: true,
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length }
+    isolation: { tables: tables.rows.length, withoutRls: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi }
   }))
 } finally {
   await db.close()

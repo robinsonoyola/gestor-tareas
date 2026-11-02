@@ -41,7 +41,7 @@ const missing = required.filter(file => !fs.existsSync(path.join(root, file)))
 if (missing.length) throw new Error(`Faltan entregables de la versión: ${missing.join(', ')}`)
 
 const hostedVerification = fs.readFileSync(path.join(root, 'supabase/tests/verify-installed.sql'), 'utf8')
-for (const marker of ['work_task_archive_events', 'work_planning_assignments(uuid)', 'automatizaciones_activas', 'empresas_sin_propietario', 'esquema_privado_seguro', 'TRANSACTION READ ONLY']) {
+for (const marker of ['work_task_archive_events', 'work_planning_assignments(uuid)', 'automatizaciones_activas', 'empresas_sin_propietario', 'esquema_privado_seguro', 'superficie_anonima_segura', 'TRANSACTION READ ONLY']) {
   if (!hostedVerification.includes(marker)) throw new Error(`La verificación alojada no incluye ${marker}`)
 }
 

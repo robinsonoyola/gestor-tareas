@@ -21,6 +21,23 @@ SELECT jsonb_build_object(
     SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
     WHERE n.nspname='ase_private' AND has_function_privilege('public',p.oid,'EXECUTE')
    ),
+ 'superficie_anonima_segura',(
+   SELECT count(*)=11 AND count(*) FILTER(WHERE NOT p.oid=ANY(ARRAY[
+    'public.work_station_checklist(text,uuid,uuid,boolean)'::regprocedure,
+    'public.work_station_confirm(text,uuid,text)'::regprocedure,
+    'public.work_station_confirm_v2(text,uuid,text)'::regprocedure,
+    'public.work_station_day(text,uuid)'::regprocedure,
+    'public.work_station_day_v2(text,uuid)'::regprocedure,
+    'public.work_station_identify(text,text)'::regprocedure,
+    'public.work_station_identify_result(text,text,text,uuid)'::regprocedure,
+    'public.work_station_identify_v2(text,text,text,uuid)'::regprocedure,
+    'public.work_station_people(text)'::regprocedure,
+    'public.work_station_save_result(text,uuid,text)'::regprocedure,
+    'public.work_usability_ready()'::regprocedure
+   ]))=0
+   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+   WHERE n.nspname='public' AND has_function_privilege('anon',p.oid,'EXECUTE')
+  ),
  'bucket_privado',(SELECT public IS FALSE FROM storage.buckets WHERE id='task-files'),
  'propietario_activo',EXISTS(SELECT 1 FROM public.organization_memberships WHERE role='owner' AND status='active'),
  'automatizaciones_activas',(SELECT count(*) FROM cron.job WHERE active AND jobname IN ('ase-work-recurrences','ase-work-deadline-notifications')),
