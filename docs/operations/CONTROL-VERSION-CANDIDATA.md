@@ -22,6 +22,7 @@ Ejecutar `npm run test:release`. El control se detiene en el primer fallo y vali
 - presupuesto de carga móvil y ausencia de mapas de código o archivos sensibles en la entrega;
 - compatibilidad mínima de navegadores fijada y metadatos para accesos móviles guardados;
 - inspección del paquete final contra claves privadas, conexiones directas y tokens administrativos;
+- política de permisos del navegador limitada a las capacidades operativas necesarias;
 - manifiesto SHA-256 del frontend, base de datos y funciones que forman la entrega.
 
 Un resultado apto significa que la versión candidata es internamente coherente. No acredita por sí solo el funcionamiento de servicios externos ni sustituye las pruebas manuales.
