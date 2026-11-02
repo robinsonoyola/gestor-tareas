@@ -32,10 +32,16 @@ const required = [
   'docs/manuals/ADMINISTRADOR.md',
   'docs/manuals/ENCARGADO.md',
   'docs/manuals/EMPLEADO.md',
-  'docs/operations/DESPLIEGUE-Y-RECUPERACION.md'
+  'docs/operations/DESPLIEGUE-Y-RECUPERACION.md',
+  'supabase/tests/verify-installed.sql'
 ]
 const missing = required.filter(file => !fs.existsSync(path.join(root, file)))
 if (missing.length) throw new Error(`Faltan entregables de la versión: ${missing.join(', ')}`)
+
+const hostedVerification = fs.readFileSync(path.join(root, 'supabase/tests/verify-installed.sql'), 'utf8')
+for (const marker of ['work_task_archive_events', 'work_planning_assignments(uuid)', 'automatizaciones_activas', 'empresas_sin_propietario', 'TRANSACTION READ ONLY']) {
+  if (!hostedVerification.includes(marker)) throw new Error(`La verificación alojada no incluye ${marker}`)
+}
 
 run('Seguridad multiempresa sintética', process.execPath, ['supabase/tests/security.mjs'])
 run('Generación del paquete de base de datos', process.execPath, ['scripts/build-database-package.mjs'])

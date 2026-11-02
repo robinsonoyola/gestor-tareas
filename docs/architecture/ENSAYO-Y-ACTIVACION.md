@@ -1,22 +1,41 @@
-# Ensayo y activación pendiente
+# Ensayo alojado y activación
 
-La migración no está instalada. No ejecutar el baseline ni la migración directamente en producción para intentar completar una prueba.
+Este procedimiento corresponde al paquete completo actual. No aplicar migraciones sueltas ni usar el baseline manualmente en Supabase.
 
-1. Disponer de un backup completo recuperable de la base y de los archivos de Storage. Comprobar restauración en un proyecto Supabase separado; el inventario JSON no sustituye ese backup.
-2. Comprobar que no se han instalado cambios nuevos desde el inventario. La migración se detiene si cambian las definiciones de RPC o policies.
-3. En la copia de ensayo, aplicar la única migración atómica `supabase/migrations/20261022000100_core_multitenancy_a1.sql`. El archivo de baseline sirve solo para reconstrucción de bases vacías y tests; no se aplica sobre tablas existentes.
-4. Desplegar en ese proyecto create-employee y la sustitución de update-employee-email. Configurar los secretos exclusivamente de servidor y ALLOWED_ORIGINS con los orígenes reales de la aplicación de ensayo. No copiar service_role a un archivo VITE.
-5. Usar la aplicación contra esa copia y verificar: administrador inicial, empleado inicial, orden diario, inicio/consulta/fin de tablet, notas, fotos, vídeos, QR/enlaces, cambio de correo, recuperación, roles, exportaciones y gráficos.
-6. Crear una segunda organización de ensayo y usuarios sintéticos. Ejecutar ataques con sus JWT reales contra REST, RPC, Storage y los dos servicios de identidad, incluyendo una identidad en ambas empresas. No basta con que el selector visual filtre datos.
-7. Ejecutar `supabase/tests/verify-installed.sql`, revisar el informe de seguridad y hacer auditoría externa. Comparar registros, relaciones y archivos antes/después del ensayo.
-8. Solo con el ensayo aprobado, programar el corte de producción y repetir backup y verificación. Durante el corte evitar escrituras concurrentes y recargar las sesiones al finalizar. El código cliente es compatible con el estado anterior mientras no exista mt_context, pero no debe mezclarse un backend migrado con servicios de identidad antiguos sin revisar.
+## Proyecto temporal vacío
 
-Si falla la transacción, no continuar con escrituras manuales para saltar un constraint: revisar la causa y reconciliar los registros conservando su historial. Los tests comprueban que relaciones antiguas incoherentes provocan rollback.
+1. Crear un proyecto Supabase gratuito vacío y distinto de producción.
+2. Crear y confirmar en Authentication el usuario que será propietario.
+3. Ejecutar `npm run test:release` en la copia candidata.
+4. Generar el paquete con `npm run package:database`.
+5. Configurar únicamente los tres marcadores de `deployment/generated/instalacion-nueva-plantilla.sql`.
+6. Ejecutar ese instalador completo una sola vez en el proyecto vacío.
+7. Ejecutar `deployment/generated/activar-automatizaciones.sql`.
+8. Desplegar las dos funciones de `deployment/generated/functions` y configurar `ALLOWED_ORIGINS` con el origen de ensayo.
+9. Ejecutar `deployment/generated/verificar-instalacion.sql`, `deployment/generated/comprobar-salud.sql` y `supabase/tests/verify-installed.sql`.
 
-La reversión de un ensayo sin nuevas escrituras consiste en restaurar la copia verificada y el código anterior. Si ya se han creado organizaciones o registros nuevos, no quitar organization_id ni eliminar tablas como rollback: preparar recuperación o corrección hacia delante sin perder esos datos.
+El baseline y `bootstrap.sql` pertenecen exclusivamente a las pruebas aisladas. No deben pegarse por separado en Supabase.
 
-## Reconstrucción local de pruebas
+## Restauración de una copia
 
-`bootstrap.sql` solo se ejecuta en la base aislada creada por PGlite. No se debe pegar en Supabase: simula roles y tablas gestionadas de Auth/Storage.
+La restauración se realiza en otro proyecto vacío, nunca sobre el origen. Usar las utilidades y confirmaciones descritas en `docs/operations/DESPLIEGUE-Y-RECUPERACION.md`. Después de restaurar, repetir las tres verificaciones alojadas y la prueba de humo.
 
-El baseline conserva el esquema público capturado y sus funciones originales. Los tests lo cargan, insertan identidades y datos sintéticos y después aplican la migración completa. Esta reconstrucción no replica configuración SMTP, Auth, Storage físico ni los roles internos exactos del alojamiento.
+## Prueba funcional alojada
+
+- Crear administrador, encargado y empleados sintéticos.
+- Crear áreas, tarea, pasos, evidencias y planificación.
+- Confirmar que la importancia no modifica el orden de ejecución.
+- Iniciar, pausar, reanudar y cerrar fichajes respetando el orden.
+- Revisar incidencias, comentarios, archivos, repeticiones y notificaciones.
+- Archivar y restaurar una actividad; comprobar que no aparece en nuevos selectores mientras está archivada.
+- Descargar y abrir CSV y Excel.
+- Probar recuperación de contraseña con correo real cuando se autorice.
+- Probar móvil, tablet y NFC cuando estén disponibles.
+
+## Aislamiento real
+
+Crear una segunda empresa y usuarios exclusivamente sintéticos. Comprobar con sesiones diferentes que REST, RPC, Storage y funciones administrativas no permiten leer ni modificar datos ajenos. El filtrado visual por sí solo no acredita aislamiento.
+
+## Condición de cierre
+
+Registrar fecha, commit, manifiestos, resultados y cualquier incidencia. Un fallo se corrige en código o migración y se repite desde un proyecto limpio; no se salta manualmente una restricción. El proyecto de producción no participa en este ensayo.
