@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "test:reports": "node tests/report-export.mjs",
     "package:database": "node scripts/build-database-package.mjs",
-    "test:database-package": "node scripts/build-database-package.mjs --check && node supabase/tests/database-package.mjs"
+    "test:database-package": "node scripts/build-database-package.mjs && node supabase/tests/database-package.mjs"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.4",

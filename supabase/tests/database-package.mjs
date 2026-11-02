@@ -60,3 +60,30 @@ try {
 } finally {
   await db.close()
 }
+
+const freshDb = new PGlite({ extensions: { pgcrypto } })
+try {
+  await freshDb.exec(fs.readFileSync(`${root}supabase/tests/bootstrap.sql`, 'utf8'))
+  await freshDb.exec(`INSERT INTO auth.users(id,email,raw_user_meta_data,email_confirmed_at) VALUES('${owner}','owner@example.test','{"full_name":"Empresa Nueva"}',now())`)
+  const template = fs.readFileSync(`${root}deployment/generated/instalacion-nueva-plantilla.sql`, 'utf8')
+  const configured = template
+    .replaceAll('__ASE_OWNER_EMAIL__', 'owner@example.test')
+    .replaceAll('__ASE_COMPANY_NAME__', 'Empresa Nueva')
+    .replaceAll('__ASE_COMPANY_SLUG__', 'empresa-nueva')
+  await freshDb.exec(configured)
+  const installed = await freshDb.query(`
+    SELECT o.name,o.slug,m.role,m.status,
+      (SELECT public IS FALSE FROM storage.buckets WHERE id='task-files') AS private_bucket,
+      NOT has_schema_privilege('ase_tenant_executor','public','CREATE') AS executor_locked
+    FROM public.organizations o
+    JOIN public.organization_memberships m ON m.organization_id=o.id
+    WHERE m.user_id=$1
+  `, [owner])
+  const row = installed.rows[0]
+  if (!row || row.name!=='Empresa Nueva' || row.slug!=='empresa-nueva' || row.role!=='owner' || row.status!=='active' || !row.private_bucket || !row.executor_locked) {
+    throw new Error(`Instalación nueva incompleta: ${JSON.stringify(row)}`)
+  }
+  console.log(JSON.stringify({ passed: true, freshInstall: row }))
+} finally {
+  await freshDb.close()
+}

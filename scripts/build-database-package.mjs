@@ -50,9 +50,35 @@ const manifest = {
   combinedSqlSha256: sha256
 }
 
+const baseline = fs.readFileSync(path.join(root, 'supabase', 'baseline', '20261022_installed_public.sql'), 'utf8').replace(/^\uFEFF/, '')
+const storageBaseline = fs.readFileSync(path.join(root, 'supabase', 'tests', 'storage-baseline.sql'), 'utf8').replace(/^\uFEFF/, '')
+const freshInstall = [
+  '-- ASE Work - instalación de una empresa nueva en un proyecto Supabase vacío.',
+  '-- Antes de ejecutar: crea y confirma el primer usuario en Authentication > Users.',
+  '-- Sustituye exactamente los tres valores __ASE_*__ siguientes. Si queda alguno, la instalación se detiene.',
+  'BEGIN;',
+  "CREATE TEMP TABLE ase_install_config(owner_email text NOT NULL,company_name text NOT NULL,company_slug text NOT NULL) ON COMMIT DROP;",
+  "INSERT INTO ase_install_config VALUES('__ASE_OWNER_EMAIL__','__ASE_COMPANY_NAME__','__ASE_COMPANY_SLUG__');",
+  "DO $validate$ DECLARE c ase_install_config%ROWTYPE; BEGIN SELECT * INTO c FROM ase_install_config; IF c.owner_email LIKE '%__ASE_%' OR c.company_name LIKE '%__ASE_%' OR c.company_slug LIKE '%__ASE_%' THEN RAISE EXCEPTION 'Configura correo, empresa e identificador antes de ejecutar'; END IF; IF c.owner_email !~* '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$' OR length(c.company_name) NOT BETWEEN 1 AND 150 OR c.company_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*$' OR length(c.company_slug)>80 THEN RAISE EXCEPTION 'Configuración inicial no válida'; END IF; IF (SELECT count(*) FROM auth.users WHERE lower(email)=lower(c.owner_email))<>1 THEN RAISE EXCEPTION 'Debe existir exactamente un usuario Auth con el correo indicado'; END IF; END $validate$;",
+  'CREATE SCHEMA IF NOT EXISTS extensions;',
+  'CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;',
+  baseline,
+  "DO $bucket$ BEGIN IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='storage' AND table_name='buckets' AND column_name='name') THEN INSERT INTO storage.buckets(id,name,public) VALUES('task-files','task-files',false) ON CONFLICT(id) DO UPDATE SET public=false; ELSE INSERT INTO storage.buckets(id,public) VALUES('task-files',false) ON CONFLICT(id) DO UPDATE SET public=false; END IF; END $bucket$;",
+  storageBaseline,
+  "INSERT INTO public.users(id,email,full_name,is_admin) SELECT id,email,coalesce(nullif(btrim(raw_user_meta_data->>'full_name'),''),split_part(email,'@',1)),true FROM auth.users u CROSS JOIN ase_install_config c WHERE lower(u.email)=lower(c.owner_email);",
+  'INSERT INTO public.work_settings(singleton,enabled) VALUES(true,false);',
+  ...bodies,
+  "DO $finish$ DECLARE c ase_install_config%ROWTYPE; owner_id uuid; org_id uuid; BEGIN SELECT * INTO c FROM ase_install_config; SELECT id INTO STRICT owner_id FROM auth.users WHERE lower(email)=lower(c.owner_email); SELECT organization_id INTO STRICT org_id FROM public.organization_memberships WHERE user_id=owner_id AND status='active'; UPDATE public.organization_memberships SET role='owner' WHERE organization_id=org_id AND user_id=owner_id; UPDATE public.organizations SET name=c.company_name,slug=c.company_slug WHERE id=org_id; END $finish$;",
+  'COMMIT;',
+  ''
+].join('\n')
+const freshSha256 = createHash('sha256').update(freshInstall).digest('hex').toUpperCase()
+manifest.freshInstallTemplateSha256 = freshSha256
+
 if (!checkOnly) {
   fs.mkdirSync(outputDir, { recursive: true })
   fs.writeFileSync(path.join(outputDir, 'actualizacion-completa.sql'), combined)
+  fs.writeFileSync(path.join(outputDir, 'instalacion-nueva-plantilla.sql'), freshInstall)
   fs.writeFileSync(path.join(outputDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`)
 }
 
