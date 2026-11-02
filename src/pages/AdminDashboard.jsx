@@ -83,6 +83,8 @@ export default function AdminDashboard() {
   const [archiveRequest,setArchiveRequest]=useState(null)
   const [archiveReason,setArchiveReason]=useState('')
   const [archiveBusy,setArchiveBusy]=useState(false)
+  const [deleteTask,setDeleteTask]=useState(null)
+  const [deleteBusy,setDeleteBusy]=useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
   
   const [taskForm, setTaskForm] = useState({
@@ -201,19 +203,26 @@ export default function AdminDashboard() {
   }
 
   const handleDeleteTask = async (taskId) => {
-    if (!window.confirm('¿Estás seguro de eliminar esta tarea?')) return
     const task=tasks.find(item=>item.id===taskId)
     if (!task) return
+    setDeleteTask(task)
+  }
+
+  const saveDeleteTask = async () => {
+    const task=deleteTask
+    if(!task||deleteBusy)return
+    setDeleteBusy(true)
     try {
-      await workRpc('work_delete_task_safe',{p_task:taskId,p_expected_version:task.version,p_request:crypto.randomUUID()})
-      toast.success('✅ Tarea eliminada')
-      fetchTasks()
+      await workRpc('work_delete_task_safe',{p_task:task.id,p_expected_version:task.version,p_request:crypto.randomUUID()})
+      toast.success('Actividad sin uso eliminada permanentemente')
+      setDeleteTask(null)
+      await fetchTasks()
     } catch (error) {
       console.error('Error deleting task:', error)
       const message=String(error?.message||'')
       toast.error(message.includes('work_delete_task_safe')?'Falta activar la eliminación segura en Supabase.':message||'Error al eliminar la tarea')
       if(message.includes('modificada por otra persona'))fetchTasks()
-    }
+    }finally{setDeleteBusy(false)}
   }
 
   const handleArchiveTask = (task,action) => {
@@ -407,7 +416,7 @@ export default function AdminDashboard() {
                           {!task.archived_at&&can('tasks.create') && <Button size="sm" variant="outline" aria-label={`Duplicar ${task.title}`} onClick={()=>handleDuplicateTask(task)}><Copy className="h-4 w-4"/></Button>}
                           {!task.archived_at&&can('tasks.edit') && <Button size="sm" variant="outline" aria-label={`Editar ${task.title}`} onClick={() => openEditModal(task)}><Edit className="h-4 w-4" /></Button>}
                           {can('tasks.edit')&&<Button size="sm" variant="outline" onClick={()=>handleArchiveTask(task,task.archived_at?'restore':'archive')}>{task.archived_at?'Restaurar':'Archivar'}</Button>}
-                          {can('tasks.delete') && <Button size="sm" variant="outline" aria-label={`Eliminar ${task.title}`} onClick={() => handleDeleteTask(task.id)} className="text-red-600 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>}
+                          {!task.archived_at&&can('tasks.delete') && <Button size="sm" variant="outline" aria-label={`Eliminar ${task.title}`} onClick={() => handleDeleteTask(task.id)} className="text-red-600 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -535,6 +544,13 @@ export default function AdminDashboard() {
             <div className="space-y-2"><Label htmlFor="archive-reason">Motivo obligatorio</Label><Textarea id="archive-reason" autoFocus maxLength={1000} disabled={archiveBusy} value={archiveReason} onChange={e=>setArchiveReason(e.target.value)} placeholder={archiveRequest?.action==='archive'?'Ej.: Actividad sustituida por un nuevo procedimiento':'Ej.: La actividad vuelve a utilizarse'}/><p className="text-xs text-gray-500">Mínimo 5 caracteres. Quedará visible en el historial completo.</p></div>
             <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" disabled={archiveBusy} onClick={()=>{setArchiveRequest(null);setArchiveReason('')}}>Cancelar</Button><Button disabled={archiveBusy||archiveReason.trim().length<5}>{archiveBusy?'Guardando…':archiveRequest?.action==='archive'?'Archivar actividad':'Restaurar actividad'}</Button></div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteTask} onOpenChange={open=>{if(!open&&!deleteBusy)setDeleteTask(null)}}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Eliminar actividad permanentemente</DialogTitle><DialogDescription>{deleteTask?.title}</DialogDescription></DialogHeader>
+          <div className="space-y-4"><p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">Esta opción solo sirve para una actividad creada por error que nunca se ha ejecutado, archivado ni relacionado con otra información. Si existe historial, ASE Work impedirá el borrado.</p><p className="text-sm text-gray-700">Para retirar una actividad utilizada sin perder fichajes, informes o auditoría, utiliza <strong>Archivar</strong>.</p><div className="flex flex-wrap justify-end gap-2"><Button variant="outline" disabled={deleteBusy} onClick={()=>setDeleteTask(null)}>Cancelar</Button>{!deleteTask?.archived_at&&<Button variant="outline" disabled={deleteBusy} onClick={()=>{const task=deleteTask;setDeleteTask(null);handleArchiveTask(task,'archive')}}>Archivar en su lugar</Button>}<Button className="bg-red-700 text-white hover:bg-red-800" disabled={deleteBusy} onClick={saveDeleteTask}>{deleteBusy?'Comprobando…':'Eliminar definitivamente'}</Button></div></div>
         </DialogContent>
       </Dialog>
     </Layout>

@@ -748,6 +748,7 @@ await db.exec(fs.readFileSync(root+'supabase/migrations/20261027000900_task_arch
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261026001000_task_template_library.sql','utf8'));
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261102000100_archived_task_boundaries.sql','utf8'));
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261102000200_archive_timeline.sql','utf8'));
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261102000300_strict_unused_task_deletion.sql','utf8'));
 const archiveTemplate=(await request(ADMIN,OA,`SELECT public.work_save_task_template('create',NULL::uuid,'${atomicCreated.id}'::uuid,'Atomic archive template','Used to verify archive boundaries') v`))[0].v;
 const archived=(await request(ADMIN,OA,`SELECT public.work_change_task_archive('${atomicCreated.id}','archive',2,'Actividad terminada; se conserva para consulta','${id(10064)}') v`))[0].v;
 ok('completed task with history can be archived without deleting its records',archived.archived===true&&archived.version===3&&(await db.query(`SELECT archived_at IS NOT NULL archived,(SELECT count(*) FROM public.checkins c WHERE c.organization_id=t.organization_id AND c.task_id=t.id)::int history FROM public.tasks t WHERE organization_id=$1 AND id=$2`,[OA,atomicCreated.id])).rows[0].archived&&(await db.query(`SELECT count(*)::int n FROM public.checkins WHERE organization_id=$1 AND task_id=$2`,[OA,atomicCreated.id])).rows[0].n>0);
@@ -766,6 +767,14 @@ ok('archived task can be restored with a new version',restored.archived===false&
 const archiveTimeline=(await request(ADMIN,OA,`SELECT public.work_task_timeline('${atomicCreated.id}') v`))[0].v;
 ok('complete task timeline includes archive reason',archiveTimeline.some(x=>x.kind==='archive_archive'&&x.title==='Actividad archivada'&&x.detail==='Actividad terminada; se conserva para consulta'));
 ok('complete task timeline includes restore reason and actor',archiveTimeline.some(x=>x.kind==='archive_restore'&&x.title==='Actividad restaurada'&&x.detail==='La actividad vuelve a estar disponible'&&x.actor_name));
+const archiveOnly=(await request(ADMIN,OA,`SELECT public.work_manage_task_atomic('create','normal',NULL,'Archive only activity',NULL,'daily',NULL,'pending',NULL,ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,NULL,false,NULL,ARRAY[]::text[],NULL,NULL,NULL,NULL,NULL,false,NULL,NULL,'${id(10071)}') v`))[0].v;
+await request(ADMIN,OA,`SELECT public.work_change_task_archive('${archiveOnly.id}','archive',1,'Se archiva sin borrar su trazabilidad','${id(10072)}')`);
+let archiveDeleteRejected=false;try{await request(ADMIN,OA,`SELECT public.work_delete_task_safe('${archiveOnly.id}',2,'${id(10073)}')`)}catch(error){archiveDeleteRejected=error.message.includes('historial de archivado');if(!archiveDeleteRejected)throw error}
+ok('task with archive audit cannot be permanently deleted',archiveDeleteRejected);
+const templateSource=(await request(ADMIN,OA,`SELECT public.work_manage_task_atomic('create','normal',NULL,'Template-linked activity',NULL,'daily',NULL,'pending',NULL,ARRAY[]::uuid[],ARRAY[]::uuid[],false,false,false,false,NULL,false,NULL,ARRAY[]::text[],NULL,NULL,NULL,NULL,NULL,false,NULL,NULL,'${id(10074)}') v`))[0].v;
+await request(ADMIN,OA,`SELECT public.work_save_task_template('create',NULL::uuid,'${templateSource.id}'::uuid,'Protected template source','Catalog relation')`);
+let templateDeleteRejected=false;try{await request(ADMIN,OA,`SELECT public.work_delete_task_safe('${templateSource.id}',1,'${id(10075)}')`)}catch(error){templateDeleteRejected=error.message.includes('Retira primero');if(!templateDeleteRejected)throw error}
+ok('task used by catalog relations cannot be deleted silently',templateDeleteRejected);
 const pendingArchiveTask=smokeIds[0],pendingArchivePlan=id(10068);
 await db.query(`INSERT INTO public.work_day_plan(organization_id,id,user_id,task_id,work_date,priority,state)VALUES($1,$2,$3,$4,public.work_today(),999,'pending')`,[OA,pendingArchivePlan,employee,pendingArchiveTask]);
 let pendingArchiveRejected=false;try{await request(ADMIN,OA,`SELECT public.work_change_task_archive('${pendingArchiveTask}','archive',1,'Todavía tiene una ejecución pendiente','${id(10069)}')`)}catch(error){pendingArchiveRejected=error.message.includes('Finaliza o cancela');if(!pendingArchiveRejected)throw error}
@@ -778,6 +787,8 @@ await db.exec(fs.readFileSync(root+'supabase/migrations/20261102000100_archived_
 ok('archived boundary activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false&&(await db.query("SELECT has_schema_privilege('ase_tenant_executor','ase_private','CREATE') v")).rows[0].v===false);
 await db.exec(fs.readFileSync(root+'supabase/migrations/20261102000200_archive_timeline.sql','utf8'));
 ok('archive timeline activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
+await db.exec(fs.readFileSync(root+'supabase/migrations/20261102000300_strict_unused_task_deletion.sql','utf8'));
+ok('strict unused deletion activation is idempotent and revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 ok('concurrency migration revokes schema CREATE',(await db.query("SELECT has_schema_privilege('ase_tenant_executor','public','CREATE') v")).rows[0].v===false);
 }
 console.log(JSON.stringify({passed:results.length,scope:'Synthetic PostgreSQL: execution schedule modes, compatibility, permissions and start enforcement'}));
