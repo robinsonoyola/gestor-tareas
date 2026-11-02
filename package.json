@@ -12,7 +12,8 @@
     "package:database": "node scripts/build-database-package.mjs",
     "test:database-package": "node scripts/build-database-package.mjs && node supabase/tests/database-package.mjs",
     "package:functions": "node scripts/build-edge-package.mjs",
-    "test:functions-package": "node scripts/build-edge-package.mjs --check"
+    "test:functions-package": "node scripts/build-edge-package.mjs --check",
+    "test:operations-package": "node tests/operations-package.mjs"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.4",

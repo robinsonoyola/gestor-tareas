@@ -51,6 +51,14 @@ Si la transacción SQL falla antes de `COMMIT`, no continuar con fragmentos: cor
 - Ensayo programado de restauración, no solo comprobación del archivo.
 - Cifrado y acceso limitado a responsables autorizados.
 
+### Crear y verificar una copia
+
+Configurar `ASE_BACKUP_DATABASE_URL` únicamente en la sesión de terminal y ejecutar `scripts/backup-database.ps1 -OutputDirectory <carpeta-segura>`. La utilidad crea un formato restaurable, comprueba su catálogo con PostgreSQL y genera su SHA-256. La carpeta de copias debe estar fuera del repositorio y cifrada.
+
+### Ensayar la restauración
+
+Usar un proyecto de pruebas vacío y diferente del origen. Configurar `ASE_RESTORE_DATABASE_URL`, definir `ASE_RESTORE_CONFIRMATION=ASE-WORK-TEST-RESTORE` y ejecutar `scripts/restore-database-test.ps1 -BackupPath <archivo> -IUnderstandThisErasesTargetDatabase`. La utilidad cancela si origen y destino coinciden y bloquea expresamente el proyecto de producción conocido. Después deben ejecutarse `verificar-instalacion.sql`, `comprobar-salud.sql` y la prueba de humo.
+
 ## Diagnóstico respetuoso con la privacidad
 
 Recoger fecha, entorno, organización técnica, ruta, código de error y un identificador de operación. No pedir contraseñas, JWT, service_role, contenido de archivos laborales ni volcados completos de clientes para resolver un problema ordinario.
