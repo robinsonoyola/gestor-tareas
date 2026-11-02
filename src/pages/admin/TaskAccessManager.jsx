@@ -191,7 +191,7 @@ export default function TaskAccessManager() {
       field.setSelectionRange(0, url.length)
       copied = document.execCommand('copy') === true
     } catch {
-      copied = false
+      // Keep the initial false value and show the selectable URL below.
     } finally {
       field.remove()
       previousFocus?.focus?.()

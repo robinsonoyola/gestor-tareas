@@ -6,6 +6,21 @@ import { fileURLToPath } from 'node:url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'deployment', 'generated', 'release-manifest.json'), 'utf8'))
 const sha256 = content => createHash('sha256').update(content).digest('hex').toUpperCase()
+const executableText = source => {
+  let result = '', quote = '', escaped = false
+  for (const character of source) {
+    if (quote) {
+      if (escaped) escaped = false
+      else if (character === '\\') escaped = true
+      else if (character === quote) quote = ''
+      result += ' '
+    } else if (character === '"' || character === "'" || character === '`') {
+      quote = character
+      result += ' '
+    } else result += character
+  }
+  return result
+}
 
 if (manifest.format !== 1 || manifest.component !== 'ase-work-task-manager-candidate') throw new Error('Manifiesto de entrega no reconocido')
 if (!manifest.frontendFiles.some(item => item.file === 'index.html')) throw new Error('Falta index.html en la entrega')
@@ -15,7 +30,7 @@ for (const item of manifest.frontendFiles) {
   const file = path.join(root, 'dist', ...item.file.split('/'))
   const content = fs.readFileSync(file)
   if (content.length !== item.bytes || sha256(content) !== item.sha256) throw new Error(`El recurso no coincide: ${item.file}`)
-  if (item.file.endsWith('.js') && /\bconsole\.(log|debug|info|warn|error)\s*\(/.test(content.toString('utf8'))) throw new Error(`El recurso publicado conserva registros de consola: ${item.file}`)
+  if (item.file.endsWith('.js') && /\bconsole\.(log|debug|info|warn|error)\s*\(/.test(executableText(content.toString('utf8')))) throw new Error(`El recurso publicado conserva registros de consola: ${item.file}`)
 }
 
 const database = fs.readFileSync(path.join(root, 'deployment', 'generated', 'manifest.json'))

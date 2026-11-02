@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
@@ -10,23 +9,25 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": import.meta.dirname + '/src',
     },
   },
   build: {
     outDir: 'dist',
     sourcemap: false,
+    minify: 'terser',
+    terserOptions: {
+      compress: { drop_console: true, drop_debugger: true },
+    },
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['lucide-react', 'sonner'],
-          'supabase-vendor': ['@supabase/supabase-js'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('@supabase/')) return 'supabase-vendor'
+          if (id.includes('react') || id.includes('scheduler')) return 'react-vendor'
+          if (id.includes('lucide-react') || id.includes('sonner')) return 'ui-vendor'
         },
       },
     },
-  },
-  esbuild: {
-    drop: ['console', 'debugger'],
   },
 })

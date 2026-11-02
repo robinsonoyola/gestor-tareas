@@ -14,7 +14,12 @@ const compare = (left, right) => {
 const minimums = {
   'react-router': '7.18.0',
   'react-router-dom': '7.18.0',
-  ws: '8.21.0'
+  ws: '8.21.0',
+  vite: '8.3.5',
+  postcss: '8.5.23',
+  rolldown: '1.2.16',
+  esbuild: '0.28.2',
+  eslint: '10.14.0'
 }
 const unsafe = Object.entries(minimums).filter(([name, minimum]) => !installed(name) || compare(installed(name),minimum)<0)
 if (unsafe.length) throw new Error(`El bloqueo recuperó dependencias vulnerables: ${unsafe.map(([name,minimum])=>`${name} requiere ${minimum} o posterior`).join(', ')}`)

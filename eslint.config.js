@@ -16,9 +16,11 @@ export default defineConfig([
     files: ['**/*.{js,jsx,ts,tsx,mjs}'],
     extends: [
       js.configs.recommended,
-      reactHooks.configs['recommended-latest'],
       reactRefresh.configs.vite,
     ],
+    plugins: {
+      'react-hooks': reactHooks,
+    },
     languageOptions: {
       ecmaVersion: 'latest',
       globals: { ...globals.browser, ...globals.node },
@@ -29,6 +31,8 @@ export default defineConfig([
   {
     files: ['**/*.{js,jsx,ts,tsx,mjs}'],
     rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       'react-refresh/only-export-components': 'off',
       '@typescript-eslint/no-unused-vars': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
