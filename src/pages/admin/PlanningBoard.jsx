@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { workDate, workRpc } from "@/lib/workflow";
 import { randomId } from "@/lib/randomId";
+import { boardViewsStorageKey } from "@/lib/scopedStorage";
 const columns = [
   ["pending", "Pendientes"],
   ["active", "En curso"],
@@ -103,7 +104,8 @@ const rangeFor = (kind, anchor) => {
   return [isoDay(start), isoDay(end)];
 };
 export default function PlanningBoard() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, userData, activeOrganizationId } = useAuth();
+  const savedViewsKey = boardViewsStorageKey(userData?.id, activeOrganizationId);
   const [moveRequest, setMoveRequest] = useState(null),
     [dragging, setDragging] = useState(null),
     [notice, setNotice] = useState("");
@@ -547,6 +549,8 @@ export default function PlanningBoard() {
           today={workDate()}
         />
         <BoardSavedViews
+          key={savedViewsKey || "board-views-without-scope"}
+          storageKey={savedViewsKey}
           value={{ period, start, end, employee, area, state, search, quick }}
           onApply={applySavedView}
         />
