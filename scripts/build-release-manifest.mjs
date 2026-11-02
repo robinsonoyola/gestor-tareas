@@ -16,6 +16,7 @@ const operationalPaths = [
   'scripts/restore-database-test.ps1',
   'supabase/tests/verify-installed.sql',
 ]
+const buildInputPaths = ['package.json', 'package-lock.json', 'vite.config.ts', 'netlify.toml']
 
 function sha256(content) {
   return createHash('sha256').update(content).digest('hex').toUpperCase()
@@ -44,6 +45,10 @@ const operationalFiles = operationalPaths.map(file => {
   const content = fs.readFileSync(path.join(root, ...file.split('/')))
   return { file, bytes: content.length, sha256: sha256(content) }
 })
+const buildInputs = buildInputPaths.map(file => {
+  const content = fs.readFileSync(path.join(root, file))
+  return { file, bytes: content.length, sha256: sha256(content) }
+})
 const frontendIdentity = frontendFiles.map(file => `${file.file}\0${file.sha256}`).join('\n')
 const manifest = {
   format: 1,
@@ -53,6 +58,7 @@ const manifest = {
   frontendSha256: sha256(frontendIdentity),
   frontendFiles,
   operationalFiles,
+  build: { node: process.versions.node, inputs: buildInputs },
 }
 
 fs.writeFileSync(path.join(generated, 'release-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`)

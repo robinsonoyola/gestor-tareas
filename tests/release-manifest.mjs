@@ -26,6 +26,7 @@ if (manifest.format !== 1 || manifest.component !== 'ase-work-task-manager-candi
 if (!manifest.frontendFiles.some(item => item.file === 'index.html')) throw new Error('Falta index.html en la entrega')
 if (!manifest.frontendFiles.some(item => item.file.endsWith('.js')) || !manifest.frontendFiles.some(item => item.file.endsWith('.css'))) throw new Error('Faltan recursos compilados')
 if (!Array.isArray(manifest.operationalFiles) || manifest.operationalFiles.length < 8) throw new Error('Faltan manuales o utilidades operativas en el manifiesto')
+if (!manifest.build?.node || !Array.isArray(manifest.build.inputs) || manifest.build.inputs.length < 4) throw new Error('Falta identificar el entorno o los archivos de compilación')
 
 for (const item of manifest.frontendFiles) {
   const file = path.join(root, 'dist', ...item.file.split('/'))
@@ -40,6 +41,12 @@ for (const item of manifest.operationalFiles) {
   if (content.length !== item.bytes || sha256(content) !== item.sha256) throw new Error(`El archivo operativo no coincide: ${item.file}`)
 }
 
+for (const item of manifest.build.inputs) {
+  const file = path.join(root, item.file)
+  const content = fs.readFileSync(file)
+  if (content.length !== item.bytes || sha256(content) !== item.sha256) throw new Error(`La entrada de compilación no coincide: ${item.file}`)
+}
+
 const database = fs.readFileSync(path.join(root, 'deployment', 'generated', 'manifest.json'))
 const functions = fs.readFileSync(path.join(root, 'deployment', 'generated', 'functions', 'manifest.json'))
 if (sha256(database) !== manifest.databaseManifestSha256) throw new Error('El paquete de base no coincide')
@@ -48,4 +55,4 @@ if (sha256(functions) !== manifest.functionsManifestSha256) throw new Error('El 
 const identity = manifest.frontendFiles.map(item => `${item.file}\0${item.sha256}`).join('\n')
 if (sha256(identity) !== manifest.frontendSha256) throw new Error('La identidad del frontend no coincide')
 
-console.log(JSON.stringify({ passed: true, frontendFiles: manifest.frontendFiles.length, operationalFiles: manifest.operationalFiles.length, frontendSha256: manifest.frontendSha256 }))
+console.log(JSON.stringify({ passed: true, frontendFiles: manifest.frontendFiles.length, operationalFiles: manifest.operationalFiles.length, buildInputs: manifest.build.inputs.length, node: manifest.build.node, frontendSha256: manifest.frontendSha256 }))

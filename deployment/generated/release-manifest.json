@@ -284,8 +284,8 @@
     },
     {
       "file": "docs/operations/CONTROL-VERSION-CANDIDATA.md",
-      "bytes": 2088,
-      "sha256": "8DC12418BFE44F2E58D1D31F0EEB1043FEBA30D67ED5E2AFF407255F001A802F"
+      "bytes": 2171,
+      "sha256": "D13196D1F803E2FB68DC76959ABCD513E56EB78F0E974506FB4BB62FCFAF349A"
     },
     {
       "file": "docs/operations/DESPLIEGUE-Y-RECUPERACION.md",
@@ -307,5 +307,30 @@
       "bytes": 2720,
       "sha256": "5A58AAE4F30FF82B95C247595B7B6F49E8FC8032447FF37774D963D545A21767"
     }
-  ]
+  ],
+  "build": {
+    "node": "24.11.1",
+    "inputs": [
+      {
+        "file": "package.json",
+        "bytes": 2121,
+        "sha256": "508154CA5CEA02E384A80F14047A2A07D2C0DE41935F556F6D71557768726FA0"
+      },
+      {
+        "file": "package-lock.json",
+        "bytes": 190101,
+        "sha256": "03F3B091F23EACF356481F28E63C828E9C5E076575624C9C6A977FC15DB48EEE"
+      },
+      {
+        "file": "vite.config.ts",
+        "bytes": 863,
+        "sha256": "E51BEF47E842F5DA6F6EF43A7BF69996B14D6769EEDFED58AD6E8371BA50CFF5"
+      },
+      {
+        "file": "netlify.toml",
+        "bytes": 855,
+        "sha256": "90E0B0E65BC9616A6114C25A5F3180CBB98AC98C29BE0980E15A00915206FEE9"
+      }
+    ]
+  }
 }
