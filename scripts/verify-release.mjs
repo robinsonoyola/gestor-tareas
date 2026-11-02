@@ -1,0 +1,49 @@
+import { spawnSync } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+
+function run(label, command, args) {
+  console.log(`\n[ASE Work] ${label}`)
+  const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', shell: false })
+  if (result.error) throw result.error
+  if (result.status !== 0) throw new Error(`${label} terminó con código ${result.status}`)
+}
+
+function trackedFiles() {
+  const result = spawnSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8', shell: false })
+  if (result.status !== 0) throw new Error('No se pudo revisar el inventario Git')
+  return result.stdout.split('\0').filter(Boolean)
+}
+
+const forbiddenTracked = trackedFiles().filter(file =>
+  /(^|\/)(\.env($|\.)|.*\.(dump|backup|p12|pfx|key))$/i.test(file) && file !== '.env.example'
+)
+if (forbiddenTracked.length) throw new Error(`Hay secretos o copias rastreados por Git: ${forbiddenTracked.join(', ')}`)
+
+const required = [
+  'deployment/generated/instalacion-nueva-plantilla.sql',
+  'deployment/generated/activar-automatizaciones.sql',
+  'deployment/generated/verificar-instalacion.sql',
+  'deployment/generated/comprobar-salud.sql',
+  'deployment/generated/functions/manifest.json',
+  'docs/manuals/ADMINISTRADOR.md',
+  'docs/manuals/ENCARGADO.md',
+  'docs/manuals/EMPLEADO.md',
+  'docs/operations/DESPLIEGUE-Y-RECUPERACION.md'
+]
+const missing = required.filter(file => !fs.existsSync(path.join(root, file)))
+if (missing.length) throw new Error(`Faltan entregables de la versión: ${missing.join(', ')}`)
+
+run('Seguridad multiempresa sintética', process.execPath, ['supabase/tests/security.mjs'])
+run('Generación del paquete de base de datos', process.execPath, ['scripts/build-database-package.mjs'])
+run('Paquete e instalación de base de datos', process.execPath, ['supabase/tests/database-package.mjs'])
+run('Funciones administrativas', process.execPath, ['scripts/build-edge-package.mjs', '--check'])
+run('Copias y restauración', process.execPath, ['tests/operations-package.mjs'])
+run('Exportaciones e informes', process.execPath, ['tests/report-export.mjs'])
+run('Compilación del frontend', process.execPath, ['node_modules/vite/bin/vite.js', 'build'])
+
+console.log('\nASE WORK: VERSIÓN CANDIDATA APTA EN COMPROBACIONES AUTOMÁTICAS')
+console.log('Pendientes manuales deliberados: dos empresas alojadas, correo real, dispositivos/NFC y restauración real en un proyecto vacío.')
