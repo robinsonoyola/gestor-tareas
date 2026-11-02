@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { User, Mail, Lock, Info } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { reauthenticateCurrentUser } from '@/lib/accountSecurity'
 
 export default function EmployeeSettings() {
   const { userData } = useAuth()
@@ -48,7 +49,13 @@ export default function EmployeeSettings() {
         return
       }
 
-      // Actualizar email en Supabase Auth
+      await reauthenticateCurrentUser(supabase, {
+        email: userData?.email,
+        password: emailForm.currentPassword,
+        expectedUserId: userData?.id,
+      })
+
+      // Actualizar email en Supabase Auth después de confirmar la identidad.
       const { error: authError } = await supabase.auth.updateUser({
         email: emailForm.newEmail
       })
@@ -66,7 +73,7 @@ export default function EmployeeSettings() {
 
     } catch (error) {
       console.error('Error updating email:', error)
-      toast.error('Error al actualizar el email: ' + (error.message || 'Error desconocido'))
+      toast.error(error?.code?.startsWith('reauth_') ? error.message : 'No se pudo actualizar el correo. Inténtalo de nuevo.')
     } finally {
       setLoadingEmail(false)
     }
@@ -91,6 +98,12 @@ export default function EmployeeSettings() {
       }
 
       // Actualizar contraseña en Supabase Auth
+      await reauthenticateCurrentUser(supabase, {
+        email: userData?.email,
+        password: passwordForm.currentPassword,
+        expectedUserId: userData?.id,
+      })
+
       const { error } = await supabase.auth.updateUser({
         password: passwordForm.newPassword
       })
@@ -108,7 +121,7 @@ export default function EmployeeSettings() {
 
     } catch (error) {
       console.error('Error updating password:', error)
-      toast.error('Error al actualizar la contraseña: ' + (error.message || 'Error desconocido'))
+      toast.error(error?.code?.startsWith('reauth_') ? error.message : 'No se pudo actualizar la contraseña. Inténtalo de nuevo.')
     } finally {
       setLoadingPassword(false)
     }
