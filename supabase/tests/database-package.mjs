@@ -232,6 +232,28 @@ try {
   `)
   if (executorRole.rows.length !== 1 || !Object.values(executorRole.rows[0]).every(Boolean)) throw new Error(`El rol ejecutor conserva atributos elevados: ${JSON.stringify(executorRole.rows[0] || null)}`)
 
+  const unsafeRelationOwners = await db.query(`
+    SELECT n.nspname AS schema_name,c.relname AS relation_name,owner.rolname AS owner
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid=c.relnamespace
+    JOIN pg_roles owner ON owner.oid=c.relowner
+    WHERE n.nspname IN ('public','ase_private','storage') AND c.relkind IN ('r','p','v','m','S')
+      AND owner.rolname IN ('anon','authenticated','service_role','ase_tenant_executor')
+    ORDER BY n.nspname,c.relname
+  `)
+  if (unsafeRelationOwners.rows.length) throw new Error(`Relaciones propiedad de roles del API o ejecutor: ${JSON.stringify(unsafeRelationOwners.rows)}`)
+
+  const unsafeRoleMemberships = await db.query(`
+    SELECT member_role.rolname AS member,granted_role.rolname AS granted_role
+    FROM pg_auth_members membership
+    JOIN pg_roles member_role ON member_role.oid=membership.member
+    JOIN pg_roles granted_role ON granted_role.oid=membership.roleid
+    WHERE member_role.rolname IN ('anon','authenticated','service_role','ase_tenant_executor')
+      AND granted_role.rolname IN ('postgres','service_role','ase_tenant_executor')
+    ORDER BY member_role.rolname,granted_role.rolname
+  `)
+  if (unsafeRoleMemberships.rows.length) throw new Error(`Membresías privilegiadas inesperadas: ${JSON.stringify(unsafeRoleMemberships.rows)}`)
+
   const postgresOwnedApiRoutines = await db.query(`
     SELECT p.oid::regprocedure::text AS name,
       has_function_privilege('anon',p.oid,'EXECUTE') AS anon,
@@ -344,7 +366,7 @@ try {
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, executorRoleRestricted: true, postgresOwnedApiRoutines: postgresOwnedApiRoutines.rows.length, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
+    isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, executorRoleRestricted: true, unsafeRelationOwners: 0, unsafeRoleMemberships: 0, postgresOwnedApiRoutines: postgresOwnedApiRoutines.rows.length, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
   }))
 } finally {
   await db.close()

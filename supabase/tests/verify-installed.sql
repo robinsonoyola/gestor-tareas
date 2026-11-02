@@ -74,6 +74,20 @@ SELECT jsonb_build_object(
   WHERE rolname='ase_tenant_executor' AND NOT rolsuper AND NOT rolcreaterole AND NOT rolcreatedb
    AND NOT rolcanlogin AND NOT rolreplication AND NOT rolbypassrls
  ),
+ 'propiedad_relaciones_segura',NOT EXISTS(
+  SELECT 1 FROM pg_class c
+  JOIN pg_namespace n ON n.oid=c.relnamespace
+  JOIN pg_roles owner ON owner.oid=c.relowner
+  WHERE n.nspname IN ('public','ase_private','storage') AND c.relkind IN ('r','p','v','m','S')
+   AND owner.rolname IN ('anon','authenticated','service_role','ase_tenant_executor')
+ ),
+ 'membresias_roles_seguras',NOT EXISTS(
+  SELECT 1 FROM pg_auth_members membership
+  JOIN pg_roles member_role ON member_role.oid=membership.member
+  JOIN pg_roles granted_role ON granted_role.oid=membership.roleid
+  WHERE member_role.rolname IN ('anon','authenticated','service_role','ase_tenant_executor')
+   AND granted_role.rolname IN ('postgres','service_role','ase_tenant_executor')
+ ),
  'superficie_postgres_segura',(SELECT count(*)=7
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles owner ON owner.oid=p.proowner
   WHERE n.nspname IN ('public','ase_private') AND p.prosecdef AND owner.rolname='postgres'
