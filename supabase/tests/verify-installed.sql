@@ -133,6 +133,19 @@ SELECT jsonb_build_object(
      AND table_schema IN ('public','storage','ase_private')
      AND privilege_type IN ('TRUNCATE','REFERENCES','TRIGGER')
   ),
+ 'escrituras_autenticadas_minimas',(SELECT count(*)=6
+  FROM information_schema.role_table_grants
+  WHERE grantee='authenticated' AND table_schema IN ('public','ase_private')
+   AND privilege_type IN ('INSERT','UPDATE','DELETE')
+ ) AND NOT EXISTS(
+  SELECT 1 FROM information_schema.role_table_grants
+  WHERE grantee='authenticated' AND table_schema IN ('public','ase_private')
+   AND privilege_type IN ('INSERT','UPDATE','DELETE')
+   AND NOT (
+    (table_schema='public' AND table_name='nfc_cards' AND privilege_type IN ('INSERT','UPDATE','DELETE'))
+    OR (table_schema='public' AND table_name IN ('task_access_codes','task_checkin_config','tasks') AND privilege_type='UPDATE')
+   )
+ ),
  'limites_empresa_completos',NOT EXISTS(
    SELECT 1 FROM information_schema.columns c
    WHERE c.table_schema='public' AND c.column_name='organization_id'

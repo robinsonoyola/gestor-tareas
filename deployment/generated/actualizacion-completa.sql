@@ -7862,4 +7862,19 @@ ALTER DEFAULT PRIVILEGES FOR ROLE ase_tenant_executor IN SCHEMA public
  REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 ALTER DEFAULT PRIVILEGES FOR ROLE ase_tenant_executor IN SCHEMA ase_private
  REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+
+-- ==== 20261102001100_minimize_authenticated_writes.sql ====
+-- ASE Work: browser writes are limited to the operations still used directly by the UI.
+
+REVOKE INSERT,UPDATE,DELETE ON TABLE
+ public.checkins,
+ public.task_assignments,
+ public.task_comments
+FROM authenticated;
+
+REVOKE INSERT,DELETE ON TABLE
+ public.tasks,
+ public.task_access_codes,
+ public.task_checkin_config
+FROM authenticated;
 COMMIT;

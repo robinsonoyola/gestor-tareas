@@ -323,6 +323,22 @@ try {
   if (anonymousTablePrivileges.rows.length) throw new Error(`El rol anónimo tiene permisos directos sobre tablas: ${JSON.stringify(anonymousTablePrivileges.rows)}`)
   if (dangerousApiPrivileges.rows.length) throw new Error(`El API tiene permisos peligrosos sobre tablas: ${JSON.stringify(dangerousApiPrivileges.rows)}`)
 
+  const authenticatedMutations = await db.query(`
+    SELECT table_schema,table_name,string_agg(privilege_type,',' ORDER BY privilege_type) AS privileges
+    FROM information_schema.role_table_grants
+    WHERE grantee='authenticated' AND table_schema IN ('public','ase_private')
+      AND privilege_type IN ('INSERT','UPDATE','DELETE')
+    GROUP BY table_schema,table_name
+    ORDER BY table_schema,table_name
+  `)
+  const expectedAuthenticatedMutations = [
+    { table_schema: 'public', table_name: 'nfc_cards', privileges: 'DELETE,INSERT,UPDATE' },
+    { table_schema: 'public', table_name: 'task_access_codes', privileges: 'UPDATE' },
+    { table_schema: 'public', table_name: 'task_checkin_config', privileges: 'UPDATE' },
+    { table_schema: 'public', table_name: 'tasks', privileges: 'UPDATE' }
+  ]
+  if (JSON.stringify(authenticatedMutations.rows) !== JSON.stringify(expectedAuthenticatedMutations)) throw new Error(`Superficie de escritura autenticada inesperada: ${JSON.stringify(authenticatedMutations.rows)}`)
+
   const tenantBoundaries = await db.query(`
     SELECT c.table_name,
       EXISTS(
@@ -387,7 +403,7 @@ try {
     migrationCount: migrations.length,
     lastMigration: migrations.at(-1),
     checks: state,
-    isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, executorRoleRestricted: true, unsafeRelationOwners: 0, unsafeRoleMemberships: 0, unsafeSchemaCreate: 0, unsafeSequencePrivileges: 0, postgresOwnedApiRoutines: postgresOwnedApiRoutines.rows.length, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
+    isolation: { tables: tables.rows.length, withoutRls: 0, tablesWithoutPrimaryKey: 0, invalidConstraints: 0, invalidIndexes: 0, publicRoutines: 0, privateRelationsExposed: 0, anonymousPrivateHelpers: anonRoutines.length, authenticatedPrivateHelpers: authenticatedRoutines.length, anonymousApi, serviceApi, storageRls: true, storagePolicies: storagePolicies.rows.length, privilegedOwners: privilegedOwners.rows, executorRoleRestricted: true, unsafeRelationOwners: 0, unsafeRoleMemberships: 0, unsafeSchemaCreate: 0, unsafeSequencePrivileges: 0, authenticatedMutationTables: authenticatedMutations.rows.length, postgresOwnedApiRoutines: postgresOwnedApiRoutines.rows.length, anonymousTablePrivileges: 0, dangerousApiPrivileges: 0, tenantBoundaries: tenantBoundaries.rows.length, tenantTablesWithoutBoundary: 0, nullableTenantColumns: 0, crossTenantForeignKeys: 0, foreignKeysWithoutIndex: 0 }
   }))
 } finally {
   await db.close()
