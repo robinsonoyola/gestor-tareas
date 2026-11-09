@@ -12,6 +12,19 @@
 - Cámara, ubicación y NFC quedan permitidos solo para el propio sitio; micrófono, pagos y USB están bloqueados por la política de permisos del navegador.
 - El HTML se revalida siempre; los recursos versionados de `assets` pueden conservarse en caché. Esto evita mezclar versiones durante una publicación.
 
+## Modelo comercial inicial: una instalación por cliente
+
+La modalidad inicial de ASE Work es una instalación independiente para cada cliente. Cada cliente debe tener:
+
+- un dominio y un hosting propios;
+- un proyecto Supabase y una base de datos propios;
+- sus funciones Edge, Storage, automatizaciones y copias separados;
+- su propia configuración de correo, zona horaria y marca.
+
+La frontera multiempresa del código se conserva como defensa adicional, pero no se debe usar para mezclar clientes dentro del mismo proyecto durante esta fase comercial. El operador debe registrar la relación entre cliente, dominio, proyecto Supabase, commit publicado y copia inicial sin guardar claves secretas en el repositorio.
+
+Para ampliar un cliente se modifica únicamente su hosting o su proyecto Supabase. Para suspenderlo se detienen sus accesos y automatizaciones sin borrar sus datos; cualquier eliminación debe seguir el procedimiento contractual de exportación y borrado.
+
 ## Empresa nueva
 
 1. Crear el proyecto Supabase y el primer usuario confirmado.
