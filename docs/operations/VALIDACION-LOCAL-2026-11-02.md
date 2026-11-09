@@ -5,7 +5,7 @@
 - Versión: `1.0.0-rc.1`.
 - Rama: `pruebas/multitenancy-usabilidad-2026-10-22`.
 - Candidata identificada: commit publicado `3246c3c8`.
-- Frontend SHA-256 conjunto: `162E66DC9C217BA9711ABA200AB5659AE0685443D20B4F848635346049F49005`.
+- Frontend SHA-256 conjunto: `B7C1EF9C145C7454F2B5A40DB5C79EAD468CF67CF8982E8095507C9933EE1D35`.
 - Dirección local: `http://192.168.1.114:5174`.
 
 ## Resultado
@@ -20,3 +20,4 @@
 ## Alcance
 
 Esta comprobación acredita la carga local de la entrada y de una ruta separada después de la optimización. No inició sesión, no transmitió credenciales y no modificó datos. Las pruebas autenticadas por perfil, alojadas, físicas y de correo continúan en el listado manual de la versión candidata.
+

@@ -11,7 +11,7 @@ Deno.serve(async request=>{
   const body=await request.json()
   const name=String(body.full_name||'').trim(),email=String(body.email||'').trim().toLowerCase(),password=String(body.password||'')
   const whatsapp=body.whatsapp||null,role=body.role_id||null
-  if(!name||name.length>150||!email||email.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<6||password.length>1024)throw new Error('Revisa los datos del empleado')
+  if(!name||name.length>150||!email||email.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<8||password.length>1024)throw new Error('Revisa los datos del empleado')
   if(whatsapp && !/^\+?[0-9]{7,15}$/.test(whatsapp))throw new Error('WhatsApp no válido')
   const roles=await caller.rpc('work_roles_overview')
   if(roles.error || role && !roles.data.roles.some((item:{id:string;active:boolean})=>item.id===role&&item.active))throw new Error('Rol no disponible')

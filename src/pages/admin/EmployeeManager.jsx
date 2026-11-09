@@ -453,9 +453,10 @@ export default function EmployeeManager() {
                 type="password"
                 value={employeeForm.password}
                 onChange={(e) => setEmployeeForm(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 required
-                minLength={6}
+                minLength={8}
+                autoComplete="new-password"
                 className="text-gray-900"
               />
             </div>

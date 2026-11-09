@@ -5,8 +5,8 @@ export async function createEmployeeAccount(form) {
   const fullName = form.full_name.trim()
   const email = form.email.trim().toLowerCase()
   const whatsapp = normalizeWhatsApp(form.whatsapp)
-  if (!fullName || !email || !form.password || form.password.length < 6) {
-    throw new Error('Completa nombre, email y una contraseña de al menos 6 caracteres.')
+  if (!fullName || !email || !form.password || form.password.length < 8) {
+    throw new Error('Completa nombre, email y una contraseña de al menos 8 caracteres.')
   }
 
   const {data,error}=await supabase.functions.invoke('create-employee',{body:{...form,full_name:fullName,email,whatsapp}})

@@ -15,7 +15,7 @@ const commonRequired = [
   'autoRefreshToken: false', 'detectSessionInUrl: false', 'SUPABASE_SERVICE_ROLE_KEY',
 ]
 const functionRequired = {
-  'create-employee': ['mt_identity_email_exists', 'getUserById', 'mt_attach_created_employee', 'ase_onboarding_nonce'],
+  'create-employee': ['mt_identity_email_exists', 'getUserById', 'mt_attach_created_employee', 'ase_onboarding_nonce', 'password.length < 8'],
   'update-employee-email': ['mt_prepare_email_change', 'mt_email_change_grant', 'updateUserById', 'mt_finish_email_change'],
 }
 

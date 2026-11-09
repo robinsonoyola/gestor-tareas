@@ -144,9 +144,9 @@ export default function TaskAccessLogin() {
                 value={credentials.password}
                 onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
                 placeholder="••••••••"
+                autoComplete="current-password"
                 required
                 className="border-gray-300"
-                autoComplete="current-password"
               />
             </div>
 

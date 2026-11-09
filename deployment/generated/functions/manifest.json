@@ -3,10 +3,10 @@
   "functions": {
     "create-employee": {
       "file": "create-employee/index.ts",
-      "sha256": "11ADDE6BD132A9E50C1ED2095DD1BBFB56A2AD11B2C01AFB424886F4AB1A3E09",
+      "sha256": "0C746E77BB1372530E8F9AAC75C9D0B28C08CF6CA9F089E2AD75533C7636C3C0",
       "verifyJwtAtGateway": false,
       "verifiesJwtInCode": true,
-      "securityChecks": 16
+      "securityChecks": 17
     },
     "update-employee-email": {
       "file": "update-employee-email/index.ts",

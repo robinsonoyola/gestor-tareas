@@ -220,6 +220,7 @@ export default function EmployeeSettings() {
                   value={emailForm.currentPassword}
                   onChange={(e) => setEmailForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                   placeholder="Tu contraseña actual"
+                  autoComplete="current-password"
                   required
                   className="border-gray-300"
                 />
@@ -263,6 +264,7 @@ export default function EmployeeSettings() {
                   value={passwordForm.currentPassword}
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                   placeholder="Tu contraseña actual"
+                  autoComplete="current-password"
                   required
                   className="border-gray-300"
                 />
@@ -278,6 +280,7 @@ export default function EmployeeSettings() {
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
                   placeholder="Mínimo 8 caracteres"
+                  autoComplete="new-password"
                   required
                   minLength={8}
                   className="border-gray-300"
@@ -294,6 +297,7 @@ export default function EmployeeSettings() {
                   value={passwordForm.confirmPassword}
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                   placeholder="Repite la nueva contraseña"
+                  autoComplete="new-password"
                   required
                   minLength={8}
                   className="border-gray-300"
